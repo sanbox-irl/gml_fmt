@@ -1,5 +1,6 @@
 mod lexer;
 
+
 pub fn run(source: &String) {
-    let scanner = lexer::Scanner::new();                                     
+    let scanner = lexer::scanner::new();                                   
 }

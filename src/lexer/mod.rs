@@ -1,1 +1,1 @@
-pub use super::Scanner;
+pub mod scanner;
