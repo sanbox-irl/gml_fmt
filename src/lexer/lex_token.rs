@@ -1,0 +1,41 @@
+#[derive(Debug)]
+pub enum Token {
+    LeftParen,
+    RightParen,
+    LeftBrace,
+    RightBrace,
+    Comma,
+    Dot,
+    Minus,
+    Plus,
+    Semicolon,
+    Slash,
+    Star,
+
+    Bang,
+    BangEqual,
+    Equal,
+    EqualEqual,
+    Greater,
+    GreaterThan,
+    Less,
+    LessThan,
+
+    Identifier,
+    String,
+    Number,
+
+    Var,
+    And,
+    Or,
+    If,
+    Else,
+    Return,
+    For,
+    Repeat,
+    While,
+    Do,
+    Until,
+
+    EOF,
+}
