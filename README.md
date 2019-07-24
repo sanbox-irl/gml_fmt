@@ -12,14 +12,14 @@ gml_fmt is still is still in active development, having only began in late July 
 
 It is currently only a CLI, though the following platforms will be supported:
 
-- [-] A simple CLI to autoformat on request.
+- [x] A simple CLI to autoformat on request.
 - [ ] A watcher, spawned by CLI, to format all .gml files on save.
 - [ ] A GMEdit plugin to support formatting without saving and to avoid further writes.
 - [ ] A CLI to allow other programs to seamlessly tap into **gml_fmt**.
 
 ### Features
 
-- [-] Can handle code which will not compile. 
+- [x] Can handle code which will not compile. 
 - [ ] Always produces the same output given the same series of tokens, regardless of whitespace. 
 - [ ] Extremely fast with few allocations.
 - [ ] Opinionated. It will have only the minorist of configuration options.
