@@ -33,7 +33,6 @@ impl<'a> Scanner<'a> {
                 '{' => self.add_simple_token(TokenType::LeftBrace, &mut tokens),
                 '}' => self.add_simple_token(TokenType::RightBrace, &mut tokens),
                 ',' => self.add_simple_token(TokenType::Comma, &mut tokens),
-                '.' => self.add_simple_token(TokenType::Dot, &mut tokens),
                 '-' => self.add_simple_token(TokenType::Minus, &mut tokens),
                 '+' => self.add_simple_token(TokenType::Plus, &mut tokens),
                 ';' => self.add_simple_token(TokenType::Semicolon, &mut tokens),
@@ -95,6 +94,118 @@ impl<'a> Scanner<'a> {
                     );
                 }
 
+                // Number literals
+                '.' => {
+                    match iter.peek() {
+                        Some((_, next_char)) if next_char.is_digit(10) => {
+                            let start = i;
+                            let mut current = start;
+
+                            // eat the "."
+                            iter.next();
+
+                            while let Some((i, number_char)) = iter.peek() {
+                                if number_char.is_digit(10) {
+                                    current = *i + 1;
+                                    iter.next();
+                                } else {
+                                    break;
+                                }
+                            }
+
+                            self.add_multiple_token(
+                                TokenType::Number(&self.input[start..current]),
+                                &mut tokens,
+                                (current - start) as u32,
+                            );
+                        }
+                        _ => self.add_simple_token(TokenType::Dot, &mut tokens),
+                    }
+                }
+
+                '0'..='9' => {
+                    let start = i;
+                    let mut current = start + 1;
+
+                    // Check for Hex
+                    if c == '0' {
+                        if let Some((_, number_char)) = iter.peek() {
+                            if *number_char == 'x' {
+                                iter.next();
+
+                                while let Some((i, number_char)) = iter.peek() {
+                                    if number_char.is_digit(16) {
+                                        current = *i + 1;
+                                        iter.next();
+                                    } else {
+                                        break;
+                                    }
+                                }
+
+                                self.add_multiple_token(
+                                    TokenType::Number(&self.input[start..current]),
+                                    &mut tokens,
+                                    (current - start) as u32,
+                                );
+                                continue;
+                            }
+                        }
+                    }
+
+                    let mut is_fractional = false;
+
+                    while let Some((i, number_char)) = iter.peek() {
+                        if number_char.is_digit(10) {
+                            current = *i + 1;
+                            iter.next();
+                        } else {
+                            is_fractional = *number_char == '.';
+                            break;
+                        }
+                    }
+
+                    if is_fractional {
+                        // eat the "."
+                        current = iter.next().unwrap().0 + 1;
+
+                        while let Some((i, number_char)) = iter.peek() {
+                            if number_char.is_digit(10) {
+                                current = *i + 1;
+                                iter.next();
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+
+                    self.add_multiple_token(
+                        TokenType::Number(&self.input[start..current]),
+                        &mut tokens,
+                        (current - start) as u32,
+                    )
+                }
+
+                // Secondary Hex
+                '$' => {
+                    let start = i;
+                    let mut current = start;
+
+                    while let Some((i, hex_char)) = iter.peek() {
+                        if hex_char.is_digit(16) {
+                            current = *i + 1;
+                            iter.next();
+                        } else {
+                            break;
+                        }
+                    }
+
+                    self.add_multiple_token(
+                        TokenType::Number(&self.input[start..current]),
+                        &mut tokens,
+                        (current - start) as u32,
+                    );
+                }
+
                 // Comments
                 '/' => {
                     if self.peek_and_check_consume(&mut iter, '/') {
@@ -123,8 +234,52 @@ impl<'a> Scanner<'a> {
 
                 '\n' => self.next_line(),
                 '\r' => continue,
+
+                'A'..='Z' | 'a'..='z' | '_' => {
+                    let start = i;
+                    let mut current = start + 1;
+
+                    while let Some((i, ident_char)) = iter.peek() {
+                        if ident_char.is_ascii_alphanumeric() || *ident_char == '_' {
+                            current = *i + 1;
+                            iter.next();
+                        } else {
+                            break;
+                        }
+                    }
+
+                    let keyword_token_type = match &self.input[start..current] {
+                        "var" => Some(TokenType::Var),
+                        "and" => Some(TokenType::And),
+                        "or" => Some(TokenType::Or),
+                        "if" => Some(TokenType::If),
+                        "else" => Some(TokenType::Else),
+                        "return" => Some(TokenType::Return),
+                        "for" => Some(TokenType::For),
+                        "repeat" => Some(TokenType::Repeat),
+                        "while" => Some(TokenType::While),
+                        "do" => Some(TokenType::Do),
+                        "until" => Some(TokenType::Until),
+                        _ => None,
+                    };
+
+                    match keyword_token_type {
+                        Some(token_type) => self.add_multiple_token(
+                            token_type,
+                            &mut tokens,
+                            (current - start) as u32,
+                        ),
+                        None => self.add_multiple_token(
+                            TokenType::Identifier(&self.input[start..current]),
+                            &mut tokens,
+                            (current - start) as u32,
+                        ),
+                    }
+                }
+
                 _ => {
                     println!("Unexpected character {}", c);
+                    self.column_number += 1;
                 }
             };
         }

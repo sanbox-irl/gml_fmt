@@ -7,8 +7,12 @@ use lexer::scanner::Scanner;
 pub fn run(source: &str) {
     match lex(source, &mut Vec::new()) {
         Ok(tokens) => {
+            println!("Success!");
+            println!();
+
             for this_token in tokens {
                 println!("{}", this_token);
+                println!();
             }
         }
         Err(err) => {
@@ -35,7 +39,8 @@ mod test {
     fn lex_basic_symbols() {
         let basic_numbers = "// this is a comment
 (( )){} // grouping stuff
-!*+-/=<> >= <= == // operators";
+!*+-/=<> >= <= == // operators
+.";
 
         assert_eq!(
             super::lex(basic_numbers, &mut Vec::new()).expect("Did not succesfully lex..."),
@@ -63,7 +68,8 @@ mod test {
                 Token::new(TokenType::LessEqual, 2, 12),
                 Token::new(TokenType::EqualEqual, 2, 15),
                 Token::new(TokenType::Comment("// operators"), 2, 18),
-                Token::new(TokenType::EOF, 2, 30)
+                Token::new(TokenType::Dot, 3, 0),
+                Token::new(TokenType::EOF, 3, 1)
             ]
         );
     }
@@ -84,5 +90,103 @@ mod test {
                 Token::new(TokenType::EOF, 2, 30)
             ]
         );
+    }
+
+    #[test]
+    fn lex_numbers() {
+        let string_input = "314159
+3.14159
+314159.
+.314159
+4
+9
+0";
+
+        assert_eq!(
+            super::lex(string_input, &mut Vec::new()).expect("Did not succesfully lex..."),
+            &vec![
+                Token::new(TokenType::Number("314159"), 0, 0),
+                Token::new(TokenType::Number("3.14159"), 1, 0),
+                Token::new(TokenType::Number("314159."), 2, 0),
+                Token::new(TokenType::Number(".314159"), 3, 0),
+                Token::new(TokenType::Number("4"), 4, 0),
+                Token::new(TokenType::Number("9"), 5, 0),
+                Token::new(TokenType::Number("0"), 6, 0),
+                Token::new(TokenType::EOF, 6, 1),
+            ]
+        );
+    }
+
+    #[test]
+    fn lex_hex() {
+        let string_input = "0123456789
+0x01234567
+0x0A1B2C3D4E5F6
+0xABCDEF
+$012345
+$0A1B2C3D4E5F6
+$ABCDEF";
+
+        assert_eq!(
+            super::lex(string_input, &mut Vec::new()).expect("Did not succesfully lex..."),
+            &vec![
+                Token::new(TokenType::Number("0123456789"), 0, 0),
+                Token::new(TokenType::Number("0x01234567"), 1, 0),
+                Token::new(TokenType::Number("0x0A1B2C3D4E5F6"), 2, 0),
+                Token::new(TokenType::Number("0xABCDEF"), 3, 0),
+                Token::new(TokenType::Number("$012345"), 4, 0),
+                Token::new(TokenType::Number("$0A1B2C3D4E5F6"), 5, 0),
+                Token::new(TokenType::Number("$ABCDEF"), 6, 0),
+                Token::new(TokenType::EOF, 6, 7),
+            ]
+        );
+    }
+
+    #[test]
+    fn basic_identifiers() {
+        let string_input = "a
+Z
+AbCdE
+_test
+_test123
+test_123
+testCase";
+
+        assert_eq!(
+            super::lex(string_input, &mut Vec::new()).expect("Did not succesfully lex..."),
+            &vec![
+                Token::new(TokenType::Identifier("a"), 0, 0),
+                Token::new(TokenType::Identifier("Z"), 1, 0),
+                Token::new(TokenType::Identifier("AbCdE"), 2, 0),
+                Token::new(TokenType::Identifier("_test"), 3, 0),
+                Token::new(TokenType::Identifier("_test123"), 4, 0),
+                Token::new(TokenType::Identifier("test_123"), 5, 0),
+                Token::new(TokenType::Identifier("testCase"), 6, 0),
+                Token::new(TokenType::EOF, 6, 8),
+            ]
+        )
+    }
+
+    #[test]
+    fn reserved_keywords() {
+        let string_input = "var and or if else return for repeat while do until";
+
+        assert_eq!(
+            super::lex(string_input, &mut Vec::new()).expect("Did not succesfully lex..."),
+            &vec![
+                Token::new(TokenType::Var, 0, 0),
+                Token::new(TokenType::And, 0, 4),
+                Token::new(TokenType::Or, 0, 8),
+                Token::new(TokenType::If, 0, 11),
+                Token::new(TokenType::Else, 0, 14),
+                Token::new(TokenType::Return, 0, 19),
+                Token::new(TokenType::For, 0, 26),
+                Token::new(TokenType::Repeat, 0, 30),
+                Token::new(TokenType::While, 0, 37),
+                Token::new(TokenType::Do, 0, 43),
+                Token::new(TokenType::Until, 0, 46),
+                Token::new(TokenType::EOF, 0, 51),
+            ]
+        )
     }
 }

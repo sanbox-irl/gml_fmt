@@ -39,8 +39,6 @@ pub enum TokenType<'a> {
     Number(&'a str),
 
     Comment(&'a str),
-    Newline,
-
     EOF,
 }
 
