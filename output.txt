@@ -1,17 +1,52 @@
 
-running 2 tests
-test test::lex_strings ... ok
+running 5 tests
+test test::lex_hex ... ok
 test test::lex_basic_symbols ... ok
+test test::lex_numbers ... ok
+test test::lex_strings ... ok
+test test::basic_identifiers ... FAILED
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+failures:
+
+---- test::basic_identifiers stdout ----
+A wild character appeared! a
+A wild character appeared! Z
+A wild character appeared! A
+A wild character appeared! b
+A wild character appeared! C
+A wild character appeared! d
+A wild character appeared! E
+A wild character appeared! _
+A wild character appeared! t
+A wild character appeared! e
+A wild character appeared! s
+A wild character appeared! t
+A wild character appeared! _
+A wild character appeared! t
+A wild character appeared! e
+A wild character appeared! s
+A wild character appeared! t
+A wild character appeared! t
+A wild character appeared! e
+A wild character appeared! s
+A wild character appeared! t
+A wild character appeared! _
+A wild character appeared! t
+A wild character appeared! e
+A wild character appeared! s
+A wild character appeared! t
+A wild character appeared! C
+A wild character appeared! a
+A wild character appeared! s
+A wild character appeared! e
+thread 'test::basic_identifiers' panicked at 'assertion failed: `(left == right)`
+  left: `[Token { token_type: Number("123"), line_number: 4, column_number: 0 }, Token { token_type: Number("123"), line_number: 5, column_number: 0 }, Token { token_type: EOF, line_number: 6, column_number: 0 }]`,
+ right: `[Token { token_type: Identifier("a"), line_number: 0, column_number: 0 }, Token { token_type: Identifier("Z"), line_number: 1, column_number: 0 }, Token { token_type: Identifier("AbCdE"), line_number: 2, column_number: 0 }, Token { token_type: Identifier("_test"), line_number: 3, column_number: 0 }, Token { token_type: Identifier("_test123"), line_number: 4, column_number: 0 }, Token { token_type: Identifier("test_123"), line_number: 5, column_number: 0 }, Token { token_type: Identifier("testCase"), line_number: 6, column_number: 0 }, Token { token_type: EOF, line_number: 6, column_number: 8 }]`', src\lib.rs:151:9
+note: Run with `RUST_BACKTRACE=1` environment variable to display a backtrace.
 
 
-running 0 tests
+failures:
+    test::basic_identifiers
 
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
-
-
-running 0 tests
-
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out
 
