@@ -1,7 +1,9 @@
 #[derive(Debug)]
 pub enum LexError {
-    Unidentified,
+    UnexpectedCharacter(String),
+    UnidentifiedError,
 }
+
 #[derive(Debug)]
 pub struct Error<T> {
     error_type: T,
@@ -10,10 +12,17 @@ pub struct Error<T> {
 }
 
 impl<T> Error<T> {
-    pub fn new(error_type: T) -> Error<T> {
+    pub fn new_no_line(error_type: T) -> Error<T> {
         Error {
             error_type,
-            line_number: 0,
+            line_number: 0
+        }
+    }
+
+    pub fn new(error_type: T, line_number: u32) -> Error<T> {
+        Error {
+            error_type,
+            line_number,
         }
     }
 }

@@ -1,3 +1,3 @@
 fn main() {
-    gml_fmt::run("Initial Test");
+    gml_fmt::run("((     ))");
 }

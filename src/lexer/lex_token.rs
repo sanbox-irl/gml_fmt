@@ -1,5 +1,6 @@
 #[derive(Debug)]
-pub enum Token {
+#[derive(PartialEq)]
+pub enum TokenType<'a> {
     LeftParen,
     RightParen,
     LeftBrace,
@@ -17,13 +18,9 @@ pub enum Token {
     Equal,
     EqualEqual,
     Greater,
-    GreaterThan,
+    GreaterEqual,
     Less,
-    LessThan,
-
-    Identifier,
-    String,
-    Number,
+    LessEqual,
 
     Var,
     And,
@@ -37,5 +34,49 @@ pub enum Token {
     Do,
     Until,
 
+    Identifier(&'a str),
+    String(&'a str),
+    Number(&'a str),
+
+    Comment(&'a str),
+    Newline,
+
     EOF,
+}
+
+#[derive(Debug)]
+#[derive(PartialEq)]
+pub struct Token<'a> {
+    pub token_type: TokenType<'a>,
+    pub line_number: u32,
+    pub column_number: u32,
+}
+
+impl<'a> Token<'a> {
+    pub fn new(token_type: TokenType, line_number: u32, column_number: u32) -> Token {
+        Token {
+            token_type,
+            line_number,
+            column_number,
+        }
+    }
+
+    pub fn token_type(&self) -> &TokenType {
+        &self.token_type
+    }
+
+    pub fn line_number(&self) -> &u32 {
+        &self.line_number
+    }
+}
+
+use std::fmt;
+impl<'a> fmt::Display for Token<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Token {:#?} on {}:{}.",
+            self.token_type, self.line_number, self.column_number
+        )
+    }
 }
