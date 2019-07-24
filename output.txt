@@ -1,52 +1,42 @@
+Success!
 
-running 5 tests
-test test::lex_hex ... ok
-test test::lex_basic_symbols ... ok
-test test::lex_numbers ... ok
-test test::lex_strings ... ok
-test test::basic_identifiers ... FAILED
+Token Comment(
+    "/// @function GetSelectionWater()",
+) on 0:0.
 
-failures:
+Token Return on 1:0.
 
----- test::basic_identifiers stdout ----
-A wild character appeared! a
-A wild character appeared! Z
-A wild character appeared! A
-A wild character appeared! b
-A wild character appeared! C
-A wild character appeared! d
-A wild character appeared! E
-A wild character appeared! _
-A wild character appeared! t
-A wild character appeared! e
-A wild character appeared! s
-A wild character appeared! t
-A wild character appeared! _
-A wild character appeared! t
-A wild character appeared! e
-A wild character appeared! s
-A wild character appeared! t
-A wild character appeared! t
-A wild character appeared! e
-A wild character appeared! s
-A wild character appeared! t
-A wild character appeared! _
-A wild character appeared! t
-A wild character appeared! e
-A wild character appeared! s
-A wild character appeared! t
-A wild character appeared! C
-A wild character appeared! a
-A wild character appeared! s
-A wild character appeared! e
-thread 'test::basic_identifiers' panicked at 'assertion failed: `(left == right)`
-  left: `[Token { token_type: Number("123"), line_number: 4, column_number: 0 }, Token { token_type: Number("123"), line_number: 5, column_number: 0 }, Token { token_type: EOF, line_number: 6, column_number: 0 }]`,
- right: `[Token { token_type: Identifier("a"), line_number: 0, column_number: 0 }, Token { token_type: Identifier("Z"), line_number: 1, column_number: 0 }, Token { token_type: Identifier("AbCdE"), line_number: 2, column_number: 0 }, Token { token_type: Identifier("_test"), line_number: 3, column_number: 0 }, Token { token_type: Identifier("_test123"), line_number: 4, column_number: 0 }, Token { token_type: Identifier("test_123"), line_number: 5, column_number: 0 }, Token { token_type: Identifier("testCase"), line_number: 6, column_number: 0 }, Token { token_type: EOF, line_number: 6, column_number: 8 }]`', src\lib.rs:151:9
-note: Run with `RUST_BACKTRACE=1` environment variable to display a backtrace.
+Token Identifier(
+    "GetSelectionData",
+) on 1:7.
 
+Token LeftParen on 1:23.
 
-failures:
-    test::basic_identifiers
+Token Identifier(
+    "SelectionData",
+) on 1:24.
 
-test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out
+Token Dot on 1:37.
+
+Token Identifier(
+    "Type",
+) on 1:38.
+
+Token RightParen on 1:42.
+
+Token EqualEqual on 1:44.
+
+Token Identifier(
+    "SelectionType",
+) on 1:47.
+
+Token Dot on 1:60.
+
+Token Identifier(
+    "Land",
+) on 1:61.
+
+Token Semicolon on 1:65.
+
+Token EOF on 1:66.
 

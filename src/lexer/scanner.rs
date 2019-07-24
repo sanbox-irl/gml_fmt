@@ -235,8 +235,46 @@ impl<'a> Scanner<'a> {
                 '\n' => self.next_line(),
                 '\r' => continue,
 
-                'A'..='z' => {
-                    println!("A wild character appeared! {}", c);
+                'A'..='Z' | 'a'..='z' | '_' => {
+                    let start = i;
+                    let mut current = start + 1;
+
+                    while let Some((i, ident_char)) = iter.peek() {
+                        if ident_char.is_ascii_alphanumeric() || *ident_char == '_' {
+                            current = *i + 1;
+                            iter.next();
+                        } else {
+                            break;
+                        }
+                    }
+
+                    let keyword_token_type = match &self.input[start..current] {
+                        "var" => Some(TokenType::Var),
+                        "and" => Some(TokenType::And),
+                        "or" => Some(TokenType::Or),
+                        "if" => Some(TokenType::If),
+                        "else" => Some(TokenType::Else),
+                        "return" => Some(TokenType::Return),
+                        "for" => Some(TokenType::For),
+                        "repeat" => Some(TokenType::Repeat),
+                        "while" => Some(TokenType::While),
+                        "do" => Some(TokenType::Do),
+                        "until" => Some(TokenType::Until),
+                        _ => None,
+                    };
+
+                    match keyword_token_type {
+                        Some(token_type) => self.add_multiple_token(
+                            token_type,
+                            &mut tokens,
+                            (current - start) as u32,
+                        ),
+                        None => self.add_multiple_token(
+                            TokenType::Identifier(&self.input[start..current]),
+                            &mut tokens,
+                            (current - start) as u32,
+                        ),
+                    }
                 }
 
                 _ => {

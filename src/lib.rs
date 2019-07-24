@@ -7,8 +7,12 @@ use lexer::scanner::Scanner;
 pub fn run(source: &str) {
     match lex(source, &mut Vec::new()) {
         Ok(tokens) => {
+            println!("Success!");
+            println!();
+
             for this_token in tokens {
                 println!("{}", this_token);
+                println!();
             }
         }
         Err(err) => {
@@ -159,6 +163,29 @@ testCase";
                 Token::new(TokenType::Identifier("test_123"), 5, 0),
                 Token::new(TokenType::Identifier("testCase"), 6, 0),
                 Token::new(TokenType::EOF, 6, 8),
+            ]
+        )
+    }
+
+    #[test]
+    fn reserved_keywords() {
+        let string_input = "var and or if else return for repeat while do until";
+
+        assert_eq!(
+            super::lex(string_input, &mut Vec::new()).expect("Did not succesfully lex..."),
+            &vec![
+                Token::new(TokenType::Var, 0, 0),
+                Token::new(TokenType::And, 0, 4),
+                Token::new(TokenType::Or, 0, 8),
+                Token::new(TokenType::If, 0, 11),
+                Token::new(TokenType::Else, 0, 14),
+                Token::new(TokenType::Return, 0, 19),
+                Token::new(TokenType::For, 0, 26),
+                Token::new(TokenType::Repeat, 0, 30),
+                Token::new(TokenType::While, 0, 37),
+                Token::new(TokenType::Do, 0, 43),
+                Token::new(TokenType::Until, 0, 46),
+                Token::new(TokenType::EOF, 0, 51),
             ]
         )
     }
