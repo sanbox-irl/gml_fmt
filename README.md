@@ -1,4 +1,4 @@
-# gml_fmt
+# gml_fmt: GML Code Formatter
 
 [![Build Status](https://travis-ci.org/sanboxrunner/gml_fmt.svg?branch=master)](https://travis-ci.org/sanboxrunner/gml_fmt)
 
