@@ -1,6 +1,19 @@
+pub mod config;
 mod lexer;
+
 use lexer::lex_token;
 use lexer::scanner::Scanner;
+use std::error::Error;
+use std::fs;
+use config::config::Config;
+
+pub fn run_config(config: Config) -> Result<(), Box<dyn Error>> {
+    let contents = fs::read_to_string(config.filename)?;
+
+    run(&contents);
+
+    Ok(())
+}
 
 pub fn run(source: &str) {
     println!();
