@@ -13,6 +13,7 @@ pub enum TokenType<'a> {
     Semicolon,
     Slash,
     Star,
+    Mod,
 
     LogicalAnd,
     LogicalOr,
@@ -32,8 +33,6 @@ pub enum TokenType<'a> {
     LessEqual,
 
     Var,
-    And,
-    Or,
     If,
     Else,
     Return,
@@ -46,6 +45,14 @@ pub enum TokenType<'a> {
     Case,
     DefaultCase,
     Break,
+    True,
+    False,
+
+    AndAlias,
+    OrAlias,
+    NotAlias,
+    ModAlias,
+    Div,
 
     Identifier(&'a str),
     String(&'a str),

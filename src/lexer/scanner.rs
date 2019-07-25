@@ -38,6 +38,7 @@ impl<'a> Scanner<'a> {
                 ';' => self.add_simple_token(TokenType::Semicolon, &mut tokens),
                 '*' => self.add_simple_token(TokenType::Star, &mut tokens),
                 ':' => self.add_simple_token(TokenType::Colon, &mut tokens),
+                '%' => self.add_simple_token(TokenType::Mod, &mut tokens),
 
                 // Branching multichar
                 '!' => {
@@ -272,8 +273,9 @@ impl<'a> Scanner<'a> {
 
                     let keyword_token_type = match &self.input[start..current] {
                         "var" => Some(TokenType::Var),
-                        "and" => Some(TokenType::And),
-                        "or" => Some(TokenType::Or),
+                        "and" => Some(TokenType::AndAlias),
+                        "or" => Some(TokenType::OrAlias),
+                        "not" => Some(TokenType::NotAlias),
                         "if" => Some(TokenType::If),
                         "else" => Some(TokenType::Else),
                         "return" => Some(TokenType::Return),
@@ -285,6 +287,10 @@ impl<'a> Scanner<'a> {
                         "switch" => Some(TokenType::Switch),
                         "case" => Some(TokenType::Case),
                         "default" => Some(TokenType::DefaultCase),
+                        "true" => Some(TokenType::True),
+                        "false" => Some(TokenType::False),
+                        "mod" => Some(TokenType::ModAlias),
+                        "div" => Some(TokenType::Div),
                         _ => None,
                     };
 

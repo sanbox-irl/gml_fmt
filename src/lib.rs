@@ -39,7 +39,7 @@ mod test {
     fn lex_basic_symbols() {
         let basic_numbers = "// this is a comment
 (( )){} // grouping stuff
-!*+-/=<> >= <= == & | ^ // operators
+!*+-/=%<> >= <= == & | ^ // operators
 .:;, // dots and commas
 && || ^^ // logical operators";
 
@@ -63,15 +63,16 @@ mod test {
                 Token::new(TokenType::Minus, 2, 3),
                 Token::new(TokenType::Slash, 2, 4),
                 Token::new(TokenType::Equal, 2, 5),
-                Token::new(TokenType::Less, 2, 6),
-                Token::new(TokenType::Greater, 2, 7),
-                Token::new(TokenType::GreaterEqual, 2, 9),
-                Token::new(TokenType::LessEqual, 2, 12),
-                Token::new(TokenType::EqualEqual, 2, 15),
-                Token::new(TokenType::BinaryAnd, 2, 18),
-                Token::new(TokenType::BinaryOr, 2, 20),
-                Token::new(TokenType::BinaryXor, 2, 22),
-                Token::new(TokenType::Comment("// operators"), 2, 24),
+                Token::new(TokenType::Mod, 2, 6),
+                Token::new(TokenType::Less, 2, 7),
+                Token::new(TokenType::Greater, 2, 8),
+                Token::new(TokenType::GreaterEqual, 2, 10),
+                Token::new(TokenType::LessEqual, 2, 13),
+                Token::new(TokenType::EqualEqual, 2, 16),
+                Token::new(TokenType::BinaryAnd, 2, 19),
+                Token::new(TokenType::BinaryOr, 2, 21),
+                Token::new(TokenType::BinaryXor, 2, 23),
+                Token::new(TokenType::Comment("// operators"), 2, 25),
                 // line 3
                 Token::new(TokenType::Dot, 3, 0),
                 Token::new(TokenType::Colon, 3, 1),
@@ -185,14 +186,14 @@ testCase";
     #[test]
     fn lex_reserved_keywords() {
         let string_input =
-            "var and or if else return for repeat while do until switch case default";
+            "var and or if else return for repeat while do until switch case default true false div";
 
         assert_eq!(
             super::lex(string_input, &mut Vec::new()).expect("Did not succesfully lex..."),
             &vec![
                 Token::new(TokenType::Var, 0, 0),
-                Token::new(TokenType::And, 0, 4),
-                Token::new(TokenType::Or, 0, 8),
+                Token::new(TokenType::AndAlias, 0, 4),
+                Token::new(TokenType::OrAlias, 0, 8),
                 Token::new(TokenType::If, 0, 11),
                 Token::new(TokenType::Else, 0, 14),
                 Token::new(TokenType::Return, 0, 19),
@@ -204,7 +205,26 @@ testCase";
                 Token::new(TokenType::Switch, 0, 52),
                 Token::new(TokenType::Case, 0, 59),
                 Token::new(TokenType::DefaultCase, 0, 64),
-                Token::new(TokenType::EOF, 0, 71),
+                Token::new(TokenType::True, 0, 72),
+                Token::new(TokenType::False, 0, 77),
+                Token::new(TokenType::Div, 0, 83),
+                Token::new(TokenType::EOF, 0, 86),
+            ]
+        )
+    }
+
+    #[test]
+    fn lex_alias_words() {
+        let basic_numbers = "and not or mod";
+
+        assert_eq!(
+            super::lex(basic_numbers, &mut Vec::new()).expect("Did not succesfully lex..."),
+            &vec![
+                Token::new(TokenType::AndAlias, 0, 0),
+                Token::new(TokenType::NotAlias, 0, 4),
+                Token::new(TokenType::OrAlias, 0, 8),
+                Token::new(TokenType::ModAlias, 0, 11),
+                Token::new(TokenType::EOF, 0, 14)
             ]
         )
     }
