@@ -1,6 +1,4 @@
 mod lexer;
-use lexer::error_tokens::Error;
-use lexer::error_tokens::LexError;
 use lexer::lex_token;
 use lexer::scanner::Scanner;
 
@@ -30,7 +28,7 @@ mod test {
     #[test]
     fn lex_basic_symbols() {
         let basic_numbers = "// this is a comment
-(( )){} // grouping stuff
+(){}[] // grouping stuff
 !*+-/=%<> >= <= == & | ^ // operators
 .:;, // dots and commas
 && || ^^ // logical operators";
@@ -42,12 +40,12 @@ mod test {
                 Token::new(TokenType::Comment("// this is a comment"), 0, 0),
                 // line 1
                 Token::new(TokenType::LeftParen, 1, 0),
-                Token::new(TokenType::LeftParen, 1, 1),
-                Token::new(TokenType::RightParen, 1, 3),
-                Token::new(TokenType::RightParen, 1, 4),
-                Token::new(TokenType::LeftBrace, 1, 5),
-                Token::new(TokenType::RightBrace, 1, 6),
-                Token::new(TokenType::Comment("// grouping stuff"), 1, 8),
+                Token::new(TokenType::RightParen, 1, 1),
+                Token::new(TokenType::LeftBrace, 1, 2),
+                Token::new(TokenType::RightBrace, 1, 3),
+                Token::new(TokenType::LeftBracket, 1, 4),
+                Token::new(TokenType::RightBracket, 1, 5),
+                Token::new(TokenType::Comment("// grouping stuff"), 1, 7),
                 // line 2
                 Token::new(TokenType::Bang, 2, 0),
                 Token::new(TokenType::Star, 2, 1),
@@ -177,11 +175,11 @@ testCase";
 
     #[test]
     fn lex_reserved_keywords() {
-        let string_input =
+        let input_string =
             "var and or if else return for repeat while do until switch case default true false div";
 
         assert_eq!(
-            super::lex(string_input, &mut Vec::new()),
+            super::lex(input_string, &mut Vec::new()),
             &vec![
                 Token::new(TokenType::Var, 0, 0),
                 Token::new(TokenType::AndAlias, 0, 4),
@@ -207,16 +205,34 @@ testCase";
 
     #[test]
     fn lex_alias_words() {
-        let basic_numbers = "and not or mod";
+        let input_string = "and not or mod";
 
         assert_eq!(
-            super::lex(basic_numbers, &mut Vec::new()),
+            super::lex(input_string, &mut Vec::new()),
             &vec![
                 Token::new(TokenType::AndAlias, 0, 0),
                 Token::new(TokenType::NotAlias, 0, 4),
                 Token::new(TokenType::OrAlias, 0, 8),
                 Token::new(TokenType::ModAlias, 0, 11),
                 Token::new(TokenType::EOF, 0, 14)
+            ]
+        )
+    }
+
+    #[test]
+    fn lex_indexers() {
+        let input_string = "[ [? [# [| [@ ]";
+
+        assert_eq!(
+            super::lex(input_string, &mut Vec::new()),
+            &vec![
+                Token::new(TokenType::LeftBracket, 0, 0),
+                Token::new(TokenType::MapIndexer, 0, 2),
+                Token::new(TokenType::GridIndexer, 0, 5),
+                Token::new(TokenType::ListIndexer, 0, 8),
+                Token::new(TokenType::ArrayIndexer, 0, 11),
+                Token::new(TokenType::RightBracket, 0, 14),
+                Token::new(TokenType::EOF, 0, 15),
             ]
         )
     }

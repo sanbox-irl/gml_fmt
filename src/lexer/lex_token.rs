@@ -5,6 +5,8 @@ pub enum TokenType<'a> {
     RightParen,
     LeftBrace,
     RightBrace,
+    LeftBracket,
+    RightBracket,
     Comma,
     Dot,
     Minus,
@@ -14,6 +16,11 @@ pub enum TokenType<'a> {
     Slash,
     Star,
     Mod,
+
+    ListIndexer,
+    MapIndexer,
+    GridIndexer,
+    ArrayIndexer,
 
     LogicalAnd,
     LogicalOr,

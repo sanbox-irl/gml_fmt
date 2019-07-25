@@ -1,4 +1,3 @@
-use super::error_tokens::*;
 use super::lex_token::*;
 use std::iter::Enumerate;
 use std::iter::Peekable;
@@ -19,10 +18,7 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub fn lex_input<'b>(
-        &mut self,
-        mut tokens: &'b mut Vec<Token<'a>>,
-    ) -> &'b Vec<Token<'a>> {
+    pub fn lex_input<'b>(&mut self, mut tokens: &'b mut Vec<Token<'a>>) -> &'b Vec<Token<'a>> {
         let mut iter = self.input.chars().enumerate().peekable();
 
         while let Some((i, c)) = iter.next() {
@@ -39,8 +35,9 @@ impl<'a> Scanner<'a> {
                 '*' => self.add_simple_token(TokenType::Star, &mut tokens),
                 ':' => self.add_simple_token(TokenType::Colon, &mut tokens),
                 '%' => self.add_simple_token(TokenType::Mod, &mut tokens),
+                ']' => self.add_simple_token(TokenType::RightBracket, &mut tokens),
 
-                // Branching multichar
+                // Branching multichar symbols
                 '!' => {
                     if self.peek_and_check_consume(&mut iter, '=') {
                         self.add_multiple_token(TokenType::BangEqual, &mut tokens, 2);
@@ -90,6 +87,30 @@ impl<'a> Scanner<'a> {
                         self.add_simple_token(TokenType::BinaryXor, &mut tokens);
                     }
                 }
+
+                '[' => match iter.peek() {
+                    Some((_i, next_char)) if *next_char == '@' => {
+                        self.add_multiple_token(TokenType::ArrayIndexer, &mut tokens, 2);
+                        iter.next();
+                    }
+
+                    Some((_i, next_char)) if *next_char == '?' => {
+                        self.add_multiple_token(TokenType::MapIndexer, &mut tokens, 2);
+                        iter.next();
+                    }
+
+                    Some((_i, next_char)) if *next_char == '|' => {
+                        self.add_multiple_token(TokenType::ListIndexer, &mut tokens, 2);
+                        iter.next();
+                    }
+
+                    Some((_i, next_char)) if *next_char == '#' => {
+                        self.add_multiple_token(TokenType::GridIndexer, &mut tokens, 2);
+                        iter.next();
+                    }
+
+                    _ => self.add_simple_token(TokenType::LeftBracket, &mut tokens),
+                },
 
                 // string literals
                 '"' => {
