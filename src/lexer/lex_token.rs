@@ -16,6 +16,7 @@ pub enum TokenType<'a> {
     Slash,
     Star,
     Mod,
+    Hashtag,
 
     ListIndexer,
     MapIndexer,
@@ -38,6 +39,10 @@ pub enum TokenType<'a> {
     GreaterEqual,
     Less,
     LessEqual,
+
+    Macro,
+    RegionBegin,
+    RegionEnd,
 
     Var,
     If,

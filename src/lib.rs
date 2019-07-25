@@ -29,7 +29,8 @@ pub fn lex<'a>(
 ) -> &'a Vec<lex_token::Token<'a>> {
     let mut scanner = Scanner::new(source);
 
-    scanner.lex_input(vec)
+    scanner.lex_input(vec);
+    vec
 }
 
 #[cfg(test)]
@@ -41,7 +42,7 @@ mod test {
     fn lex_basic_symbols() {
         let basic_numbers = "// this is a comment
 (){}[] // grouping stuff
-!*+-/=%<> >= <= == & | ^ // operators
+!*+-/=%<> >= <= == & | ^ # // operators
 .:;, // dots and commas
 && || ^^ // logical operators";
 
@@ -74,7 +75,8 @@ mod test {
                 Token::new(TokenType::BinaryAnd, 2, 19),
                 Token::new(TokenType::BinaryOr, 2, 21),
                 Token::new(TokenType::BinaryXor, 2, 23),
-                Token::new(TokenType::Comment("// operators"), 2, 25),
+                Token::new(TokenType::Hashtag, 2, 25),
+                Token::new(TokenType::Comment("// operators"), 2, 27),
                 // line 3
                 Token::new(TokenType::Dot, 3, 0),
                 Token::new(TokenType::Colon, 3, 1),
@@ -245,6 +247,28 @@ testCase";
                 Token::new(TokenType::ArrayIndexer, 0, 11),
                 Token::new(TokenType::RightBracket, 0, 14),
                 Token::new(TokenType::EOF, 0, 15),
+            ]
+        )
+    }
+
+#[test]
+    fn lex_region() {
+        let input_string = "#region Region Name Long
+#macro macroName 0
+#endregion";
+
+        assert_eq!(
+            super::lex(input_string, &mut Vec::new()),
+            &vec![
+                Token::new(TokenType::RegionBegin, 0, 0),
+                Token::new(TokenType::Identifier("Region"), 0, 8),
+                Token::new(TokenType::Identifier("Name"), 0, 15),
+                Token::new(TokenType::Identifier("Long"), 0, 20),
+                Token::new(TokenType::Macro, 1, 0),
+                Token::new(TokenType::Identifier("macroName"), 1, 7),
+                Token::new(TokenType::Number("0"), 1, 17),
+                Token::new(TokenType::RegionEnd, 2, 0),
+                Token::new(TokenType::EOF, 2, 10),
             ]
         )
     }

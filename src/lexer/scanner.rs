@@ -18,7 +18,7 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub fn lex_input<'b>(&mut self, mut tokens: &'b mut Vec<Token<'a>>) -> &'b Vec<Token<'a>> {
+    pub fn lex_input(&mut self, mut tokens: &mut Vec<Token<'a>>) {
         let mut iter = self.input.chars().enumerate().peekable();
 
         while let Some((i, c)) = iter.next() {
@@ -73,6 +73,7 @@ impl<'a> Scanner<'a> {
                         self.add_simple_token(TokenType::BinaryAnd, &mut tokens);
                     }
                 }
+
                 '|' => {
                     if self.peek_and_check_consume(&mut iter, '|') {
                         self.add_multiple_token(TokenType::LogicalOr, &mut tokens, 2);
@@ -80,6 +81,7 @@ impl<'a> Scanner<'a> {
                         self.add_simple_token(TokenType::BinaryOr, &mut tokens);
                     }
                 }
+
                 '^' => {
                     if self.peek_and_check_consume(&mut iter, '^') {
                         self.add_multiple_token(TokenType::LogicalXor, &mut tokens, 2);
@@ -112,23 +114,60 @@ impl<'a> Scanner<'a> {
                     _ => self.add_simple_token(TokenType::LeftBracket, &mut tokens),
                 },
 
+                // Compiler Directives
+                '#' => {
+                    let start = i;
+                    let mut current = start;
+
+                    if let None = self.peek_and_check_while(&mut iter, |i, this_char| {
+                        current = i;
+                        this_char.is_ascii_alphanumeric() || this_char == '_'
+                    }) {
+                        current += 1;
+                    };
+
+                    let token_returned = self.check_for_macro_directive(start, current);
+
+                    match token_returned {
+                        Some(macro_directive) => self.add_multiple_token(
+                            macro_directive,
+                            &mut tokens,
+                            (current - start) as u32,
+                        ),
+
+                        None => {
+                            // we're adding a hashtag token, which doesn't really mean anything,
+                            // but just want to keep the sizes right.
+                            self.add_simple_token(TokenType::Hashtag, &mut tokens);
+
+                            // for a weird # floating in space
+                            if current - start - 1 != 0 {
+                                self.add_multiple_token(
+                                    TokenType::Identifier(&self.input[start..current]),
+                                    &mut tokens,
+                                    (current - start - 1) as u32,
+                                );
+                            }
+                        }
+                    }
+                }
+
                 // string literals
                 '"' => {
                     let start = i;
                     let mut current = start;
 
-                    while let Some((i, comment_char)) = iter.peek() {
-                        match comment_char {
-                            '\n' => {
-                                current = *i;
-                                break;
-                            }
-                            '"' => {
-                                current = iter.next().unwrap().0 + 1;
-                                break;
-                            }
-                            _ => current = iter.next().unwrap().0,
-                        };
+                    if let Some((i, break_char)) =
+                        self.peek_and_check_while(&mut iter, |i, string_char| {
+                            current = i;
+                            string_char != '\n' && string_char != '"'
+                        })
+                    {
+                        // eat the quote
+                        if break_char == '"' {
+                            iter.next();
+                            current = i + 1;
+                        }
                     }
 
                     self.add_multiple_token(
@@ -234,13 +273,11 @@ impl<'a> Scanner<'a> {
                     let start = i;
                     let mut current = start;
 
-                    while let Some((i, hex_char)) = iter.peek() {
-                        if hex_char.is_digit(16) {
-                            current = *i + 1;
-                            iter.next();
-                        } else {
-                            break;
-                        }
+                    if let None = self.peek_and_check_while(&mut iter, |i, hex_char| {
+                        current = i;
+                        hex_char.is_digit(16)
+                    }) {
+                        current += 1;
                     }
 
                     self.add_multiple_token(
@@ -256,15 +293,13 @@ impl<'a> Scanner<'a> {
                         let start = i;
                         let mut current = start;
 
-                        while let Some((i, comment_char)) = iter.peek() {
-                            if comment_char != &'\n' {
-                                // @Jack unroll the logic of this at some point. Current confusing.
-                                current = *i + 1;
-                                iter.next();
-                            } else {
-                                break;
-                            }
+                        if let None = self.peek_and_check_while(&mut iter, |i, this_char| {
+                            current = i;
+                            this_char != '\n'
+                        }) {
+                            current += 1;
                         }
+
                         self.add_multiple_token(
                             TokenType::Comment(&self.input[start..current]),
                             &mut tokens,
@@ -283,37 +318,15 @@ impl<'a> Scanner<'a> {
                     let start = i;
                     let mut current = start + 1;
 
-                    while let Some((i, ident_char)) = iter.peek() {
-                        if ident_char.is_ascii_alphanumeric() || *ident_char == '_' {
-                            current = *i + 1;
-                            iter.next();
-                        } else {
-                            break;
-                        }
-                    }
-
-                    let keyword_token_type = match &self.input[start..current] {
-                        "var" => Some(TokenType::Var),
-                        "and" => Some(TokenType::AndAlias),
-                        "or" => Some(TokenType::OrAlias),
-                        "not" => Some(TokenType::NotAlias),
-                        "if" => Some(TokenType::If),
-                        "else" => Some(TokenType::Else),
-                        "return" => Some(TokenType::Return),
-                        "for" => Some(TokenType::For),
-                        "repeat" => Some(TokenType::Repeat),
-                        "while" => Some(TokenType::While),
-                        "do" => Some(TokenType::Do),
-                        "until" => Some(TokenType::Until),
-                        "switch" => Some(TokenType::Switch),
-                        "case" => Some(TokenType::Case),
-                        "default" => Some(TokenType::DefaultCase),
-                        "true" => Some(TokenType::True),
-                        "false" => Some(TokenType::False),
-                        "mod" => Some(TokenType::ModAlias),
-                        "div" => Some(TokenType::Div),
-                        _ => None,
+                    if let None = self.peek_and_check_while(&mut iter, |i, this_char| {
+                        current = i;
+                        this_char.is_ascii_alphanumeric() || this_char == '_'
+                    }) {
+                        current += 1;
                     };
+
+                    let keyword_token_type: Option<TokenType> =
+                        self.check_for_keyword(start, current);
 
                     match keyword_token_type {
                         Some(token_type) => self.add_multiple_token(
@@ -337,7 +350,6 @@ impl<'a> Scanner<'a> {
         }
 
         self.add_simple_token(TokenType::EOF, tokens);
-        tokens
     }
 
     fn add_simple_token(&mut self, token_type: TokenType<'a>, tokens: &mut Vec<Token<'a>>) {
@@ -370,8 +382,59 @@ impl<'a> Scanner<'a> {
         }
     }
 
+    fn peek_and_check_while<F>(
+        &self,
+        iter: &mut Peekable<Enumerate<Chars>>,
+        mut f: F,
+    ) -> Option<(usize, char)>
+    where
+        F: FnMut(usize, char) -> bool,
+    {
+        while let Some((i, next_char)) = iter.peek() {
+            if f(*i, *next_char) == false {
+                return Some((*i, *next_char));
+            };
+            iter.next();
+        }
+        None
+    }
+
     fn next_line(&mut self) {
         self.line_number += 1;
         self.column_number = 0;
+    }
+
+    fn check_for_keyword(&self, start: usize, current: usize) -> Option<TokenType<'a>> {
+        match &self.input[start..current] {
+            "var" => Some(TokenType::Var),
+            "and" => Some(TokenType::AndAlias),
+            "or" => Some(TokenType::OrAlias),
+            "not" => Some(TokenType::NotAlias),
+            "if" => Some(TokenType::If),
+            "else" => Some(TokenType::Else),
+            "return" => Some(TokenType::Return),
+            "for" => Some(TokenType::For),
+            "repeat" => Some(TokenType::Repeat),
+            "while" => Some(TokenType::While),
+            "do" => Some(TokenType::Do),
+            "until" => Some(TokenType::Until),
+            "switch" => Some(TokenType::Switch),
+            "case" => Some(TokenType::Case),
+            "default" => Some(TokenType::DefaultCase),
+            "true" => Some(TokenType::True),
+            "false" => Some(TokenType::False),
+            "mod" => Some(TokenType::ModAlias),
+            "div" => Some(TokenType::Div),
+            _ => None,
+        }
+    }
+
+    fn check_for_macro_directive(&self, start: usize, current: usize) -> Option<TokenType<'a>> {
+        match &self.input[start..current] {
+            "#macro" => Some(TokenType::Macro),
+            "#region" => Some(TokenType::RegionBegin),
+            "#endregion" => Some(TokenType::RegionEnd),
+            _ => None,
+        }
     }
 }
