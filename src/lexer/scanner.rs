@@ -261,6 +261,9 @@ impl<'a> Scanner<'a> {
                         "while" => Some(TokenType::While),
                         "do" => Some(TokenType::Do),
                         "until" => Some(TokenType::Until),
+                        "switch" => Some(TokenType::Switch),
+                        "case" => Some(TokenType::Case),
+                        "default" => Some(TokenType::DefaultCase),
                         _ => None,
                     };
 
