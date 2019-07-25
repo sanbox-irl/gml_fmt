@@ -1,23 +1,22 @@
 pub mod config;
 mod lexer;
 
-use lexer::lex_token;
-use lexer::scanner::Scanner;
-use std::error::Error;
-use std::fs;
 use config::config::Config;
+use lexer::{lex_token, scanner::Scanner};
+use std::{error::Error, fs};
 
 pub fn run_config(config: Config) -> Result<(), Box<dyn Error>> {
-    let contents = fs::read_to_string(config.filename)?;
+    for this_file in config.files {
+        println!("========== LEX READOUT OF {:?} ==========", this_file);
+        let contents = fs::read_to_string(this_file)?;
 
-    run(&contents);
+        run(&contents);
+    }
 
     Ok(())
 }
 
 pub fn run(source: &str) {
-    println!();
-
     for this_token in lex(source, &mut Vec::new()) {
         println!("{}", this_token);
         println!();
