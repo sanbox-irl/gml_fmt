@@ -22,7 +22,7 @@ impl<'a> Scanner<'a> {
     pub fn lex_input<'b>(
         &mut self,
         mut tokens: &'b mut Vec<Token<'a>>,
-    ) -> Result<&'b Vec<Token<'a>>, Error<LexError>> {
+    ) -> &'b Vec<Token<'a>> {
         let mut iter = self.input.chars().enumerate().peekable();
 
         while let Some((i, c)) = iter.next() {
@@ -316,7 +316,7 @@ impl<'a> Scanner<'a> {
         }
 
         self.add_simple_token(TokenType::EOF, tokens);
-        Ok(tokens)
+        tokens
     }
 
     fn add_simple_token(&mut self, token_type: TokenType<'a>, tokens: &mut Vec<Token<'a>>) {

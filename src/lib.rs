@@ -5,26 +5,18 @@ use lexer::lex_token;
 use lexer::scanner::Scanner;
 
 pub fn run(source: &str) {
-    match lex(source, &mut Vec::new()) {
-        Ok(tokens) => {
-            println!("Success!");
-            println!();
+    println!();
 
-            for this_token in tokens {
-                println!("{}", this_token);
-                println!();
-            }
-        }
-        Err(err) => {
-            println!("{}", err);
-        }
-    };
+    for this_token in lex(source, &mut Vec::new()) {
+        println!("{}", this_token);
+        println!();
+    }
 }
 
 pub fn lex<'a>(
     source: &'a str,
     vec: &'a mut Vec<lex_token::Token<'a>>,
-) -> Result<&'a Vec<lex_token::Token<'a>>, Error<LexError>> {
+) -> &'a Vec<lex_token::Token<'a>> {
     let mut scanner = Scanner::new(source);
 
     scanner.lex_input(vec)
@@ -44,7 +36,7 @@ mod test {
 && || ^^ // logical operators";
 
         assert_eq!(
-            super::lex(basic_numbers, &mut Vec::new()).expect("Did not succesfully lex..."),
+            super::lex(basic_numbers, &mut Vec::new()),
             &vec![
                 // line 0
                 Token::new(TokenType::Comment("// this is a comment"), 0, 0),
@@ -97,7 +89,7 @@ mod test {
 \"This is another good string!\"";
 
         assert_eq!(
-            super::lex(string_input, &mut Vec::new()).expect("Did not succesfully lex..."),
+            super::lex(string_input, &mut Vec::new()),
             &vec![
                 // line 0
                 Token::new(TokenType::String("\"This is a good string.\""), 0, 0),
@@ -119,7 +111,7 @@ mod test {
 0";
 
         assert_eq!(
-            super::lex(string_input, &mut Vec::new()).expect("Did not succesfully lex..."),
+            super::lex(string_input, &mut Vec::new()),
             &vec![
                 Token::new(TokenType::Number("314159"), 0, 0),
                 Token::new(TokenType::Number("3.14159"), 1, 0),
@@ -144,7 +136,7 @@ $0A1B2C3D4E5F6
 $ABCDEF";
 
         assert_eq!(
-            super::lex(string_input, &mut Vec::new()).expect("Did not succesfully lex..."),
+            super::lex(string_input, &mut Vec::new()),
             &vec![
                 Token::new(TokenType::Number("0123456789"), 0, 0),
                 Token::new(TokenType::Number("0x01234567"), 1, 0),
@@ -169,7 +161,7 @@ test_123
 testCase";
 
         assert_eq!(
-            super::lex(string_input, &mut Vec::new()).expect("Did not succesfully lex..."),
+            super::lex(string_input, &mut Vec::new()),
             &vec![
                 Token::new(TokenType::Identifier("a"), 0, 0),
                 Token::new(TokenType::Identifier("Z"), 1, 0),
@@ -189,7 +181,7 @@ testCase";
             "var and or if else return for repeat while do until switch case default true false div";
 
         assert_eq!(
-            super::lex(string_input, &mut Vec::new()).expect("Did not succesfully lex..."),
+            super::lex(string_input, &mut Vec::new()),
             &vec![
                 Token::new(TokenType::Var, 0, 0),
                 Token::new(TokenType::AndAlias, 0, 4),
@@ -218,7 +210,7 @@ testCase";
         let basic_numbers = "and not or mod";
 
         assert_eq!(
-            super::lex(basic_numbers, &mut Vec::new()).expect("Did not succesfully lex..."),
+            super::lex(basic_numbers, &mut Vec::new()),
             &vec![
                 Token::new(TokenType::AndAlias, 0, 0),
                 Token::new(TokenType::NotAlias, 0, 4),
