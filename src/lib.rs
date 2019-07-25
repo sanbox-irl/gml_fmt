@@ -252,11 +252,13 @@ testCase";
         )
     }
 
-#[test]
-    fn lex_region() {
+    #[test]
+    fn lex_compiler_directives() {
         let input_string = "#region Region Name Long
 #macro macroName 0
-#endregion";
+#endregion
+#macro doing this \\
+is bad";
 
         assert_eq!(
             super::lex(input_string, &mut Vec::new()),
@@ -269,8 +271,38 @@ testCase";
                 Token::new(TokenType::Identifier("macroName"), 1, 7),
                 Token::new(TokenType::Number("0"), 1, 17),
                 Token::new(TokenType::RegionEnd, 2, 0),
-                Token::new(TokenType::EOF, 2, 10),
+                Token::new(TokenType::Macro, 3, 0),
+                Token::new(TokenType::Identifier("doing"), 3, 7),
+                Token::new(TokenType::Identifier("this"), 3, 13),
+                Token::new(TokenType::Backslash, 3, 18),
+                Token::new(TokenType::Identifier("is"), 4, 0),
+                Token::new(TokenType::Identifier("bad"), 4, 3),
+                Token::new(TokenType::EOF, 4, 6),
             ]
         )
     }
+//     #[test]
+//     fn lex_comments() {
+//         let input_string = "// normal comment
+// var x = 20; // end comment
+// /* one liner */
+// /* muli
+// liner comment
+// */";
+
+//         assert_eq!(
+//             super::lex(input_string, &mut Vec::new()),
+//             &vec![
+//                 Token::new(TokenType::RegionBegin, 0, 0),
+//                 Token::new(TokenType::Identifier("Region"), 0, 8),
+//                 Token::new(TokenType::Identifier("Name"), 0, 15),
+//                 Token::new(TokenType::Identifier("Long"), 0, 20),
+//                 Token::new(TokenType::Macro, 1, 0),
+//                 Token::new(TokenType::Identifier("macroName"), 1, 7),
+//                 Token::new(TokenType::Number("0"), 1, 17),
+//                 Token::new(TokenType::RegionEnd, 2, 0),
+//                 Token::new(TokenType::EOF, 2, 10),
+//             ]
+//         )
+//     }
 }

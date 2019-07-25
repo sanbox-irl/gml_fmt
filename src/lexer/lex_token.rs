@@ -14,9 +14,13 @@ pub enum TokenType<'a> {
     Colon,
     Semicolon,
     Slash,
+    Backslash,
     Star,
     Mod,
     Hashtag,
+
+    LeftCommentSlashStar,
+    RightCommentStarSlash,
 
     ListIndexer,
     MapIndexer,

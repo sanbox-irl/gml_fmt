@@ -37,6 +37,7 @@ impl<'a> Scanner<'a> {
                 '%' => self.add_simple_token(TokenType::Mod, &mut tokens),
                 ']' => self.add_simple_token(TokenType::RightBracket, &mut tokens),
                 '?' => self.add_simple_token(TokenType::Hook, &mut tokens),
+                '\\' => self.add_simple_token(TokenType::Backslash, &mut tokens),
 
                 // Branching multichar symbols
                 '!' => {
