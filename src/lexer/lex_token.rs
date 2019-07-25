@@ -9,6 +9,7 @@ pub enum TokenType<'a> {
     Dot,
     Minus,
     Plus,
+    Colon,
     Semicolon,
     Slash,
     Star,
@@ -33,6 +34,10 @@ pub enum TokenType<'a> {
     While,
     Do,
     Until,
+    Switch,
+    Case,
+    DefaultCase,
+    Break,
 
     Identifier(&'a str),
     String(&'a str),

@@ -40,7 +40,7 @@ mod test {
         let basic_numbers = "// this is a comment
 (( )){} // grouping stuff
 !*+-/=<> >= <= == // operators
-.";
+.:;, // dots and commas";
 
         assert_eq!(
             super::lex(basic_numbers, &mut Vec::new()).expect("Did not succesfully lex..."),
@@ -69,7 +69,11 @@ mod test {
                 Token::new(TokenType::EqualEqual, 2, 15),
                 Token::new(TokenType::Comment("// operators"), 2, 18),
                 Token::new(TokenType::Dot, 3, 0),
-                Token::new(TokenType::EOF, 3, 1)
+                Token::new(TokenType::Colon, 3, 1),
+                Token::new(TokenType::Semicolon, 3, 2),
+                Token::new(TokenType::Comma, 3, 3),
+                Token::new(TokenType::Comment("// dots and commas"), 3, 5),
+                Token::new(TokenType::EOF, 3, 23)
             ]
         );
     }
@@ -169,7 +173,7 @@ testCase";
 
     #[test]
     fn reserved_keywords() {
-        let string_input = "var and or if else return for repeat while do until";
+        let string_input = "var and or if else return for repeat while do until switch case default";
 
         assert_eq!(
             super::lex(string_input, &mut Vec::new()).expect("Did not succesfully lex..."),
@@ -185,7 +189,10 @@ testCase";
                 Token::new(TokenType::While, 0, 37),
                 Token::new(TokenType::Do, 0, 43),
                 Token::new(TokenType::Until, 0, 46),
-                Token::new(TokenType::EOF, 0, 51),
+                Token::new(TokenType::Switch, 0, 52),
+                Token::new(TokenType::Case, 0, 59),
+                Token::new(TokenType::DefaultCase, 0, 64),
+                Token::new(TokenType::EOF, 0, 71),
             ]
         )
     }
