@@ -42,7 +42,7 @@ mod test {
     fn lex_basic_symbols() {
         let basic_numbers = "// this is a comment
 (){}[] // grouping stuff
-!*+-/=%<> >= <= == & | ^ # // operators
+!*+-/=%<> >= <= == & | ^ # ? // operators
 .:;, // dots and commas
 && || ^^ // logical operators";
 
@@ -76,7 +76,8 @@ mod test {
                 Token::new(TokenType::BinaryOr, 2, 21),
                 Token::new(TokenType::BinaryXor, 2, 23),
                 Token::new(TokenType::Hashtag, 2, 25),
-                Token::new(TokenType::Comment("// operators"), 2, 27),
+                Token::new(TokenType::Hook, 2, 27),
+                Token::new(TokenType::Comment("// operators"), 2, 29),
                 // line 3
                 Token::new(TokenType::Dot, 3, 0),
                 Token::new(TokenType::Colon, 3, 1),

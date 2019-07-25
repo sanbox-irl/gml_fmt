@@ -32,6 +32,7 @@ pub enum TokenType<'a> {
     BinaryXor,
 
     Bang,
+    Hook,
     BangEqual,
     Equal,
     EqualEqual,
