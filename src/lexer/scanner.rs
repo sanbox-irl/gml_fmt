@@ -68,6 +68,27 @@ impl<'a> Scanner<'a> {
                         self.add_simple_token(TokenType::Greater, &mut tokens)
                     }
                 }
+                '&' => {
+                    if self.peek_and_check_consume(&mut iter, '&') {
+                        self.add_multiple_token(TokenType::LogicalAnd, &mut tokens, 2);
+                    } else {
+                        self.add_simple_token(TokenType::BinaryAnd, &mut tokens);
+                    }
+                }
+                '|' => {
+                    if self.peek_and_check_consume(&mut iter, '|') {
+                        self.add_multiple_token(TokenType::LogicalOr, &mut tokens, 2);
+                    } else {
+                        self.add_simple_token(TokenType::BinaryOr, &mut tokens);
+                    }
+                }
+                '^' => {
+                    if self.peek_and_check_consume(&mut iter, '^') {
+                        self.add_multiple_token(TokenType::LogicalXor, &mut tokens, 2);
+                    } else {
+                        self.add_simple_token(TokenType::BinaryXor, &mut tokens);
+                    }
+                }
 
                 // string literals
                 '"' => {

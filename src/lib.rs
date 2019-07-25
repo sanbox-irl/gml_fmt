@@ -39,8 +39,9 @@ mod test {
     fn lex_basic_symbols() {
         let basic_numbers = "// this is a comment
 (( )){} // grouping stuff
-!*+-/=<> >= <= == // operators
-.:;, // dots and commas";
+!*+-/=<> >= <= == & | ^ // operators
+.:;, // dots and commas
+&& || ^^ // logical operators";
 
         assert_eq!(
             super::lex(basic_numbers, &mut Vec::new()).expect("Did not succesfully lex..."),
@@ -67,13 +68,23 @@ mod test {
                 Token::new(TokenType::GreaterEqual, 2, 9),
                 Token::new(TokenType::LessEqual, 2, 12),
                 Token::new(TokenType::EqualEqual, 2, 15),
-                Token::new(TokenType::Comment("// operators"), 2, 18),
+                Token::new(TokenType::BinaryAnd, 2, 18),
+                Token::new(TokenType::BinaryOr, 2, 20),
+                Token::new(TokenType::BinaryXor, 2, 22),
+                Token::new(TokenType::Comment("// operators"), 2, 24),
+                // line 3
                 Token::new(TokenType::Dot, 3, 0),
                 Token::new(TokenType::Colon, 3, 1),
                 Token::new(TokenType::Semicolon, 3, 2),
                 Token::new(TokenType::Comma, 3, 3),
                 Token::new(TokenType::Comment("// dots and commas"), 3, 5),
-                Token::new(TokenType::EOF, 3, 23)
+                // line 4
+                Token::new(TokenType::LogicalAnd, 4, 0),
+                Token::new(TokenType::LogicalOr, 4, 3),
+                Token::new(TokenType::LogicalXor, 4, 6),
+                Token::new(TokenType::Comment("// logical operators"), 4, 9),
+                //EOF
+                Token::new(TokenType::EOF, 4, 29)
             ]
         );
     }
@@ -173,7 +184,8 @@ testCase";
 
     #[test]
     fn lex_reserved_keywords() {
-        let string_input = "var and or if else return for repeat while do until switch case default";
+        let string_input =
+            "var and or if else return for repeat while do until switch case default";
 
         assert_eq!(
             super::lex(string_input, &mut Vec::new()).expect("Did not succesfully lex..."),

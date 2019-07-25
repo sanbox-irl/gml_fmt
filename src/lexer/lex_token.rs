@@ -14,6 +14,14 @@ pub enum TokenType<'a> {
     Slash,
     Star,
 
+    LogicalAnd,
+    LogicalOr,
+    LogicalXor,
+
+    BinaryAnd,
+    BinaryOr,
+    BinaryXor,
+
     Bang,
     BangEqual,
     Equal,
