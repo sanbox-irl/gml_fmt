@@ -37,6 +37,7 @@ impl<'a> Scanner<'a> {
                 '+' => self.add_simple_token(TokenType::Plus, &mut tokens),
                 ';' => self.add_simple_token(TokenType::Semicolon, &mut tokens),
                 '*' => self.add_simple_token(TokenType::Star, &mut tokens),
+                ':' => self.add_simple_token(TokenType::Colon, &mut tokens),
 
                 // Branching multichar
                 '!' => {

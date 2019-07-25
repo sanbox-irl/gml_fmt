@@ -147,7 +147,7 @@ $ABCDEF";
     }
 
     #[test]
-    fn basic_identifiers() {
+    fn lex_basic_identifiers() {
         let string_input = "a
 Z
 AbCdE
@@ -172,7 +172,7 @@ testCase";
     }
 
     #[test]
-    fn reserved_keywords() {
+    fn lex_reserved_keywords() {
         let string_input = "var and or if else return for repeat while do until switch case default";
 
         assert_eq!(
