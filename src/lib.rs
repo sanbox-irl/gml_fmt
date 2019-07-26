@@ -19,14 +19,30 @@ pub fn run_config(input_path: PathBuf, do_file: bool) -> Result<(), Box<dyn Erro
     Ok(())
 }
 
-pub fn run(source: &str) {
+pub fn run_config_test_file_no_output(file_path: &str) -> Result<(), Box<dyn Error>> {
+    let config = Config::new(PathBuf::from(file_path), true)?;
+
+    for this_file in config.files {
+        let contents = fs::read_to_string(this_file)?;
+
+        lex(&contents, &mut Vec::new());
+    }
+
+    Ok(())
+}
+
+pub fn run_config_test_file_output(file_path: &str)-> Result<(), Box<dyn Error>> {
+    run_config(PathBuf::from(file_path), true)
+}
+
+fn run(source: &str) {
     for this_token in lex(source, &mut Vec::new()) {
         println!("{}", this_token);
         println!();
     }
 }
 
-pub fn lex<'a>(
+fn lex<'a>(
     source: &'a str,
     vec: &'a mut Vec<lex_token::Token<'a>>,
 ) -> &'a Vec<lex_token::Token<'a>> {
