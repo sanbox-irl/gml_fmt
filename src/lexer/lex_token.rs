@@ -19,9 +19,6 @@ pub enum TokenType<'a> {
     Mod,
     Hashtag,
 
-    LeftCommentSlashStar,
-    RightCommentStarSlash,
-
     ListIndexer,
     MapIndexer,
     GridIndexer,
@@ -76,6 +73,7 @@ pub enum TokenType<'a> {
     Number(&'a str),
 
     Comment(&'a str),
+    MultilineComment(&'a str),
     EOF,
 }
 

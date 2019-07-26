@@ -291,6 +291,7 @@ impl<'a> Scanner<'a> {
 
                 // Comments
                 '/' => {
+                    // Normal Comment
                     if self.peek_and_check_consume(&mut iter, '/') {
                         let start = i;
                         let mut current = start;
@@ -307,6 +308,46 @@ impl<'a> Scanner<'a> {
                             &mut tokens,
                             (current - start) as u32,
                         );
+                    } else if self.peek_and_check_consume(&mut iter, '*') {
+                        // Multiline Comment
+                        let start = i;
+                        let start_line = self.line_number;
+                        let start_column = self.column_number;
+
+                        let mut last_column_break = start;
+                        let mut current = start;
+
+                        while let Some((i, comment_char)) = iter.peek() {
+                            current = *i;
+
+                            match comment_char {
+                                &'*' => {
+                                    current = iter.next().unwrap().0 + 1;
+                                    if let Some((_, next_next_char)) = iter.peek() {
+                                        if next_next_char == &'/' {
+                                            current = iter.next().unwrap().0 + 1;
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                &'\n' => {
+                                    self.next_line();
+                                    last_column_break = current + 1;
+                                }
+
+                                _ => {}
+                            };
+
+                            iter.next();
+                        }
+
+                        tokens.push(Token::new(
+                            TokenType::MultilineComment(&self.input[start..current]),
+                            start_line,
+                            start_column,
+                        ));
+                        self.column_number += (current - last_column_break) as u32;
                     } else {
                         self.add_simple_token(TokenType::Slash, &mut tokens);
                     }

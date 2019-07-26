@@ -281,28 +281,31 @@ is bad";
             ]
         )
     }
-//     #[test]
-//     fn lex_comments() {
-//         let input_string = "// normal comment
-// var x = 20; // end comment
-// /* one liner */
-// /* muli
-// liner comment
-// */";
+    #[test]
+    fn lex_comments() {
+        let input_string = "// normal comment
+var x = 20; // end comment
+/* one liner */
+/* multi
+liner comment
+*/";
 
-//         assert_eq!(
-//             super::lex(input_string, &mut Vec::new()),
-//             &vec![
-//                 Token::new(TokenType::RegionBegin, 0, 0),
-//                 Token::new(TokenType::Identifier("Region"), 0, 8),
-//                 Token::new(TokenType::Identifier("Name"), 0, 15),
-//                 Token::new(TokenType::Identifier("Long"), 0, 20),
-//                 Token::new(TokenType::Macro, 1, 0),
-//                 Token::new(TokenType::Identifier("macroName"), 1, 7),
-//                 Token::new(TokenType::Number("0"), 1, 17),
-//                 Token::new(TokenType::RegionEnd, 2, 0),
-//                 Token::new(TokenType::EOF, 2, 10),
-//             ]
-//         )
-//     }
+        assert_eq!(
+            super::lex(input_string, &mut Vec::new()),
+            &vec![
+                // line 0
+                Token::new(TokenType::Comment("// normal comment"), 0, 0),
+                Token::new(TokenType::Var, 1, 0),
+                Token::new(TokenType::Identifier("x"), 1, 4),
+                Token::new(TokenType::Equal, 1, 6),
+                Token::new(TokenType::Number("20"), 1, 8),
+                Token::new(TokenType::Semicolon, 1, 10),
+                Token::new(TokenType::Comment("// end comment"), 1, 12),
+                // line 1
+                Token::new(TokenType::MultilineComment("/* one liner */"), 2, 0),
+                Token::new(TokenType::MultilineComment("/* multi\nliner comment\n*/"), 3, 0),
+                Token::new(TokenType::EOF, 5, 2),
+            ]
+        )
+    }
 }
