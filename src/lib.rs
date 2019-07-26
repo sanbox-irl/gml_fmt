@@ -1,8 +1,10 @@
 pub mod config;
 pub mod lex_token;
+pub mod printer;
 pub mod scanner;
 
 use config::Config;
+use printer::Printer;
 use scanner::Scanner;
 use std::{error::Error, fs, path::PathBuf};
 
@@ -31,15 +33,16 @@ pub fn run_config_test_file_no_output(file_path: &str) -> Result<(), Box<dyn Err
     Ok(())
 }
 
-pub fn run_config_test_file_output(file_path: &str)-> Result<(), Box<dyn Error>> {
+pub fn run_config_test_file_output(file_path: &str) -> Result<(), Box<dyn Error>> {
     run_config(PathBuf::from(file_path), true)
 }
 
 fn run(source: &str) {
-    for this_token in lex(source, &mut Vec::new()) {
-        println!("{}", this_token);
-        println!();
-    }
+    let mut empty_tokens = Vec::new();
+    let filled_tokens = lex(source, &mut empty_tokens);
+
+    let output = print(&filled_tokens);
+    println!("{}", output);
 }
 
 fn lex<'a>(
@@ -50,6 +53,13 @@ fn lex<'a>(
 
     scanner.lex_input(vec);
     vec
+}
+
+// @performance we're cloning a string here. That's uggo!
+// Probably let's switch to something more robust
+fn print<'a>(vec: &'a Vec<lex_token::Token<'a>>) -> String {
+    let mut printer = Printer::new();
+    printer.autoformat(vec).to_string()
 }
 
 #[cfg(test)]
