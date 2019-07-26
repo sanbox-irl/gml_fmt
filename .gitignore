@@ -2,3 +2,5 @@
 **/*.rs.bk
 
 ignored/
+
+.DS_Store

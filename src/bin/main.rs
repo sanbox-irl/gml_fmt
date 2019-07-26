@@ -1,7 +1,6 @@
 extern crate clap;
 
 use clap::{App, Arg};
-use gml_fmt::config::config::Config;
 use std::{path::PathBuf, process};
 
 fn main() {
@@ -22,13 +21,11 @@ fn main() {
     let input_path = PathBuf::from(input_arg);
     let do_file = matches.is_present("file");
 
-    let config = Config::new(input_path, do_file).unwrap_or_else(|err| {
-        eprintln!("Error parsing arguments: {}", err);
-        process::exit(1);
-    });
-
-    gml_fmt::run_config(config).unwrap_or_else(|err| {
-        eprintln!("Error in Application {}", err);
-        process::exit(65);
-    });
+    match gml_fmt::run_config(input_path, do_file) {
+        Ok(()) => {}
+        Err(err) => {
+            eprintln!("Error: {}", err);
+            process::exit(1);
+        }
+    };
 }

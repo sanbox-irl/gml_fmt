@@ -1,11 +1,14 @@
 pub mod config;
-mod lexer;
+pub mod lex_token;
+pub mod scanner;
 
-use config::config::Config;
-use lexer::{lex_token, scanner::Scanner};
-use std::{error::Error, fs};
+use config::Config;
+use scanner::Scanner;
+use std::{error::Error, fs, path::PathBuf};
 
-pub fn run_config(config: Config) -> Result<(), Box<dyn Error>> {
+pub fn run_config(input_path: PathBuf, do_file: bool) -> Result<(), Box<dyn Error>> {
+    let config = Config::new(input_path, do_file)?;
+
     for this_file in config.files {
         println!("========== LEX READOUT OF {:?} ==========", this_file);
         let contents = fs::read_to_string(this_file)?;
@@ -303,7 +306,11 @@ liner comment
                 Token::new(TokenType::Comment("// end comment"), 1, 12),
                 // line 1
                 Token::new(TokenType::MultilineComment("/* one liner */"), 2, 0),
-                Token::new(TokenType::MultilineComment("/* multi\nliner comment\n*/"), 3, 0),
+                Token::new(
+                    TokenType::MultilineComment("/* multi\nliner comment\n*/"),
+                    3,
+                    0
+                ),
                 Token::new(TokenType::EOF, 5, 2),
             ]
         )
