@@ -5,7 +5,7 @@ use criterion::Criterion;
 use gml_fmt;
 
 fn lex_test() {
-    gml_fmt::run_config_test_file_output("benches/samples/osg_lex_speed.gml")
+    gml_fmt::run_config_test_file_no_output("benches/samples/osg_lex_speed.gml")
         .expect("Attempted to run osg_lex_speed test, but failed. Did you move the file?");
 }
 
