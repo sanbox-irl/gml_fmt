@@ -59,5 +59,5 @@ fn lex<'a>(
 // Probably let's switch to something more robust
 fn print<'a>(vec: &'a Vec<lex_token::Token<'a>>) -> String {
     let mut printer = Printer::new();
-    printer.autoformat(vec).to_string()
+    printer.autoformat(vec).into_iter().collect()
 }

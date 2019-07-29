@@ -77,6 +77,15 @@ pub enum TokenType<'a> {
     EOF,
 }
 
+impl<'a> TokenType<'a> {
+    pub fn is_ident(&self) -> bool {
+        if let TokenType::Identifier(_) = self {
+            return true;
+        };
+        false
+    }
+}
+
 #[derive(Debug)]
 #[derive(PartialEq)]
 pub struct Token<'a> {
