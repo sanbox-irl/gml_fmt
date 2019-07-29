@@ -484,7 +484,7 @@ impl<'a> Scanner<'a> {
 }
 
 #[cfg(test)]
-mod test {
+mod scanner_test {
     use super::*;
     use super::Scanner;
 
