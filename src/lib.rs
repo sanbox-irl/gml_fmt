@@ -38,16 +38,15 @@ pub fn run_config_test_file_output(file_path: &str) -> Result<(), Box<dyn Error>
     run_config(PathBuf::from(file_path), true)
 }
 
-fn run(source: &str, do_print: bool) {
-    let mut our_tokens = Vec::new();
-    let mut scanner = Scanner::new(source, &mut our_tokens);
-    scanner.lex_input();
 
-    let filled_tokens = scanner.tokens;
+fn run(source: &str, _do_print: bool) {
+    let mut tok = Vec::new();
+    let mut scanner = Scanner::new(source, &mut tok);
 
-    let mut parser = Parser::new(filled_tokens);
+    let our_tokens = scanner.lex_input();
+    let mut _parser = Parser::new(our_tokens);
     // parser.build_ast(vec).into_iter().collect()
-
+    // if do_print
     // println!("{:?}", );
 }
 

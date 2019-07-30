@@ -22,7 +22,7 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    pub fn lex_input(&mut self) {
+    pub fn lex_input(&mut self) -> &mut std::vec::Vec<Token<'a>> {
         while let Some((i, c)) = self.iter.next() {
             match c {
                 // Single Char
@@ -146,7 +146,7 @@ impl<'a> Scanner<'a> {
                             if current - start - 1 != 0 {
                                 self.add_multiple_token(
                                     TokenType::Identifier(&self.input[start..current]),
-                                    (current - start - 1) as u32
+                                    (current - start - 1) as u32,
                                 );
                             }
                         }
@@ -224,7 +224,7 @@ impl<'a> Scanner<'a> {
 
                                 self.add_multiple_token(
                                     TokenType::Number(&self.input[start..current]),
-                                    (current - start) as u32
+                                    (current - start) as u32,
                                 );
                                 continue;
                             }
@@ -345,7 +345,10 @@ impl<'a> Scanner<'a> {
                 }
                 ' ' | '\t' => self.column_number += 1,
 
-                '\n' => self.next_line(),
+                '\n' => {
+                    self.add_simple_token(TokenType::Newline);
+                    self.next_line();
+                }
                 '\r' => continue,
 
                 'A'..='Z' | 'a'..='z' | '_' => {
@@ -363,10 +366,9 @@ impl<'a> Scanner<'a> {
                         self.check_for_keyword(start, current);
 
                     match keyword_token_type {
-                        Some(token_type) => self.add_multiple_token(
-                            token_type,
-                            (current - start) as u32,
-                        ),
+                        Some(token_type) => {
+                            self.add_multiple_token(token_type, (current - start) as u32)
+                        }
                         None => self.add_multiple_token(
                             TokenType::Identifier(&self.input[start..current]),
                             (current - start) as u32,
@@ -382,6 +384,7 @@ impl<'a> Scanner<'a> {
         }
 
         self.add_simple_token(TokenType::EOF);
+        self.tokens
     }
 
     fn add_simple_token(&mut self, token_type: TokenType<'a>) {
@@ -474,13 +477,13 @@ mod scanner_test {
 
         let vec = &mut Vec::new();
         let mut scanner = Scanner::new(input_string, vec);
-        scanner.lex_input();
 
         assert_eq!(
-            vec,
+            scanner.lex_input(),
             &vec![
                 // line 0
                 Token::new(TokenType::Comment("// this is a comment"), 0, 0),
+                Token::new(TokenType::Newline, 0, 20),
                 // line 1
                 Token::new(TokenType::LeftParen, 1, 0),
                 Token::new(TokenType::RightParen, 1, 1),
@@ -489,6 +492,7 @@ mod scanner_test {
                 Token::new(TokenType::LeftBracket, 1, 4),
                 Token::new(TokenType::RightBracket, 1, 5),
                 Token::new(TokenType::Comment("// grouping stuff"), 1, 7),
+                Token::new(TokenType::Newline, 1, 24),
                 // line 2
                 Token::new(TokenType::Bang, 2, 0),
                 Token::new(TokenType::Star, 2, 1),
@@ -508,12 +512,14 @@ mod scanner_test {
                 Token::new(TokenType::Hashtag, 2, 25),
                 Token::new(TokenType::Hook, 2, 27),
                 Token::new(TokenType::Comment("// operators"), 2, 29),
+                Token::new(TokenType::Newline, 2, 41),
                 // line 3
                 Token::new(TokenType::Dot, 3, 0),
                 Token::new(TokenType::Colon, 3, 1),
                 Token::new(TokenType::Semicolon, 3, 2),
                 Token::new(TokenType::Comma, 3, 3),
                 Token::new(TokenType::Comment("// dots and commas"), 3, 5),
+                Token::new(TokenType::Newline, 3, 23),
                 // line 4
                 Token::new(TokenType::LogicalAnd, 4, 0),
                 Token::new(TokenType::LogicalOr, 4, 3),
@@ -525,230 +531,274 @@ mod scanner_test {
         );
     }
 
-//     #[test]
-//     fn lex_strings() {
-//         let input_string = "\"This is a good string.\"
-// \"This is a bad string.
-// \"This is another good string!\"";
-//         let mut scanner = Scanner::new(input_string);
+    #[test]
+    fn lex_strings() {
+        let input_string = "\"This is a good string.\"
+\"This is a bad string.
+\"This is another good string!\"";
+        let vec = &mut Vec::new();
+        let mut scanner = Scanner::new(input_string, vec);
 
-//         assert_eq!(
-//             scanner.lex_input(&mut Vec::new()),
-//             &vec![
-//                 // line 0
-//                 Token::new(TokenType::String("\"This is a good string.\""), 0, 0),
-//                 Token::new(TokenType::String("\"This is a bad string."), 1, 0),
-//                 Token::new(TokenType::String("\"This is another good string!\""), 2, 0),
-//                 Token::new(TokenType::EOF, 2, 30)
-//             ]
-//         );
-//     }
+        assert_eq!(
+            scanner.lex_input(),
+            &vec![
+                Token::new(TokenType::String("\"This is a good string.\""), 0, 0),
+                Token::new(TokenType::Newline, 0, 24),
+                Token::new(TokenType::String("\"This is a bad string."), 1, 0),
+                Token::new(TokenType::Newline, 1, 22),
+                Token::new(TokenType::String("\"This is another good string!\""), 2, 0),
+                Token::new(TokenType::EOF, 2, 30)
+            ]
+        );
+    }
 
-//     #[test]
-//     fn lex_numbers() {
-//         let input_string = "314159
-// 3.14159
-// 314159.
-// .314159
-// 4
-// 9
-// 0";
-//         let mut scanner = Scanner::new(input_string);
+    #[test]
+    fn lex_numbers() {
+        let input_string = "314159
+3.14159
+314159.
+.314159
+4
+9
+0";
 
-//         assert_eq!(
-//             scanner.lex_input(&mut Vec::new()),
-//             &vec![
-//                 Token::new(TokenType::Number("314159"), 0, 0),
-//                 Token::new(TokenType::Number("3.14159"), 1, 0),
-//                 Token::new(TokenType::Number("314159."), 2, 0),
-//                 Token::new(TokenType::Number(".314159"), 3, 0),
-//                 Token::new(TokenType::Number("4"), 4, 0),
-//                 Token::new(TokenType::Number("9"), 5, 0),
-//                 Token::new(TokenType::Number("0"), 6, 0),
-//                 Token::new(TokenType::EOF, 6, 1),
-//             ]
-//         );
-//     }
+        let vec = &mut Vec::new();
+        let mut scanner = Scanner::new(input_string, vec);
 
-//     #[test]
-//     fn lex_hex() {
-//         let input_string = "0123456789
-// 0x01234567
-// 0x0A1B2C3D4E5F6
-// 0xABCDEF
-// $012345
-// $0A1B2C3D4E5F6
-// $ABCDEF";
-//         let mut scanner = Scanner::new(input_string);
+        assert_eq!(
+            scanner.lex_input(),
+            &vec![
+                Token::new(TokenType::Number("314159"), 0, 0),
+                Token::new(TokenType::Newline, 0, 6),
+                Token::new(TokenType::Number("3.14159"), 1, 0),
+                Token::new(TokenType::Newline, 1, 7),
+                Token::new(TokenType::Number("314159."), 2, 0),
+                Token::new(TokenType::Newline, 2, 7),
+                Token::new(TokenType::Number(".314159"), 3, 0),
+                Token::new(TokenType::Newline, 3, 7),
+                Token::new(TokenType::Number("4"), 4, 0),
+                Token::new(TokenType::Newline, 4, 1),
+                Token::new(TokenType::Number("9"), 5, 0),
+                Token::new(TokenType::Newline, 5, 1),
+                Token::new(TokenType::Number("0"), 6, 0),
+                Token::new(TokenType::EOF, 6, 1),
+            ]
+        );
+    }
 
-//         assert_eq!(
-//             scanner.lex_input(&mut Vec::new()),
-//             &vec![
-//                 Token::new(TokenType::Number("0123456789"), 0, 0),
-//                 Token::new(TokenType::Number("0x01234567"), 1, 0),
-//                 Token::new(TokenType::Number("0x0A1B2C3D4E5F6"), 2, 0),
-//                 Token::new(TokenType::Number("0xABCDEF"), 3, 0),
-//                 Token::new(TokenType::Number("$012345"), 4, 0),
-//                 Token::new(TokenType::Number("$0A1B2C3D4E5F6"), 5, 0),
-//                 Token::new(TokenType::Number("$ABCDEF"), 6, 0),
-//                 Token::new(TokenType::EOF, 6, 7),
-//             ]
-//         );
-//     }
+    #[test]
+    fn lex_hex() {
+        let input_string = "0123456789
+0x01234567
+0x0A1B2C3D4E5F6
+0xABCDEF
+$012345
+$0A1B2C3D4E5F6
+$ABCDEF";
 
-//     #[test]
-//     fn lex_basic_identifiers() {
-//         let input_string = "a
-// Z
-// AbCdE
-// _test
-// _test123
-// test_123
-// testCase";
-//         let mut scanner = Scanner::new(input_string);
+        let vec = &mut Vec::new();
+        let mut scanner = Scanner::new(input_string, vec);
 
-//         assert_eq!(
-//             scanner.lex_input(&mut Vec::new()),
-//             &vec![
-//                 Token::new(TokenType::Identifier("a"), 0, 0),
-//                 Token::new(TokenType::Identifier("Z"), 1, 0),
-//                 Token::new(TokenType::Identifier("AbCdE"), 2, 0),
-//                 Token::new(TokenType::Identifier("_test"), 3, 0),
-//                 Token::new(TokenType::Identifier("_test123"), 4, 0),
-//                 Token::new(TokenType::Identifier("test_123"), 5, 0),
-//                 Token::new(TokenType::Identifier("testCase"), 6, 0),
-//                 Token::new(TokenType::EOF, 6, 8),
-//             ]
-//         )
-//     }
+        assert_eq!(
+            scanner.lex_input(),
+            &vec![
+                Token::new(TokenType::Number("0123456789"), 0, 0),
+                Token::new(TokenType::Newline, 0, 10),
+                Token::new(TokenType::Number("0x01234567"), 1, 0),
+                Token::new(TokenType::Newline, 1, 10),
+                Token::new(TokenType::Number("0x0A1B2C3D4E5F6"), 2, 0),
+                Token::new(TokenType::Newline, 2, 15),
+                Token::new(TokenType::Number("0xABCDEF"), 3, 0),
+                Token::new(TokenType::Newline, 3, 8),
+                Token::new(TokenType::Number("$012345"), 4, 0),
+                Token::new(TokenType::Newline, 4, 7),
+                Token::new(TokenType::Number("$0A1B2C3D4E5F6"), 5, 0),
+                Token::new(TokenType::Newline, 5, 14),
+                Token::new(TokenType::Number("$ABCDEF"), 6, 0),
+                Token::new(TokenType::EOF, 6, 7),
+            ]
+        );
+    }
 
-//     #[test]
-//     fn lex_reserved_keywords() {
-//         let input_string =
-//             "var and or if else return for repeat while do until switch case default true false div";
-//         let mut scanner = Scanner::new(input_string);
+    #[test]
+    fn lex_basic_identifiers() {
+        let input_string = "a
+Z
+AbCdE
+_test
+_test123
+test_123
+testCase";
 
-//         assert_eq!(
-//             scanner.lex_input(&mut Vec::new()),
-//             &vec![
-//                 Token::new(TokenType::Var, 0, 0),
-//                 Token::new(TokenType::AndAlias, 0, 4),
-//                 Token::new(TokenType::OrAlias, 0, 8),
-//                 Token::new(TokenType::If, 0, 11),
-//                 Token::new(TokenType::Else, 0, 14),
-//                 Token::new(TokenType::Return, 0, 19),
-//                 Token::new(TokenType::For, 0, 26),
-//                 Token::new(TokenType::Repeat, 0, 30),
-//                 Token::new(TokenType::While, 0, 37),
-//                 Token::new(TokenType::Do, 0, 43),
-//                 Token::new(TokenType::Until, 0, 46),
-//                 Token::new(TokenType::Switch, 0, 52),
-//                 Token::new(TokenType::Case, 0, 59),
-//                 Token::new(TokenType::DefaultCase, 0, 64),
-//                 Token::new(TokenType::True, 0, 72),
-//                 Token::new(TokenType::False, 0, 77),
-//                 Token::new(TokenType::Div, 0, 83),
-//                 Token::new(TokenType::EOF, 0, 86),
-//             ]
-//         )
-//     }
+        let vec = &mut Vec::new();
+        let mut scanner = Scanner::new(input_string, vec);
 
-//     #[test]
-//     fn lex_alias_words() {
-//         let input_string = "and not or mod";
-//         let mut scanner = Scanner::new(input_string);
+        assert_eq!(
+            scanner.lex_input(),
+            &vec![
+                Token::new(TokenType::Identifier("a"), 0, 0),
+                Token::new(TokenType::Newline, 0, 1),
+                Token::new(TokenType::Identifier("Z"), 1, 0),
+                Token::new(TokenType::Newline, 1, 1),
+                Token::new(TokenType::Identifier("AbCdE"), 2, 0),
+                Token::new(TokenType::Newline, 2, 5),
+                Token::new(TokenType::Identifier("_test"), 3, 0),
+                Token::new(TokenType::Newline, 3, 5),
+                Token::new(TokenType::Identifier("_test123"), 4, 0),
+                Token::new(TokenType::Newline, 4, 8),
+                Token::new(TokenType::Identifier("test_123"), 5, 0),
+                Token::new(TokenType::Newline, 5, 8),
+                Token::new(TokenType::Identifier("testCase"), 6, 0),
+                Token::new(TokenType::EOF, 6, 8),
+            ]
+        )
+    }
 
-//         assert_eq!(
-//             scanner.lex_input(&mut Vec::new()),
-//             &vec![
-//                 Token::new(TokenType::AndAlias, 0, 0),
-//                 Token::new(TokenType::NotAlias, 0, 4),
-//                 Token::new(TokenType::OrAlias, 0, 8),
-//                 Token::new(TokenType::ModAlias, 0, 11),
-//                 Token::new(TokenType::EOF, 0, 14)
-//             ]
-//         )
-//     }
+    #[test]
+    fn lex_reserved_keywords() {
+        let input_string =
+            "var and or if else return for repeat while do until switch case default true false div";
 
-//     #[test]
-//     fn lex_indexers() {
-//         let input_string = "[ [? [# [| [@ ]";
-//         let mut scanner = Scanner::new(input_string);
+        let vec = &mut Vec::new();
+        let mut scanner = Scanner::new(input_string, vec);
 
-//         assert_eq!(
-//             scanner.lex_input(&mut Vec::new()),
-//             &vec![
-//                 Token::new(TokenType::LeftBracket, 0, 0),
-//                 Token::new(TokenType::MapIndexer, 0, 2),
-//                 Token::new(TokenType::GridIndexer, 0, 5),
-//                 Token::new(TokenType::ListIndexer, 0, 8),
-//                 Token::new(TokenType::ArrayIndexer, 0, 11),
-//                 Token::new(TokenType::RightBracket, 0, 14),
-//                 Token::new(TokenType::EOF, 0, 15),
-//             ]
-//         )
-//     }
+        assert_eq!(
+            scanner.lex_input(),
+            &vec![
+                Token::new(TokenType::Var, 0, 0),
+                Token::new(TokenType::AndAlias, 0, 4),
+                Token::new(TokenType::OrAlias, 0, 8),
+                Token::new(TokenType::If, 0, 11),
+                Token::new(TokenType::Else, 0, 14),
+                Token::new(TokenType::Return, 0, 19),
+                Token::new(TokenType::For, 0, 26),
+                Token::new(TokenType::Repeat, 0, 30),
+                Token::new(TokenType::While, 0, 37),
+                Token::new(TokenType::Do, 0, 43),
+                Token::new(TokenType::Until, 0, 46),
+                Token::new(TokenType::Switch, 0, 52),
+                Token::new(TokenType::Case, 0, 59),
+                Token::new(TokenType::DefaultCase, 0, 64),
+                Token::new(TokenType::True, 0, 72),
+                Token::new(TokenType::False, 0, 77),
+                Token::new(TokenType::Div, 0, 83),
+                Token::new(TokenType::EOF, 0, 86),
+            ]
+        )
+    }
 
-//     #[test]
-//     fn lex_compiler_directives() {
-//         let input_string = "#region Region Name Long
-// #macro macroName 0
-// #endregion
-// #macro doing this \\
-// is bad";
-//         let mut scanner = Scanner::new(input_string);
+    #[test]
+    fn lex_alias_words() {
+        let input_string = "and not or mod";
 
-//         assert_eq!(
-//             scanner.lex_input(&mut Vec::new()),
-//             &vec![
-//                 Token::new(TokenType::RegionBegin, 0, 0),
-//                 Token::new(TokenType::Identifier("Region"), 0, 8),
-//                 Token::new(TokenType::Identifier("Name"), 0, 15),
-//                 Token::new(TokenType::Identifier("Long"), 0, 20),
-//                 Token::new(TokenType::Macro, 1, 0),
-//                 Token::new(TokenType::Identifier("macroName"), 1, 7),
-//                 Token::new(TokenType::Number("0"), 1, 17),
-//                 Token::new(TokenType::RegionEnd, 2, 0),
-//                 Token::new(TokenType::Macro, 3, 0),
-//                 Token::new(TokenType::Identifier("doing"), 3, 7),
-//                 Token::new(TokenType::Identifier("this"), 3, 13),
-//                 Token::new(TokenType::Backslash, 3, 18),
-//                 Token::new(TokenType::Identifier("is"), 4, 0),
-//                 Token::new(TokenType::Identifier("bad"), 4, 3),
-//                 Token::new(TokenType::EOF, 4, 6),
-//             ]
-//         )
-//     }
-//     #[test]
-//     fn lex_comments() {
-//         let input_string = "// normal comment
-// var x = 20; // end comment
-// /* one liner */
-// /* multi
-// liner comment
-// */";
-//         let mut scanner = Scanner::new(input_string);
+        let vec = &mut Vec::new();
+        let mut scanner = Scanner::new(input_string, vec);
 
-//         assert_eq!(
-//             scanner.lex_input(&mut Vec::new()),
-//             &vec![
-//                 // line 0
-//                 Token::new(TokenType::Comment("// normal comment"), 0, 0),
-//                 Token::new(TokenType::Var, 1, 0),
-//                 Token::new(TokenType::Identifier("x"), 1, 4),
-//                 Token::new(TokenType::Equal, 1, 6),
-//                 Token::new(TokenType::Number("20"), 1, 8),
-//                 Token::new(TokenType::Semicolon, 1, 10),
-//                 Token::new(TokenType::Comment("// end comment"), 1, 12),
-//                 // line 1
-//                 Token::new(TokenType::MultilineComment("/* one liner */"), 2, 0),
-//                 Token::new(
-//                     TokenType::MultilineComment("/* multi\nliner comment\n*/"),
-//                     3,
-//                     0
-//                 ),
-//                 Token::new(TokenType::EOF, 5, 2),
-//             ]
-//         )
-//     }
+        assert_eq!(
+            scanner.lex_input(),
+            &vec![
+                Token::new(TokenType::AndAlias, 0, 0),
+                Token::new(TokenType::NotAlias, 0, 4),
+                Token::new(TokenType::OrAlias, 0, 8),
+                Token::new(TokenType::ModAlias, 0, 11),
+                Token::new(TokenType::EOF, 0, 14)
+            ]
+        )
+    }
+
+    #[test]
+    fn lex_indexers() {
+        let input_string = "[ [? [# [| [@ ]";
+
+        let vec = &mut Vec::new();
+        let mut scanner = Scanner::new(input_string, vec);
+
+        assert_eq!(
+            scanner.lex_input(),
+            &vec![
+                Token::new(TokenType::LeftBracket, 0, 0),
+                Token::new(TokenType::MapIndexer, 0, 2),
+                Token::new(TokenType::GridIndexer, 0, 5),
+                Token::new(TokenType::ListIndexer, 0, 8),
+                Token::new(TokenType::ArrayIndexer, 0, 11),
+                Token::new(TokenType::RightBracket, 0, 14),
+                Token::new(TokenType::EOF, 0, 15),
+            ]
+        )
+    }
+
+    #[test]
+    fn lex_compiler_directives() {
+        let input_string = "#region Region Name Long
+#macro macroName 0
+#endregion
+#macro doing this \\
+is bad";
+
+        let vec = &mut Vec::new();
+        let mut scanner = Scanner::new(input_string, vec);
+
+        assert_eq!(
+            scanner.lex_input(),
+            &vec![
+                Token::new(TokenType::RegionBegin, 0, 0),
+                Token::new(TokenType::Identifier("Region"), 0, 8),
+                Token::new(TokenType::Identifier("Name"), 0, 15),
+                Token::new(TokenType::Identifier("Long"), 0, 20),
+                Token::new(TokenType::Newline, 0, 24),
+                Token::new(TokenType::Macro, 1, 0),
+                Token::new(TokenType::Identifier("macroName"), 1, 7),
+                Token::new(TokenType::Number("0"), 1, 17),
+                Token::new(TokenType::Newline, 1, 18),
+                Token::new(TokenType::RegionEnd, 2, 0),
+                Token::new(TokenType::Newline, 2, 10),
+                Token::new(TokenType::Macro, 3, 0),
+                Token::new(TokenType::Identifier("doing"), 3, 7),
+                Token::new(TokenType::Identifier("this"), 3, 13),
+                Token::new(TokenType::Backslash, 3, 18),
+                Token::new(TokenType::Newline, 3, 19),
+                Token::new(TokenType::Identifier("is"), 4, 0),
+                Token::new(TokenType::Identifier("bad"), 4, 3),
+                Token::new(TokenType::EOF, 4, 6),
+            ]
+        )
+    }
+    #[test]
+    fn lex_comments() {
+        let input_string = "// normal comment
+var x = 20; // end comment
+/* one liner */
+/* multi
+liner comment
+*/";
+        let vec = &mut Vec::new();
+        let mut scanner = Scanner::new(input_string, vec);
+
+        assert_eq!(
+            scanner.lex_input(),
+            &vec![
+                // line 0
+                Token::new(TokenType::Comment("// normal comment"), 0, 0),
+                Token::new(TokenType::Newline, 0, 17),
+                // line 1
+                Token::new(TokenType::Var, 1, 0),
+                Token::new(TokenType::Identifier("x"), 1, 4),
+                Token::new(TokenType::Equal, 1, 6),
+                Token::new(TokenType::Number("20"), 1, 8),
+                Token::new(TokenType::Semicolon, 1, 10),
+                Token::new(TokenType::Comment("// end comment"), 1, 12),
+                Token::new(TokenType::Newline, 1, 26),
+                // line 2©
+                Token::new(TokenType::MultilineComment("/* one liner */"), 2, 0),
+                Token::new(TokenType::Newline, 2, 15),
+                // line 3
+                Token::new(
+                    TokenType::MultilineComment("/* multi\nliner comment\n*/"),
+                    3,
+                    0
+                ),
+                Token::new(TokenType::EOF, 5, 2),
+            ]
+        )
+    }
 }

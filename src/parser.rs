@@ -141,7 +141,7 @@ impl<'a> Parser<'a> {
     }
 
     fn primary(&mut self) -> Option<Box<Expr<'a>>> {
-        if let Some((i, t)) = self.iter.peek() {
+        if let Some((_i, t)) = self.iter.peek() {
             match t.token_type {
                 TokenType::False | TokenType::True | TokenType::RightParen => {
                     return Some(Box::new(Expr::Literal { literal_token: **t }));
