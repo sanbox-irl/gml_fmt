@@ -1,10 +1,11 @@
 pub mod config;
+pub mod expressions;
 pub mod lex_token;
-pub mod printer;
+pub mod parser;
 pub mod scanner;
 
 use config::Config;
-use printer::Printer;
+use parser::Parser;
 use scanner::Scanner;
 use std::{error::Error, fs, path::PathBuf};
 
@@ -15,7 +16,7 @@ pub fn run_config(input_path: PathBuf, do_file: bool) -> Result<(), Box<dyn Erro
         println!("========== LEX READOUT OF {:?} ==========", this_file);
         let contents = fs::read_to_string(this_file)?;
 
-        run(&contents);
+        run(&contents, true);
     }
 
     Ok(())
@@ -27,7 +28,7 @@ pub fn run_config_test_file_no_output(file_path: &str) -> Result<(), Box<dyn Err
     for this_file in config.files {
         let contents = fs::read_to_string(this_file)?;
 
-        lex(&contents, &mut Vec::new());
+        run(&contents, false);
     }
 
     Ok(())
@@ -37,27 +38,16 @@ pub fn run_config_test_file_output(file_path: &str) -> Result<(), Box<dyn Error>
     run_config(PathBuf::from(file_path), true)
 }
 
-fn run(source: &str) {
-    let mut empty_tokens = Vec::new();
-    let filled_tokens = lex(source, &mut empty_tokens);
+fn run(source: &str, do_print: bool) {
+    let mut our_tokens = Vec::new();
+    let mut scanner = Scanner::new(source, &mut our_tokens);
+    scanner.lex_input();
 
-    let output = print(&filled_tokens);
-    println!("{}", output);
+    let filled_tokens = scanner.tokens;
+
+    let mut parser = Parser::new(filled_tokens);
+    // parser.build_ast(vec).into_iter().collect()
+
+    // println!("{:?}", );
 }
 
-fn lex<'a>(
-    source: &'a str,
-    vec: &'a mut Vec<lex_token::Token<'a>>,
-) -> &'a Vec<lex_token::Token<'a>> {
-    let mut scanner = Scanner::new(source);
-
-    scanner.lex_input(vec);
-    vec
-}
-
-// @performance we're cloning a string here. That's uggo!
-// Probably let's switch to something more robust
-fn print<'a>(vec: &'a Vec<lex_token::Token<'a>>) -> String {
-    let mut printer = Printer::new();
-    printer.autoformat(vec).into_iter().collect()
-}

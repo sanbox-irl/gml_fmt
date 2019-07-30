@@ -1,5 +1,4 @@
-#[derive(Debug)]
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum TokenType<'a> {
     LeftParen,
     RightParen,
@@ -18,6 +17,7 @@ pub enum TokenType<'a> {
     Star,
     Mod,
     Hashtag,
+    Newline,
 
     ListIndexer,
     MapIndexer,
@@ -86,8 +86,7 @@ impl<'a> TokenType<'a> {
     }
 }
 
-#[derive(Debug)]
-#[derive(PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub struct Token<'a> {
     pub token_type: TokenType<'a>,
     pub line_number: u32,
@@ -101,14 +100,6 @@ impl<'a> Token<'a> {
             line_number,
             column_number,
         }
-    }
-
-    pub fn token_type(&self) -> &TokenType {
-        &self.token_type
-    }
-
-    pub fn line_number(&self) -> &u32 {
-        &self.line_number
     }
 }
 
