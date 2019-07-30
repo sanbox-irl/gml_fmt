@@ -37,8 +37,7 @@ impl<'a> Parser<'a> {
         while let Some((_, t)) = self.iter.peek() {
             match t.token_type {
                 TokenType::Var => {
-                    self.iter.next();
-                    return self.var_declaration();
+                    return self.series_var_declaration();
                 }
                 _ => break,
             }
@@ -47,32 +46,57 @@ impl<'a> Parser<'a> {
         self.statement()
     }
 
-    fn var_declaration(&mut self) -> Box<Statement<'a>> {
-        let var_expr = self.expression();
+    fn series_var_declaration(&mut self) -> Box<Statement<'a>> {
+        let mut var_decl = Vec::new();
 
-        if self.check_next(TokenType::Equal) {
-            self.iter.next();
-            let assignment = self.expression();
+        var_decl.push(self.var_declaration());
 
-            if self.check_next(TokenType::Semicolon) || self.check_next(TokenType::Newline) {
-                self.iter.next();
+        while let Some(_) = self.iter.peek() {
+            if self.check_next_consume(TokenType::Comma) {
+                var_decl.push(self.var_declaration());
+            } else {
+                break;
             }
-
-            Box::new(Statement::VariableDeclAssignment {
-                var_expr,
-                assignment,
-            })
-        } else {
-            if self.check_next(TokenType::Semicolon) || self.check_next(TokenType::Newline) {
-                self.iter.next();
-            }
-            Box::new(Statement::VariableDecl { var_expr })
         }
+
+        if self.check_next(TokenType::Semicolon) || self.check_next(TokenType::Newline) {
+            self.iter.next();
+        }
+
+        Box::new(Statement::VariableDeclList { var_decl })
+    }
+
+    fn var_declaration(&mut self) -> Box<Statement<'a>> {
+        self.check_next_consume(TokenType::Var);
+
+        let var_expr = self.primary();
+
+        let assignment = if self.check_next(TokenType::Equal) {
+            self.iter.next();
+            Some(self.expression())
+        } else {
+            None
+        };
+
+        Box::new(Statement::VariableDecl {
+            var_expr,
+            assignment,
+        })
     }
 
     fn statement(&mut self) -> Box<Statement<'a>> {
+        if let Some((_, token)) = self.iter.peek() {
+            match token.token_type {
+                TokenType::LeftBrace => return self.block(),
+                _ => return self.expression_statement(),
+            }
+        };
         self.expression_statement()
     }
+
+    fn block(&mut self) -> Box<Statement<'a>> {
+              
+    }                                               
 
     fn expression_statement(&mut self) -> Box<Statement<'a>> {
         let expr = self.expression();
