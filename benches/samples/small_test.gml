@@ -1,1 +1,5 @@
-var x = 10, y, ? = 20;
+for (var i = 0; i < 10; i++) {
+    var q = 20;
+}
+
+return x;
