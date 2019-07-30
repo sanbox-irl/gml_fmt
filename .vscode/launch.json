@@ -21,7 +21,7 @@
             },
             "args": [
                 "-f",
-                "benches/samples/osg_lex_speed.gml"
+                "benches/samples/small_test.gml"
             ],
             "cwd": "${workspaceFolder}"
         }

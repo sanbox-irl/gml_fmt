@@ -1,5 +1,6 @@
 pub mod config;
 pub mod expressions;
+pub mod statements;
 pub mod lex_token;
 pub mod parser;
 pub mod scanner;
@@ -13,9 +14,7 @@ pub fn run_config(input_path: PathBuf, do_file: bool) -> Result<(), Box<dyn Erro
     let config = Config::new(input_path, do_file)?;
 
     for this_file in config.files {
-        println!("========== LEX READOUT OF {:?} ==========", this_file);
         let contents = fs::read_to_string(this_file)?;
-
         run(&contents, true);
     }
 
@@ -38,15 +37,18 @@ pub fn run_config_test_file_output(file_path: &str) -> Result<(), Box<dyn Error>
     run_config(PathBuf::from(file_path), true)
 }
 
-
-fn run(source: &str, _do_print: bool) {
+fn run(source: &str, do_print: bool) {
     let mut tok = Vec::new();
     let mut scanner = Scanner::new(source, &mut tok);
 
     let our_tokens = scanner.lex_input();
-    let mut _parser = Parser::new(our_tokens);
-    // parser.build_ast(vec).into_iter().collect()
-    // if do_print
-    // println!("{:?}", );
-}
+    let mut parser = Parser::new(our_tokens);
+    parser.build_ast();
 
+    if do_print {
+        println!("=========INPUT=========");
+        println!("{}", source);
+        println!("=========AST=========");
+        println!("{:#?}", parser.ast);
+    }
+}
