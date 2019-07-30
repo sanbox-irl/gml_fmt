@@ -14,5 +14,5 @@ criterion = "0.2.11"
 
 
 [[bench]]
-name = "lex_speed"
+name = "speed_test"
 harness = false
