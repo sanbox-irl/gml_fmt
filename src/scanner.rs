@@ -5,7 +5,7 @@ use std::str::Chars;
 
 pub struct Scanner<'a> {
     pub tokens: &'a mut Vec<Token<'a>>,
-    input: &'a str,
+    input: Chars<'a>,
     line_number: u32,
     column_number: u32,
     iter: Peekable<Enumerate<Chars<'a>>>,
@@ -14,7 +14,7 @@ pub struct Scanner<'a> {
 impl<'a> Scanner<'a> {
     pub fn new(input: &'a str, tokens: &'a mut Vec<Token<'a>>) -> Scanner<'a> {
         Scanner {
-            input,
+            input: input.chars(),
             line_number: 0,
             column_number: 0,
             iter: input.chars().enumerate().peekable(),
