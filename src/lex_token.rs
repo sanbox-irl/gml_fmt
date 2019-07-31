@@ -80,6 +80,8 @@ pub enum TokenType<'a> {
 
     Comment(&'a str),
     MultilineComment(&'a str),
+
+    UnidentifiedInput(&'a str),
     EOF,
 }
 

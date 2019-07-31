@@ -5,7 +5,7 @@ use std::str::Chars;
 
 pub struct Scanner<'a> {
     pub tokens: &'a mut Vec<Token<'a>>,
-    input: Chars<'a>,
+    input: &'a str,
     line_number: u32,
     column_number: u32,
     iter: Peekable<Enumerate<Chars<'a>>>,
@@ -14,7 +14,7 @@ pub struct Scanner<'a> {
 impl<'a> Scanner<'a> {
     pub fn new(input: &'a str, tokens: &'a mut Vec<Token<'a>>) -> Scanner<'a> {
         Scanner {
-            input: input.chars(),
+            input,
             line_number: 0,
             column_number: 0,
             iter: input.chars().enumerate().peekable(),
@@ -143,7 +143,7 @@ impl<'a> Scanner<'a> {
                         current = i;
                         this_char.is_ascii_alphanumeric() || this_char == '_'
                     }) {
-                        current += 1;
+                        current = self.next_char_boundary();
                     };
 
                     let token_returned = self.check_for_macro_directive(start, current);
@@ -174,14 +174,14 @@ impl<'a> Scanner<'a> {
                     let start = i;
                     let mut current = start;
 
-                    if let Some((i, break_char)) = self.peek_and_check_while(|i, string_char| {
+                    if let Some((_, break_char)) = self.peek_and_check_while(|i, string_char| {
                         current = i;
                         string_char != '\n' && string_char != '"'
                     }) {
                         // eat the quote
                         if break_char == '"' {
                             self.iter.next();
-                            current = i + 1;
+                            current = self.next_char_boundary();
                         }
                     }
 
@@ -201,9 +201,9 @@ impl<'a> Scanner<'a> {
                             // eat the "."
                             self.iter.next();
 
-                            while let Some((i, number_char)) = self.iter.peek() {
+                            while let Some((_, number_char)) = self.iter.peek() {
                                 if number_char.is_digit(10) {
-                                    current = *i + 1;
+                                    current = self.next_char_boundary();
                                     self.iter.next();
                                 } else {
                                     break;
@@ -229,9 +229,9 @@ impl<'a> Scanner<'a> {
                             if *number_char == 'x' {
                                 self.iter.next();
 
-                                while let Some((i, number_char)) = self.iter.peek() {
+                                while let Some((_, number_char)) = self.iter.peek() {
                                     if number_char.is_digit(16) {
-                                        current = *i + 1;
+                                        current = self.next_char_boundary();
                                         self.iter.next();
                                     } else {
                                         break;
@@ -249,9 +249,9 @@ impl<'a> Scanner<'a> {
 
                     let mut is_fractional = false;
 
-                    while let Some((i, number_char)) = self.iter.peek() {
+                    while let Some((_, number_char)) = self.iter.peek() {
                         if number_char.is_digit(10) {
-                            current = *i + 1;
+                            current = self.next_char_boundary();
                             self.iter.next();
                         } else {
                             is_fractional = *number_char == '.';
@@ -261,11 +261,11 @@ impl<'a> Scanner<'a> {
 
                     if is_fractional {
                         // eat the "."
-                        current = self.iter.next().unwrap().0 + 1;
+                        current = self.next_char_boundary_consume();
 
-                        while let Some((i, number_char)) = self.iter.peek() {
+                        while let Some((_, number_char)) = self.iter.peek() {
                             if number_char.is_digit(10) {
-                                current = *i + 1;
+                                current = self.next_char_boundary();
                                 self.iter.next();
                             } else {
                                 break;
@@ -288,7 +288,7 @@ impl<'a> Scanner<'a> {
                         current = i;
                         hex_char.is_digit(16)
                     }) {
-                        current += 1;
+                        current = self.next_char_boundary();
                     }
 
                     self.add_multiple_token(
@@ -308,7 +308,7 @@ impl<'a> Scanner<'a> {
                             current = i;
                             this_char != '\n'
                         }) {
-                            current += 1;
+                            current = self.next_char_boundary();
                         }
 
                         self.add_multiple_token(
@@ -329,10 +329,10 @@ impl<'a> Scanner<'a> {
 
                             match comment_char {
                                 &'*' => {
-                                    current = self.iter.next().unwrap().0 + 1;
+                                    current = self.next_char_boundary_consume();
                                     if let Some((_, next_next_char)) = self.iter.peek() {
                                         if next_next_char == &'/' {
-                                            current = self.iter.next().unwrap().0 + 1;
+                                            current = self.next_char_boundary_consume();
                                             break;
                                         }
                                     }
@@ -340,7 +340,7 @@ impl<'a> Scanner<'a> {
 
                                 &'\n' => {
                                     self.next_line();
-                                    last_column_break = current + 1;
+                                    last_column_break = self.next_char_boundary();
                                 }
 
                                 _ => {}
@@ -375,7 +375,7 @@ impl<'a> Scanner<'a> {
                         current = i;
                         this_char.is_ascii_alphanumeric() || this_char == '_'
                     }) {
-                        current += 1;
+                        current = self.next_char_boundary();
                     };
 
                     let keyword_token_type: Option<TokenType> =
@@ -394,6 +394,11 @@ impl<'a> Scanner<'a> {
 
                 _ => {
                     println!("Unexpected character {}", c);
+                    let end_byte = self.next_char_boundary();
+                    self.add_multiple_token(
+                        TokenType::UnidentifiedInput(&self.input[i..end_byte]),
+                        (end_byte - i) as u32,
+                    );
                     self.column_number += 1;
                 }
             };
@@ -477,6 +482,20 @@ impl<'a> Scanner<'a> {
             "#region" => Some(TokenType::RegionBegin),
             "#endregion" => Some(TokenType::RegionEnd),
             _ => None,
+        }
+    }
+
+    fn next_char_boundary(&mut self) -> usize {
+        match self.iter.peek() {
+            Some(_) => self.iter.peek().unwrap().0 + 1,
+            None => self.input.len(),
+        }
+    }
+
+    fn next_char_boundary_consume(&mut self) -> usize {
+        match self.iter.peek() {
+            Some(_) => self.next_char_boundary_consume(),
+            None => self.input.len(),
         }
     }
 }
