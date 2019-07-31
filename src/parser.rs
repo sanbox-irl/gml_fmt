@@ -2,77 +2,100 @@ use super::expressions::*;
 use super::lex_token::TokenType;
 use super::lex_token::*;
 use super::statements::*;
-use std::iter::Enumerate;
 use std::iter::Peekable;
 use std::slice;
 
-/*
-    TODO:
-    - Figure out handling Newlines and comments...
-    - Dot Operator
-    - Indexing
-        -- Standard Indexing
-        -- @Indexing
-        -- Map Indexing
-        -- List Indexing
-        -- Grid Indexing
-    - Control
-        -- Switch Statements
-            - switch
-            - case
-            - default case
-        -- Ternary Operators
-        -- Break
-    - Excess:
-        -- Binary Operators & | ^
-        -- LogicalAliasing ^^ And Not Or
-        -- Mod Div
-        -- %
-*/
-
-
+type ExprBox<'a> = Box<Expr<'a>>;
+type StmtBox<'a> = Box<Statement<'a>>;
 
 pub struct Parser<'a> {
-    pub ast: Vec<Box<Statement<'a>>>,
-    iter: Peekable<Enumerate<slice::Iter<'a, Token<'a>>>>,
-    tokens: &'a Vec<Token<'a>>,
+    pub ast: Vec<StmtBox<'a>>,
+    iter: Peekable<slice::Iter<'a, Token<'a>>>,
 }
 
 impl<'a> Parser<'a> {
     pub fn new(tokens: &'a Vec<Token<'a>>) -> Parser<'a> {
         Parser {
             ast: Vec::new(),
-            iter: tokens.iter().enumerate().peekable(),
-            tokens,
+            iter: tokens.iter().peekable(),
         }
     }
 
     pub fn build_ast(&mut self) {
-        while let Some((_, t)) = self.iter.peek() {
+        while let Some(t) = self.iter.peek() {
             match t.token_type {
                 TokenType::EOF => break,
                 _ => {
-                    let ret = self.declaration();
+                    let ret = self.statement();
                     self.ast.push(ret);
                 }
             }
         }
     }
 
-    fn declaration(&mut self) -> Box<Statement<'a>> {
-        while let Some((_, t)) = self.iter.peek() {
-            match t.token_type {
+    fn statement(&mut self) -> StmtBox<'a> {
+        if let Some(token) = self.iter.peek() {
+            match token.token_type {
+                TokenType::Comment(_) => {
+                    let comment = self.consume_next();
+                    return Box::new(Statement::Comment { comment: *comment });
+                }
+                TokenType::MultilineComment(_) => {
+                    let multiline_comment = self.consume_next();
+                    return Box::new(Statement::MultilineComment {
+                        multiline_comment: *multiline_comment,
+                    });
+                }
                 TokenType::Var => {
                     return self.series_var_declaration();
                 }
-                _ => break,
+                TokenType::Enum => {
+                    self.consume_next();
+                    return self.enum_declaration();
+                }
+                TokenType::If => {
+                    self.consume_next();
+                    return self.if_statement();
+                }
+                TokenType::Return => {
+                    self.consume_next();
+                    return self.return_statement();
+                }
+                TokenType::Break => {
+                    self.consume_next();
+                    return self.break_statement();
+                }
+                TokenType::Exit => {
+                    self.consume_next();
+                    return self.exit_statment();
+                }
+                TokenType::While => {
+                    self.consume_next();
+                    return self.while_statement();
+                }
+                TokenType::Switch => {
+                    self.consume_next();
+                    return self.switch_statement();
+                }
+                TokenType::Repeat => {
+                    self.consume_next();
+                    return self.repeat_statement();
+                }
+                TokenType::For => {
+                    self.consume_next();
+                    return self.for_statement();
+                }
+                TokenType::LeftBrace => {
+                    self.consume_next();
+                    return self.block();
+                }
+                _ => return self.expression_statement(),
             }
-        }
-
-        self.statement()
+        };
+        self.expression_statement()
     }
 
-    fn series_var_declaration(&mut self) -> Box<Statement<'a>> {
+    fn series_var_declaration(&mut self) -> StmtBox<'a> {
         let mut var_decl = Vec::new();
 
         var_decl.push(self.var_declaration());
@@ -92,7 +115,7 @@ impl<'a> Parser<'a> {
         Box::new(Statement::VariableDeclList { var_decl })
     }
 
-    fn var_declaration(&mut self) -> Box<Statement<'a>> {
+    fn var_declaration(&mut self) -> VariableDecl<'a> {
         self.check_next_consume(TokenType::Var);
 
         let var_expr = self.primary();
@@ -104,61 +127,27 @@ impl<'a> Parser<'a> {
             None
         };
 
-        Box::new(Statement::VariableDecl {
+        VariableDecl {
             var_expr,
             assignment,
-        })
+        }
     }
 
-    fn statement(&mut self) -> Box<Statement<'a>> {
-        if let Some((_, token)) = self.iter.peek() {
-            match token.token_type {
-                TokenType::If => {
-                    self.iter.next();
-                    return self.if_statement();
-                }
-                TokenType::Return => {
-                    self.iter.next();
-                    return self.return_statement();
-                }
-                TokenType::While => {
-                    self.iter.next();
-                    return self.while_statement();
-                }
-                TokenType::Repeat => {
-                    self.iter.next();
-                    return self.repeat_statement();
-                }
-                TokenType::For => {
-                    self.iter.next();
-                    return self.for_statement();
-                }
-                TokenType::LeftBrace => {
-                    self.iter.next();
-                    return self.block();
-                }
-                _ => return self.expression_statement(),
-            }
-        };
-        self.expression_statement()
-    }
-
-    fn block(&mut self) -> Box<Statement<'a>> {
+    fn block(&mut self) -> StmtBox<'a> {
         let mut statements = Vec::new();
 
-        while let Some((_i, token)) = self.iter.peek() {
-            if token.token_type == TokenType::RightBrace {
-                self.iter.next();
+        while let Some(_) = self.iter.peek() {
+            if self.check_next_consume(TokenType::RightBrace) {
                 break;
             } else {
-                statements.push(self.declaration());
+                statements.push(self.statement());
             }
         }
 
         Box::new(Statement::Block { statements })
     }
 
-    fn if_statement(&mut self) -> Box<Statement<'a>> {
+    fn if_statement(&mut self) -> StmtBox<'a> {
         self.check_next_consume(TokenType::LeftParen);
 
         let condition = self.expression();
@@ -166,7 +155,7 @@ impl<'a> Parser<'a> {
         self.check_next_consume(TokenType::RightParen);
 
         let then_branch = self.statement();
-        let else_branch = if self.check_next(TokenType::Else) {
+        let else_branch = if self.check_next_consume(TokenType::Else) {
             Some(self.statement())
         } else {
             None
@@ -179,7 +168,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn while_statement(&mut self) -> Box<Statement<'a>> {
+    fn while_statement(&mut self) -> StmtBox<'a> {
         self.check_next_consume(TokenType::LeftParen);
 
         let condition = self.expression();
@@ -191,7 +180,75 @@ impl<'a> Parser<'a> {
         Box::new(Statement::While { condition, body })
     }
 
-    fn repeat_statement(&mut self) -> Box<Statement<'a>> {
+    fn switch_statement(&mut self) -> StmtBox<'a> {
+        self.check_next_consume(TokenType::LeftParen);
+
+        let condition = self.expression();
+
+        self.check_next_consume(TokenType::RightParen);
+        self.check_next_consume(TokenType::LeftBrace);
+
+        self.eat_all_newlines();
+
+        let mut cases: Option<Vec<Case<'a>>> = None;
+        let mut default: Option<Vec<Case<'a>>> = None;
+
+        while let Some(token) = self.iter.peek() {
+            match token.token_type {
+                TokenType::Case => match &mut cases {
+                    Some(vec) => vec.push(self.case_statement()),
+                    None => cases = Some(vec![self.case_statement()]),
+                },
+
+                TokenType::DefaultCase => match &mut default {
+                    Some(vec) => vec.push(self.case_statement()),
+                    None => default = Some(vec![self.case_statement()]),
+                },
+                _ => break,
+            }
+        }
+
+        self.eat_all_newlines();
+        self.check_next_consume(TokenType::RightBrace);
+
+        Box::new(Statement::Switch {
+            cases,
+            condition,
+            default,
+        })
+    }
+
+    fn case_statement(&mut self) -> Case<'a> {
+        if self.check_next(TokenType::Case) || self.check_next(TokenType::DefaultCase) {
+            self.consume_next();
+        }
+
+        let constant = self.expression();
+        self.check_next_consume(TokenType::Colon);
+
+        let mut statements = Vec::new();
+
+        while let Some(token) = self.iter.peek() {
+            match token.token_type {
+                TokenType::DefaultCase | TokenType::Case => {
+                    break;
+                }
+                TokenType::RightBrace => {
+                    break;
+                }
+                _ => {
+                    statements.push(self.statement());
+                }
+            }
+        }
+
+        Case {
+            statements,
+            constant,
+        }
+    }
+
+    fn repeat_statement(&mut self) -> StmtBox<'a> {
         self.check_next_consume(TokenType::LeftParen);
 
         let condition = self.expression();
@@ -203,7 +260,7 @@ impl<'a> Parser<'a> {
         Box::new(Statement::Repeat { condition, body })
     }
 
-    fn for_statement(&mut self) -> Box<Statement<'a>> {
+    fn for_statement(&mut self) -> StmtBox<'a> {
         self.check_next_consume(TokenType::LeftParen);
 
         let initializer = if self.check_next_consume(TokenType::Semicolon) {
@@ -240,7 +297,7 @@ impl<'a> Parser<'a> {
         })
     }
 
-    fn return_statement(&mut self) -> Box<Statement<'a>> {
+    fn return_statement(&mut self) -> StmtBox<'a> {
         let expression = if self.check_next(TokenType::Semicolon) {
             None
         } else {
@@ -252,83 +309,161 @@ impl<'a> Parser<'a> {
         Box::new(Statement::Return { expression })
     }
 
-    fn expression_statement(&mut self) -> Box<Statement<'a>> {
+    fn break_statement(&mut self) -> StmtBox<'a> {
+        self.check_next_consume(TokenType::Semicolon);
+        Box::new(Statement::Break)
+    }
+
+    fn exit_statment(&mut self) -> StmtBox<'a> {
+        self.check_next_consume(TokenType::Semicolon);
+        Box::new(Statement::Exit)
+    }
+
+    fn enum_declaration(&mut self) -> StmtBox<'a> {
+        let name = self.expression();
+
+        self.check_next_consume(TokenType::LeftBrace);
+        self.eat_all_newlines();
+
+        let mut members = Vec::new();
+
+        while let Some(token) = self.iter.peek() {
+            match token.token_type {
+                TokenType::Identifier(_) => {
+                    let name = self.iter.next().unwrap();
+
+                    let value = if self.check_next_consume(TokenType::Equal) {
+                        Some(self.expression())
+                    } else {
+                        None
+                    };
+
+                    members.push(EnumMemberDecl { name: *name, value });
+
+                    self.check_next_consume(TokenType::Comma);
+                    self.eat_all_newlines();
+                }
+
+                _ => break,
+            }
+        }
+
+        self.check_next_consume(TokenType::RightBrace);
+
+        Box::new(Statement::EnumDeclaration { name, members })
+    }
+
+    fn expression_statement(&mut self) -> StmtBox<'a> {
         let expr = self.expression();
 
         if self.check_next(TokenType::Semicolon) {
             self.iter.next();
         }
-        Box::new(Statement::Expresssion { expression: expr })
+        Box::new(Statement::ExpresssionStatement { expression: expr })
     }
 
-    fn expression(&mut self) -> Box<Expr<'a>> {
+    fn expression(&mut self) -> ExprBox<'a> {
         self.assignment()
     }
 
-    fn assignment(&mut self) -> Box<Expr<'a>> {
-        let expr = self.or();
+    fn assignment(&mut self) -> ExprBox<'a> {
+        let mut expr = self.ternary();
 
         if self.check_next_consume(TokenType::Equal) {
             let assignment_expr = self.assignment();
 
-            Box::new(Expr::Assign {
+            expr = Box::new(Expr::Assign {
                 left: expr,
                 right: assignment_expr,
-            })
-        } else {
-            expr
+            });
         }
+
+        expr
+    }
+
+    fn ternary(&mut self) -> ExprBox<'a> {
+        let mut expr = self.or();
+
+        if self.check_next_consume(TokenType::Hook) {
+            let left = self.ternary();
+            self.check_next_consume(TokenType::Colon);
+            let right = self.ternary();
+
+            expr = Box::new(Expr::Ternary {
+                conditional: expr,
+                left,
+                right,
+            });
+        }
+
+        expr
     }
 
     // parse our Logical Operands here
-    fn or(&mut self) -> Box<Expr<'a>> {
-        let left = self.and();
+    fn or(&mut self) -> ExprBox<'a> {
+        let mut left = self.and();
 
         if self.check_next(TokenType::LogicalOr) || self.check_next(TokenType::OrAlias) {
-            let (_, token) = self.iter.next().unwrap();
+            let token = self.iter.next().unwrap();
 
             let right = self.equality();
 
-            Box::new(Expr::Logical {
+            left = Box::new(Expr::Logical {
+                left,
+                operator: *token,
+                right,
+            });
+        }
+
+        left
+    }
+
+    fn and(&mut self) -> ExprBox<'a> {
+        let mut left = self.xor();
+
+        if self.check_next_either(TokenType::LogicalAnd, TokenType::AndAlias) {
+            let token = self.iter.next().unwrap();
+
+            let right = self.xor();
+
+            left = Box::new(Expr::Logical {
+                left,
+                operator: *token,
+                right,
+            });
+        }
+        left
+    }
+
+    fn xor(&mut self) -> ExprBox<'a> {
+        let mut left = self.equality();
+
+        if self.check_next_either(TokenType::LogicalXor, TokenType::XorAlias) {
+            let token = self.iter.next().unwrap();
+            let right = self.equality();
+
+            left = Box::new(Expr::Logical {
                 left,
                 operator: *token,
                 right,
             })
-        } else {
-            left
         }
+
+        left
     }
 
-    fn and(&mut self) -> Box<Expr<'a>> {
-        let left = self.equality();
+    fn equality(&mut self) -> ExprBox<'a> {
+        let mut expr = self.comparison();
 
-        if self.check_next(TokenType::LogicalAnd) || self.check_next(TokenType::AndAlias) {
-            let (_, token) = self.iter.next().unwrap();
-
-            let right = self.equality();
-
-            Box::new(Expr::Logical {
-                left,
-                operator: *token,
-                right,
-            })
-        } else {
-            left
-        }
-    }
-
-    fn equality(&mut self) -> Box<Expr<'a>> {
-        let expr = self.comparison();
-
-        while let Some((_, t)) = self.iter.peek() {
+        while let Some(t) = self.iter.peek() {
             match t.token_type {
                 TokenType::EqualEqual | TokenType::BangEqual => {
-                    let (i, _) = self.iter.next().unwrap();
+                    let token = self.iter.next().unwrap();
                     let right = self.comparison();
 
-                    return Box::new(Expr::Binary {
+                    expr = Box::new(Expr::Binary {
                         left: expr,
-                        operator: self.tokens[i],
+                        operator: *token,
                         right,
                     });
                 }
@@ -339,43 +474,87 @@ impl<'a> Parser<'a> {
         expr
     }
 
-    fn comparison(&mut self) -> Box<Expr<'a>> {
-        let expr = self.addition();
+    fn comparison(&mut self) -> ExprBox<'a> {
+        let mut expr = self.binary();
 
-        while let Some((_, t)) = self.iter.peek() {
+        while let Some(t) = self.iter.peek() {
             match t.token_type {
                 TokenType::Greater
                 | TokenType::GreaterEqual
                 | TokenType::Less
                 | TokenType::LessEqual => {
-                    let (i, _) = self.iter.next().unwrap();
+                    let t = self.iter.next().unwrap();
+                    let right = self.binary();
+
+                    expr = Box::new(Expr::Binary {
+                        left: expr,
+                        operator: *t,
+                        right,
+                    });
+                }
+                _ => break,
+            };
+        }
+
+        expr
+    }
+
+    fn binary(&mut self) -> ExprBox<'a> {
+        let mut expr = self.bitshift();
+
+        while let Some(t) = self.iter.peek() {
+            match t.token_type {
+                TokenType::BitAnd | TokenType::BitOr | TokenType::BitXor => {
+                    let t = self.iter.next().unwrap();
+                    let right = self.bitshift();
+
+                    expr =  Box::new(Expr::Binary {
+                        left: expr,
+                        operator: *t,
+                        right,
+                    });
+                }
+                _ => break,
+            }
+        }
+
+        expr
+    }
+
+    fn bitshift(&mut self) -> ExprBox<'a> {
+        let mut expr = self.addition();
+
+        while let Some(t) = self.iter.peek() {
+            match t.token_type {
+                TokenType::BitLeft | TokenType::BitRight => {
+                    let t = self.iter.next().unwrap();
                     let right = self.addition();
 
-                    return Box::new(Expr::Binary {
+                    expr = Box::new(Expr::Binary {
                         left: expr,
-                        operator: self.tokens[i],
+                        operator: *t,
                         right,
                     });
                 }
                 _ => break,
-            };
+            }
         }
 
         expr
     }
 
-    fn addition(&mut self) -> Box<Expr<'a>> {
-        let expr = self.multiplication();
+    fn addition(&mut self) -> ExprBox<'a> {
+        let mut expr = self.multiplication();
 
-        while let Some((_, t)) = self.iter.peek() {
+        while let Some(t) = self.iter.peek() {
             match t.token_type {
                 TokenType::Minus | TokenType::Plus => {
-                    let (i, _) = self.iter.next().unwrap();
+                    let token = self.iter.next().unwrap();
                     let right = self.multiplication();
 
-                    return Box::new(Expr::Binary {
+                    expr = Box::new(Expr::Binary {
                         left: expr,
-                        operator: self.tokens[i],
+                        operator: *token,
                         right,
                     });
                 }
@@ -386,18 +565,22 @@ impl<'a> Parser<'a> {
         expr
     }
 
-    fn multiplication(&mut self) -> Box<Expr<'a>> {
-        let expr = self.unary();
+    fn multiplication(&mut self) -> ExprBox<'a> {
+        let mut expr = self.unary();
 
-        while let Some((_, t)) = self.iter.peek() {
+        while let Some(t) = self.iter.peek() {
             match t.token_type {
-                TokenType::Slash | TokenType::Star => {
-                    let (i, _) = self.iter.next().unwrap();
+                TokenType::Slash
+                | TokenType::Star
+                | TokenType::Mod
+                | TokenType::ModAlias
+                | TokenType::Div => {
+                    let token = self.iter.next().unwrap();
                     let right = self.unary();
 
-                    return Box::new(Expr::Binary {
+                    expr = Box::new(Expr::Binary {
                         left: expr,
-                        operator: self.tokens[i],
+                        operator: *token,
                         right,
                     });
                 }
@@ -408,41 +591,114 @@ impl<'a> Parser<'a> {
         expr
     }
 
-    fn unary(&mut self) -> Box<Expr<'a>> {
-        if let Some((_, t)) = self.iter.peek() {
-            if let TokenType::Bang | TokenType::Minus = t.token_type {
-                let (i, _) = self.iter.next().unwrap();
-                let right = self.unary();
+    fn unary(&mut self) -> ExprBox<'a> {
+        if let Some(t) = self.iter.peek() {
+            match t.token_type {
+                TokenType::Bang | TokenType::Minus => {
+                    let t = self.iter.next().unwrap();
+                    let right = self.unary();
 
-                return Box::new(Expr::Unary {
-                    operator: self.tokens[i],
-                    right,
-                });
+                    return Box::new(Expr::Unary {
+                        operator: *t,
+                        right,
+                    });
+                }
+
+                TokenType::Incrementer | TokenType::Decrementer => {
+                    let t = self.iter.next().unwrap();
+                    let expr = self.unary();
+
+                    return Box::new(Expr::Prefix { operator: *t, expr });
+                }
+
+                _ => {}
             }
-        };
+        }
 
-        self.call()
+        self.postfix()
     }
 
-    fn call(&mut self) -> Box<Expr<'a>> {
-        let expression = self.primary();
+    fn postfix(&mut self) -> ExprBox<'a> {
+        let mut expr = self.call();
 
-        loop {
-            if self.check_next_consume(TokenType::LeftParen) {
-                let arguments = self.finish_call();
-                return Box::new(Expr::Call {
-                    procedure_name: expression,
-                    arguments,
-                });
-            } else {
-                break;
+        if self.check_next_either(TokenType::Incrementer, TokenType::Decrementer) {
+            let t = self.iter.next().unwrap();
+            expr = Box::new(Expr::Postfix { operator: *t, expr })
+        }
+
+        expr
+    }
+
+    fn call(&mut self) -> ExprBox<'a> {
+        let mut expression = self.primary();
+
+        if self.check_next_consume(TokenType::LeftParen) {
+            let arguments = self.finish_call();
+
+            expression = Box::new(Expr::Call {
+                procedure_name: expression,
+                arguments,
+            });
+        }
+
+        while let Some(token) = self.iter.peek() {
+            match token.token_type {
+                TokenType::Dot => {
+                    self.consume_next();
+                    if let Some(t) = self.iter.peek() {
+                        if let TokenType::Identifier(_) = t.token_type {
+                            let instance_variable = self.consume_next();
+
+                            expression = Box::new(Expr::DotAccess {
+                                instance_variable: *instance_variable,
+
+                                object_name: expression,
+                            });
+                        }
+                    }
+                }
+
+                TokenType::LeftBracket
+                | TokenType::ArrayIndexer
+                | TokenType::MapIndexer
+                | TokenType::ListIndexer => {
+                    let token = self.iter.next().unwrap();
+                    let access_expr = self.expression();
+
+                    self.check_next_consume(TokenType::RightBracket);
+
+                    // stupid non-chained access..
+                    return Box::new(Expr::DataStructureAccess {
+                        ds_name: expression,
+                        access_type: *token,
+                        access_expr,
+                    });
+                }
+
+                TokenType::GridIndexer => {
+                    let token = self.iter.next().unwrap();
+                    let row_expr = self.expression();
+                    self.check_next_consume(TokenType::Comma);
+                    let column_expr = self.expression();
+                    self.check_next_consume(TokenType::RightBracket);
+
+                    // stupid non-chained access..
+                    return Box::new(Expr::GridDataStructureAccess {
+                        ds_name: expression,
+                        access_type: *token,
+                        column_expr,
+                        row_expr,
+                    });
+                }
+
+                _ => break,
             }
         }
 
         expression
     }
 
-    fn finish_call(&mut self) -> Vec<Box<Expr<'a>>> {
+    fn finish_call(&mut self) -> Vec<ExprBox<'a>> {
         let mut arguments = Vec::new();
 
         if self.check_next(TokenType::RightParen) == false {
@@ -459,26 +715,26 @@ impl<'a> Parser<'a> {
         arguments
     }
 
-    fn primary(&mut self) -> Box<Expr<'a>> {
-        if let Some((_i, t)) = self.iter.peek() {
+    fn primary(&mut self) -> ExprBox<'a> {
+        if let Some(t) = self.iter.peek() {
             match t.token_type {
                 TokenType::False | TokenType::True => {
-                    let (_, t) = self.iter.next().unwrap();
+                    let t = self.consume_next();
                     return Box::new(Expr::Literal { literal_token: *t });
                 }
                 TokenType::Number(_) | TokenType::String(_) => {
-                    let (_, t) = self.iter.next().unwrap();
+                    let t = self.consume_next();
                     return Box::new(Expr::Literal { literal_token: *t });
                 }
                 TokenType::Identifier(_) => {
-                    let (_, t) = self.iter.next().unwrap();
+                    let t = self.consume_next();
                     return Box::new(Expr::Identifier { name: *t });
                 }
                 TokenType::LeftParen => {
-                    let (_, _) = self.iter.next().unwrap();
+                    self.consume_next();
                     let expression = self.expression();
 
-                    if let Some((_, t)) = self.iter.peek() {
+                    if let Some(t) = self.iter.peek() {
                         if t.token_type == TokenType::RightParen {
                             self.iter.next();
                         }
@@ -488,11 +744,11 @@ impl<'a> Parser<'a> {
                 }
 
                 TokenType::Newline => {
-                    let (_, t) = self.iter.next().unwrap();
+                    let t = self.consume_next();
                     return Box::new(Expr::Newline { token: *t });
                 }
                 _ => {
-                    let (_, t) = self.iter.next().unwrap();
+                    let t = self.consume_next();
                     return Box::new(Expr::UnidentifiedAsLiteral { literal_token: *t });
                 }
             }
@@ -502,8 +758,16 @@ impl<'a> Parser<'a> {
     }
 
     fn check_next(&mut self, token_type: TokenType) -> bool {
-        if let Some((_i, t)) = self.iter.peek() {
+        if let Some(t) = self.iter.peek() {
             return t.token_type == token_type;
+        }
+
+        false
+    }
+
+    fn check_next_either(&mut self, token_type1: TokenType, token_type2: TokenType) -> bool {
+        if let Some(t) = self.iter.peek() {
+            return t.token_type == token_type1 || t.token_type == token_type2;
         }
 
         false
@@ -511,7 +775,7 @@ impl<'a> Parser<'a> {
 
     fn check_next_consume(&mut self, token_type: TokenType) -> bool {
         if self.check_next(token_type) {
-            self.iter.next().unwrap();
+            self.consume_next();
             true
         } else {
             false
@@ -519,13 +783,17 @@ impl<'a> Parser<'a> {
     }
 
     #[allow(dead_code)]
-    fn eat_all_tokens(&mut self, token_type: TokenType) {
-        while let Some((_, token)) = self.iter.peek() {
-            if token.token_type == token_type {
+    fn eat_all_newlines(&mut self) {
+        while let Some(token) = self.iter.peek() {
+            if token.token_type == TokenType::Newline {
                 self.iter.next();
             } else {
                 break;
             }
         }
+    }
+
+    fn consume_next(&mut self) -> &Token<'a> {
+        self.iter.next().unwrap()
     }
 }

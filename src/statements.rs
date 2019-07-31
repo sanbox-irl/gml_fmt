@@ -1,40 +1,75 @@
 use super::expressions::*;
+use super::lex_token::Token;
+
+type ExprBox<'a> = Box<Expr<'a>>;
+type StmtBox<'a> = Box<Statement<'a>>;
 
 #[derive(Debug)]
 pub enum Statement<'a> {
-    VariableDecl {
-        var_expr: Box<Expr<'a>>,
-        assignment: Option<Box<Expr<'a>>>,
-    },
     VariableDeclList {
-        var_decl: Vec<Box<Statement<'a>>>,
+        var_decl: Vec<VariableDecl<'a>>,
     },
-    Expresssion {
-        expression: Box<Expr<'a>>,
+    EnumDeclaration {
+        name: ExprBox<'a>,
+        members: Vec<EnumMemberDecl<'a>>,
+    },
+    ExpresssionStatement {
+        expression: ExprBox<'a>,
     },
     Block {
-        statements: Vec<Box<Statement<'a>>>,
+        statements: Vec<StmtBox<'a>>,
     },
     If {
-        condition: Box<Expr<'a>>,
-        then_branch: Box<Statement<'a>>,
-        else_branch: Option<Box<Statement<'a>>>,
+        condition: ExprBox<'a>,
+        then_branch: StmtBox<'a>,
+        else_branch: Option<StmtBox<'a>>,
     },
     While {
-        condition: Box<Expr<'a>>,
-        body: Box<Statement<'a>>,
+        condition: ExprBox<'a>,
+        body: StmtBox<'a>,
     },
     Repeat {
-        condition: Box<Expr<'a>>,
-        body: Box<Statement<'a>>,
+        condition: ExprBox<'a>,
+        body: StmtBox<'a>,
     },
     For {
-        initializer: Option<Box<Statement<'a>>>,
-        condition: Option<Box<Expr<'a>>>,
-        increment: Option<Box<Expr<'a>>>,
-        body: Box<Statement<'a>>,
+        initializer: Option<StmtBox<'a>>,
+        condition: Option<ExprBox<'a>>,
+        increment: Option<ExprBox<'a>>,
+        body: StmtBox<'a>,
     },
     Return {
-        expression: Option<Box<Expr<'a>>>,
+        expression: Option<ExprBox<'a>>,
     },
+    Break,
+    Exit,
+    Switch {
+        condition: ExprBox<'a>,
+        cases: Option<Vec<Case<'a>>>,
+        default: Option<Vec<Case<'a>>>,
+    },
+    Comment {
+        comment: Token<'a>,
+    },
+    MultilineComment {
+        multiline_comment: Token<'a>,
+    },
+}
+
+#[derive(Debug)]
+pub struct Case<'a> {
+    pub constant: ExprBox<'a>,
+    pub statements: Vec<StmtBox<'a>>,
+}
+
+#[derive(Debug)]
+pub struct VariableDecl<'a> {
+    pub var_expr: ExprBox<'a>,
+    pub assignment: Option<ExprBox<'a>>,
+}
+
+#[derive(Debug)]
+pub struct EnumMemberDecl<'a> {
+    pub name: Token<'a>,
+    pub value: Option<ExprBox<'a>>,
 }

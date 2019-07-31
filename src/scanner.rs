@@ -31,8 +31,20 @@ impl<'a> Scanner<'a> {
                 '{' => self.add_simple_token(TokenType::LeftBrace),
                 '}' => self.add_simple_token(TokenType::RightBrace),
                 ',' => self.add_simple_token(TokenType::Comma),
-                '-' => self.add_simple_token(TokenType::Minus),
-                '+' => self.add_simple_token(TokenType::Plus),
+                '-' => {
+                    if self.peek_and_check_consume('-') {
+                        self.add_simple_token(TokenType::Decrementer);
+                    } else {
+                        self.add_simple_token(TokenType::Minus);
+                    }
+                }
+                '+' => {
+                    if self.peek_and_check_consume('+') {
+                        self.add_simple_token(TokenType::Incrementer);
+                    } else {
+                        self.add_simple_token(TokenType::Plus);
+                    }
+                }
                 ';' => self.add_simple_token(TokenType::Semicolon),
                 '*' => self.add_simple_token(TokenType::Star),
                 ':' => self.add_simple_token(TokenType::Colon),
@@ -59,6 +71,8 @@ impl<'a> Scanner<'a> {
                 '<' => {
                     if self.peek_and_check_consume('=') {
                         self.add_multiple_token(TokenType::LessEqual, 2);
+                    } else if self.peek_and_check_consume('<') {
+                        self.add_multiple_token(TokenType::BitLeft, 2);
                     } else {
                         self.add_simple_token(TokenType::Less)
                     }
@@ -66,6 +80,8 @@ impl<'a> Scanner<'a> {
                 '>' => {
                     if self.peek_and_check_consume('=') {
                         self.add_multiple_token(TokenType::GreaterEqual, 2);
+                    } else if self.peek_and_check_consume('>') {
+                        self.add_multiple_token(TokenType::BitRight, 2);
                     } else {
                         self.add_simple_token(TokenType::Greater)
                     }
@@ -74,7 +90,7 @@ impl<'a> Scanner<'a> {
                     if self.peek_and_check_consume('&') {
                         self.add_multiple_token(TokenType::LogicalAnd, 2);
                     } else {
-                        self.add_simple_token(TokenType::BinaryAnd);
+                        self.add_simple_token(TokenType::BitAnd);
                     }
                 }
 
@@ -82,7 +98,7 @@ impl<'a> Scanner<'a> {
                     if self.peek_and_check_consume('|') {
                         self.add_multiple_token(TokenType::LogicalOr, 2);
                     } else {
-                        self.add_simple_token(TokenType::BinaryOr);
+                        self.add_simple_token(TokenType::BitOr);
                     }
                 }
 
@@ -90,7 +106,7 @@ impl<'a> Scanner<'a> {
                     if self.peek_and_check_consume('^') {
                         self.add_multiple_token(TokenType::LogicalXor, 2);
                     } else {
-                        self.add_simple_token(TokenType::BinaryXor);
+                        self.add_simple_token(TokenType::BitXor);
                     }
                 }
 
@@ -448,6 +464,9 @@ impl<'a> Scanner<'a> {
             "false" => Some(TokenType::False),
             "mod" => Some(TokenType::ModAlias),
             "div" => Some(TokenType::Div),
+            "break" => Some(TokenType::Break),
+            "exit" => Some(TokenType::Exit),
+            "enum" => Some(TokenType::Enum),
             _ => None,
         }
     }
@@ -506,9 +525,9 @@ mod scanner_test {
                 Token::new(TokenType::GreaterEqual, 2, 10),
                 Token::new(TokenType::LessEqual, 2, 13),
                 Token::new(TokenType::EqualEqual, 2, 16),
-                Token::new(TokenType::BinaryAnd, 2, 19),
-                Token::new(TokenType::BinaryOr, 2, 21),
-                Token::new(TokenType::BinaryXor, 2, 23),
+                Token::new(TokenType::BitAnd, 2, 19),
+                Token::new(TokenType::BitOr, 2, 21),
+                Token::new(TokenType::BitXor, 2, 23),
                 Token::new(TokenType::Hashtag, 2, 25),
                 Token::new(TokenType::Hook, 2, 27),
                 Token::new(TokenType::Comment("// operators"), 2, 29),
@@ -657,7 +676,7 @@ testCase";
     #[test]
     fn lex_reserved_keywords() {
         let input_string =
-            "var and or if else return for repeat while do until switch case default true false div";
+            "var and or if else return for repeat while do until switch case default true false div break enum";
 
         let vec = &mut Vec::new();
         let mut scanner = Scanner::new(input_string, vec);
@@ -682,7 +701,9 @@ testCase";
                 Token::new(TokenType::True, 0, 72),
                 Token::new(TokenType::False, 0, 77),
                 Token::new(TokenType::Div, 0, 83),
-                Token::new(TokenType::EOF, 0, 86),
+                Token::new(TokenType::Break, 0, 87),
+                Token::new(TokenType::Enum, 0, 93),
+                Token::new(TokenType::EOF, 0, 97),
             ]
         )
     }
