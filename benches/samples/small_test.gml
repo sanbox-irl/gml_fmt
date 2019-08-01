@@ -1,1 +1,4 @@
-1.ツ
+#define _okay
+var x;
+
+#define okay

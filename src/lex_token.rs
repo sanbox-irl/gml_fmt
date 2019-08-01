@@ -48,6 +48,7 @@ pub enum TokenType<'a> {
     Macro,
     RegionBegin,
     RegionEnd,
+    Define,
 
     Var,
     If,

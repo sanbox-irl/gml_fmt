@@ -33,6 +33,7 @@ impl<'a> Parser<'a> {
         }
     }
 
+    // @jack support compiler directive...#region, #macro #endregion
     fn statement(&mut self) -> StmtBox<'a> {
         if let Some(token) = self.iter.peek() {
             match token.token_type {
@@ -45,6 +46,22 @@ impl<'a> Parser<'a> {
                     return Box::new(Statement::MultilineComment {
                         multiline_comment: *multiline_comment,
                     });
+                }
+                TokenType::RegionBegin => {
+                    self.consume_next();
+                    return self.region_begin();
+                }
+                TokenType::RegionEnd => {
+                    self.consume_next();
+                    return Box::new(Statement::RegionEnd);
+                }
+                TokenType::Macro => {
+                    self.consume_next();
+                    return self.macro_statement();
+                }
+                TokenType::Define => {
+                    self.consume_next();
+                    return self.define_statement();
                 }
                 TokenType::Var => {
                     return self.series_var_declaration();
@@ -93,6 +110,71 @@ impl<'a> Parser<'a> {
             }
         };
         self.expression_statement()
+    }
+
+    fn region_begin(&mut self) -> StmtBox<'a> {
+        let mut multi_word_name = vec![];
+
+        while let Some(t) = self.iter.peek() {
+            match t.token_type {
+                TokenType::Newline => break,
+                TokenType::EOF => break,
+                _ => {
+                    multi_word_name.push(*self.consume_next());
+                }
+            }
+        }
+
+        Box::new(Statement::RegionBegin { multi_word_name })
+    }
+
+    fn macro_statement(&mut self) -> StmtBox<'a> {
+        let mut macro_body = vec![];
+        let mut ignore_newline = false;
+
+        while let Some(t) = self.iter.peek() {
+            match t.token_type {
+                TokenType::Newline => {
+                    if ignore_newline {
+                        macro_body.push(*self.consume_next());
+                    } else {
+                        break;
+                    }
+                }
+
+                TokenType::Backslash => {
+                    macro_body.push(*self.consume_next());
+                    ignore_newline = true;
+                }
+
+                TokenType::EOF => break,
+                _ => {
+                    ignore_newline = false;
+                    macro_body.push(*self.consume_next());
+                }
+            }
+        }
+
+        Box::new(Statement::Macro { macro_body })
+    }
+
+    fn define_statement(&mut self) -> StmtBox<'a> {
+        let script_name = self.expression();
+        let mut body = vec![];
+
+        while let Some(token) = self.iter.peek() {
+            match token.token_type {
+                TokenType::EOF | TokenType::Define => {
+                    break;
+                }
+
+                _ => {
+                    body.push(self.statement());
+                }
+            }
+        }
+
+        Box::new(Statement::Define { script_name, body })
     }
 
     fn series_var_declaration(&mut self) -> StmtBox<'a> {
@@ -328,23 +410,21 @@ impl<'a> Parser<'a> {
         let mut members = Vec::new();
 
         while let Some(token) = self.iter.peek() {
-            match token.token_type {
-                TokenType::Identifier(_) => {
-                    let name = self.iter.next().unwrap();
+            if let TokenType::Identifier(_) = token.token_type {
+                let name = self.iter.next().unwrap();
 
-                    let value = if self.check_next_consume(TokenType::Equal) {
-                        Some(self.expression())
-                    } else {
-                        None
-                    };
+                let value = if self.check_next_consume(TokenType::Equal) {
+                    Some(self.expression())
+                } else {
+                    None
+                };
 
-                    members.push(EnumMemberDecl { name: *name, value });
+                members.push(EnumMemberDecl { name: *name, value });
 
-                    self.check_next_consume(TokenType::Comma);
-                    self.eat_all_newlines();
-                }
-
-                _ => break,
+                self.check_next_consume(TokenType::Comma);
+                self.eat_all_newlines();
+            } else {
+                break;
             }
         }
 
@@ -508,7 +588,7 @@ impl<'a> Parser<'a> {
                     let t = self.iter.next().unwrap();
                     let right = self.bitshift();
 
-                    expr =  Box::new(Expr::Binary {
+                    expr = Box::new(Expr::Binary {
                         left: expr,
                         operator: *t,
                         right,

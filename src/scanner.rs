@@ -148,7 +148,7 @@ impl<'a> Scanner<'a> {
                         current = self.next_char_boundary();
                     };
 
-                    let token_returned = self.check_for_macro_directive(start, current);
+                    let token_returned = self.check_for_compiler_directive(start, current);
 
                     match token_returned {
                         Some(macro_directive) => {
@@ -489,11 +489,12 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    fn check_for_macro_directive(&self, start: usize, current: usize) -> Option<TokenType<'a>> {
+    fn check_for_compiler_directive(&self, start: usize, current: usize) -> Option<TokenType<'a>> {
         match &self.input[start..current] {
             "#macro" => Some(TokenType::Macro),
             "#region" => Some(TokenType::RegionBegin),
             "#endregion" => Some(TokenType::RegionEnd),
+            "#define" => Some(TokenType::Define),
             _ => None,
         }
     }
