@@ -1,14 +1,13 @@
 use super::lex_token::*;
-use std::iter::Enumerate;
 use std::iter::Peekable;
-use std::str::Chars;
+use std::str::CharIndices;
 
 pub struct Scanner<'a> {
     pub tokens: &'a mut Vec<Token<'a>>,
     input: &'a str,
     line_number: u32,
     column_number: u32,
-    iter: Peekable<Enumerate<Chars<'a>>>,
+    iter: Peekable<CharIndices<'a>>,
 }
 
 impl<'a> Scanner<'a> {
@@ -17,7 +16,7 @@ impl<'a> Scanner<'a> {
             input,
             line_number: 0,
             column_number: 0,
-            iter: input.chars().enumerate().peekable(),
+            iter: input.char_indices().peekable(),
             tokens,
         }
     }
@@ -110,29 +109,32 @@ impl<'a> Scanner<'a> {
                     }
                 }
 
-                '[' => match self.iter.peek() {
-                    Some((_i, next_char)) if *next_char == '@' => {
-                        self.add_multiple_token(TokenType::ArrayIndexer, 2);
-                        self.iter.next();
-                    }
+                // Indexing
+                '[' => {
+                    match self.iter.peek() {
+                        Some((_i, next_char)) if *next_char == '@' => {
+                            self.add_multiple_token(TokenType::ArrayIndexer, 2);
+                            self.iter.next();
+                        }
 
-                    Some((_i, next_char)) if *next_char == '?' => {
-                        self.add_multiple_token(TokenType::MapIndexer, 2);
-                        self.iter.next();
-                    }
+                        Some((_i, next_char)) if *next_char == '?' => {
+                            self.add_multiple_token(TokenType::MapIndexer, 2);
+                            self.iter.next();
+                        }
 
-                    Some((_i, next_char)) if *next_char == '|' => {
-                        self.add_multiple_token(TokenType::ListIndexer, 2);
-                        self.iter.next();
-                    }
+                        Some((_i, next_char)) if *next_char == '|' => {
+                            self.add_multiple_token(TokenType::ListIndexer, 2);
+                            self.iter.next();
+                        }
 
-                    Some((_i, next_char)) if *next_char == '#' => {
-                        self.add_multiple_token(TokenType::GridIndexer, 2);
-                        self.iter.next();
-                    }
+                        Some((_i, next_char)) if *next_char == '#' => {
+                            self.add_multiple_token(TokenType::GridIndexer, 2);
+                            self.iter.next();
+                        }
 
-                    _ => self.add_simple_token(TokenType::LeftBracket),
-                },
+                        _ => self.add_simple_token(TokenType::LeftBracket),
+                    };
+                }
 
                 // Compiler Directives
                 '#' => {
@@ -174,14 +176,22 @@ impl<'a> Scanner<'a> {
                     let start = i;
                     let mut current = start;
 
-                    if let Some((_, break_char)) = self.peek_and_check_while(|i, string_char| {
-                        current = i;
-                        string_char != '\n' && string_char != '"'
-                    }) {
-                        // eat the quote
-                        if break_char == '"' {
-                            self.iter.next();
-                            current = self.next_char_boundary();
+                    while let Some((_, break_char)) = self.iter.peek() {
+                        match *break_char {
+                            '\n' => {
+                                current = self.next_char_boundary();
+                                break;
+                            }
+
+                            '"' => {
+                                self.iter.next();
+                                current = self.next_char_boundary();
+                                break;
+                            }
+                            _ => {
+                                self.iter.next();
+                                current = self.next_char_boundary();
+                            }
                         }
                     }
 
@@ -191,7 +201,6 @@ impl<'a> Scanner<'a> {
                     );
                 }
 
-                // Number literals
                 '.' => {
                     match self.iter.peek() {
                         Some((_, next_char)) if next_char.is_digit(10) => {
@@ -203,8 +212,8 @@ impl<'a> Scanner<'a> {
 
                             while let Some((_, number_char)) = self.iter.peek() {
                                 if number_char.is_digit(10) {
-                                    current = self.next_char_boundary();
                                     self.iter.next();
+                                    current = self.next_char_boundary();
                                 } else {
                                     break;
                                 }
@@ -221,7 +230,7 @@ impl<'a> Scanner<'a> {
 
                 '0'..='9' => {
                     let start = i;
-                    let mut current = start + 1;
+                    let mut current = self.next_char_boundary();
 
                     // Check for Hex
                     if c == '0' {
@@ -231,12 +240,13 @@ impl<'a> Scanner<'a> {
 
                                 while let Some((_, number_char)) = self.iter.peek() {
                                     if number_char.is_digit(16) {
-                                        current = self.next_char_boundary();
                                         self.iter.next();
                                     } else {
                                         break;
                                     }
                                 }
+
+                                let current = self.next_char_boundary();
 
                                 self.add_multiple_token(
                                     TokenType::Number(&self.input[start..current]),
@@ -248,26 +258,25 @@ impl<'a> Scanner<'a> {
                     }
 
                     let mut is_fractional = false;
-
                     while let Some((_, number_char)) = self.iter.peek() {
                         if number_char.is_digit(10) {
-                            current = self.next_char_boundary();
                             self.iter.next();
                         } else {
                             is_fractional = *number_char == '.';
+                            current = self.next_char_boundary();
                             break;
                         }
                     }
 
                     if is_fractional {
                         // eat the "."
-                        current = self.next_char_boundary_consume();
+                        self.iter.next();
 
                         while let Some((_, number_char)) = self.iter.peek() {
                             if number_char.is_digit(10) {
-                                current = self.next_char_boundary();
                                 self.iter.next();
                             } else {
+                                current = self.next_char_boundary();
                                 break;
                             }
                         }
@@ -282,13 +291,16 @@ impl<'a> Scanner<'a> {
                 // Secondary Hex
                 '$' => {
                     let start = i;
-                    let mut current = start;
+                    let mut current = self.next_char_boundary();
 
-                    if let None = self.peek_and_check_while(|i, hex_char| {
-                        current = i;
-                        hex_char.is_digit(16)
-                    }) {
-                        current = self.next_char_boundary();
+                    while let Some((_, hex_char)) = self.iter.peek() {
+                        if hex_char.is_digit(16) {
+                            self.iter.next();
+                            current = self.next_char_boundary();
+                        } else {
+                            current = self.next_char_boundary();
+                            break;
+                        }
                     }
 
                     self.add_multiple_token(
@@ -324,29 +336,25 @@ impl<'a> Scanner<'a> {
                         let mut last_column_break = start;
                         let mut current = start;
 
-                        while let Some((i, comment_char)) = self.iter.peek() {
-                            current = *i;
-
+                        while let Some((_, comment_char)) = self.iter.next() {
                             match comment_char {
-                                &'*' => {
-                                    current = self.next_char_boundary_consume();
+                                '*' => {
                                     if let Some((_, next_next_char)) = self.iter.peek() {
                                         if next_next_char == &'/' {
-                                            current = self.next_char_boundary_consume();
+                                            self.iter.next();
+                                            current = self.next_char_boundary();
                                             break;
                                         }
                                     }
                                 }
 
-                                &'\n' => {
-                                    self.next_line();
+                                '\n' => {
                                     last_column_break = self.next_char_boundary();
+                                    self.next_line();
                                 }
 
                                 _ => {}
                             };
-
-                            self.iter.next();
                         }
 
                         self.tokens.push(Token::new(
@@ -359,14 +367,8 @@ impl<'a> Scanner<'a> {
                         self.add_simple_token(TokenType::Slash);
                     }
                 }
-                ' ' | '\t' => self.column_number += 1,
 
-                '\n' => {
-                    self.add_simple_token(TokenType::Newline);
-                    self.next_line();
-                }
-                '\r' => continue,
-
+                // Identifiers and keywords
                 'A'..='Z' | 'a'..='z' | '_' => {
                     let start = i;
                     let mut current = start + 1;
@@ -392,14 +394,25 @@ impl<'a> Scanner<'a> {
                     }
                 }
 
+                // Whitespace we care about...
+                ' ' => self.column_number += 1,
+                '\t' => self.column_number += 4,
+
+                // Newline
+                '\n' => {
+                    self.add_simple_token(TokenType::Newline);
+                    self.next_line();
+                }
+
+                // Whitespace we don't care about
+                '\r' => continue,
+
                 _ => {
-                    println!("Unexpected character {}", c);
                     let end_byte = self.next_char_boundary();
                     self.add_multiple_token(
                         TokenType::UnidentifiedInput(&self.input[i..end_byte]),
                         (end_byte - i) as u32,
                     );
-                    self.column_number += 1;
                 }
             };
         }
@@ -487,14 +500,7 @@ impl<'a> Scanner<'a> {
 
     fn next_char_boundary(&mut self) -> usize {
         match self.iter.peek() {
-            Some(_) => self.iter.peek().unwrap().0 + 1,
-            None => self.input.len(),
-        }
-    }
-
-    fn next_char_boundary_consume(&mut self) -> usize {
-        match self.iter.peek() {
-            Some(_) => self.next_char_boundary_consume(),
+            Some(_) => self.iter.peek().unwrap().0,
             None => self.input.len(),
         }
     }
@@ -573,6 +579,7 @@ mod scanner_test {
     fn lex_strings() {
         let input_string = "\"This is a good string.\"
 \"This is a bad string.
+\"\"
 \"This is another good string!\"";
         let vec = &mut Vec::new();
         let mut scanner = Scanner::new(input_string, vec);
@@ -584,8 +591,10 @@ mod scanner_test {
                 Token::new(TokenType::Newline, 0, 24),
                 Token::new(TokenType::String("\"This is a bad string."), 1, 0),
                 Token::new(TokenType::Newline, 1, 22),
-                Token::new(TokenType::String("\"This is another good string!\""), 2, 0),
-                Token::new(TokenType::EOF, 2, 30)
+                Token::new(TokenType::String("\"\""), 2, 0),
+                Token::new(TokenType::Newline, 2, 2),
+                Token::new(TokenType::String("\"This is another good string!\""), 3, 0),
+                Token::new(TokenType::EOF, 3, 30),
             ]
         );
     }
@@ -630,9 +639,11 @@ mod scanner_test {
 0x01234567
 0x0A1B2C3D4E5F6
 0xABCDEF
+0x
 $012345
 $0A1B2C3D4E5F6
-$ABCDEF";
+$ABCDEF
+$";
 
         let vec = &mut Vec::new();
         let mut scanner = Scanner::new(input_string, vec);
@@ -648,12 +659,16 @@ $ABCDEF";
                 Token::new(TokenType::Newline, 2, 15),
                 Token::new(TokenType::Number("0xABCDEF"), 3, 0),
                 Token::new(TokenType::Newline, 3, 8),
-                Token::new(TokenType::Number("$012345"), 4, 0),
-                Token::new(TokenType::Newline, 4, 7),
-                Token::new(TokenType::Number("$0A1B2C3D4E5F6"), 5, 0),
-                Token::new(TokenType::Newline, 5, 14),
-                Token::new(TokenType::Number("$ABCDEF"), 6, 0),
-                Token::new(TokenType::EOF, 6, 7),
+                Token::new(TokenType::Number("0x"), 4, 0),
+                Token::new(TokenType::Newline, 4, 2),
+                Token::new(TokenType::Number("$012345"), 5, 0),
+                Token::new(TokenType::Newline, 5, 7),
+                Token::new(TokenType::Number("$0A1B2C3D4E5F6"), 6, 0),
+                Token::new(TokenType::Newline, 6, 14),
+                Token::new(TokenType::Number("$ABCDEF"), 7, 0),
+                Token::new(TokenType::Newline, 7, 7),
+                Token::new(TokenType::Number("$"), 8, 0),
+                Token::new(TokenType::EOF, 8, 1),
             ]
         );
     }
@@ -806,7 +821,7 @@ is bad";
     #[test]
     fn lex_comments() {
         let input_string = "// normal comment
-var x = 20; // end comment
+var x = a; // end comment
 /* one liner */
 /* multi
 liner comment
@@ -824,11 +839,11 @@ liner comment
                 Token::new(TokenType::Var, 1, 0),
                 Token::new(TokenType::Identifier("x"), 1, 4),
                 Token::new(TokenType::Equal, 1, 6),
-                Token::new(TokenType::Number("20"), 1, 8),
-                Token::new(TokenType::Semicolon, 1, 10),
-                Token::new(TokenType::Comment("// end comment"), 1, 12),
-                Token::new(TokenType::Newline, 1, 26),
-                // line 2©
+                Token::new(TokenType::Identifier("a"), 1, 8),
+                Token::new(TokenType::Semicolon, 1, 9),
+                Token::new(TokenType::Comment("// end comment"), 1, 11),
+                Token::new(TokenType::Newline, 1, 25),
+                // line 2
                 Token::new(TokenType::MultilineComment("/* one liner */"), 2, 0),
                 Token::new(TokenType::Newline, 2, 15),
                 // line 3
