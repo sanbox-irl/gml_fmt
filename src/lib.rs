@@ -1,9 +1,10 @@
 pub mod config;
 pub mod expressions;
-pub mod statements;
 pub mod lex_token;
 pub mod parser;
+pub mod printer;
 pub mod scanner;
+pub mod statements;
 
 use config::Config;
 use parser::Parser;
@@ -48,7 +49,9 @@ fn run(source: &str, do_print: bool) {
     if do_print {
         println!("=========INPUT=========");
         println!("{}", source);
-        println!("=========AST=========");
+        println!("=========OUTPUT=========");
+        println!("{}", printer::print(&parser.ast));
+        println!("==========AST==========");
         println!("{:#?}", parser.ast);
     }
 }
