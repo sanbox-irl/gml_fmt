@@ -21,7 +21,7 @@ main() {
     cross rustc --bin gml_fmt --target $TARGET --release -- -C lto
 
     # TODO Update this to package the right artifacts
-    cp target/$TARGET/release/gml_fmt $stage/
+    cp target/$TARGET/release $stage/
 
     cd $stage
     tar czf $src/$CRATE_NAME-$TRAVIS_TAG-$TARGET.tar.gz *
