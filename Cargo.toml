@@ -16,3 +16,6 @@ criterion = "0.2.11"
 [[bench]]
 name = "speed_test"
 harness = false
+
+[[bin]]
+name = "gml_fmt"
