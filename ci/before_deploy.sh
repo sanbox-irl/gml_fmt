@@ -13,6 +13,10 @@ main() {
         osx)
             stage=$(mktemp -d -t tmp)
             ;;
+        windows)
+            stage=$(mktemp -d)
+            ;;
+        
     esac
 
     test -f Cargo.lock || cargo generate-lockfile
