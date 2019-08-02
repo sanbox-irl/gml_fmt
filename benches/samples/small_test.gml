@@ -1,5 +1,7 @@
-if (x) {
-    show_debug(x);
+if 
+
+(x) {
+    show_debug(x)
 
 
 

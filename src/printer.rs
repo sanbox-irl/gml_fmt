@@ -43,8 +43,8 @@ impl<'a> Printer<'a> {
         }
     }
 
-    fn print_statement(&mut self, stmt: &'a Statement<'a>) {
-        match stmt {
+    fn print_statement(&mut self, stmt: &'a StatementWrapper<'a>) {
+        match &stmt.statement {
             Statement::VariableDeclList { var_decl } => {
                 self.print("var", true);
 
@@ -61,6 +61,8 @@ impl<'a> Printer<'a> {
                     if let Some(_) = iter.peek() {
                         self.print(COMMA, true);
                     }
+
+                    self.print_semicolon(stmt.has_semicolon);
                 }
             }
             Statement::EnumDeclaration { name, members } => {
@@ -82,13 +84,17 @@ impl<'a> Printer<'a> {
                         self.print(COMMA, true);
                         self.print_newline(IndentationMove::Stay);
                     } else {
-                        self.print_newline(IndentationMove::Left);
-                        self.print(RBRACE, false);
+                        break;
                     }
                 }
+
+                self.print_newline(IndentationMove::Left);
+                self.print(RBRACE, false);
+                self.print_semicolon(stmt.has_semicolon);
             }
             Statement::ExpresssionStatement { expression } => {
                 self.print_expr(expression);
+                self.print_semicolon(stmt.has_semicolon);
             }
             Statement::Block { statements } => {
                 self.print(LBRACE, false);
@@ -101,8 +107,8 @@ impl<'a> Printer<'a> {
                     self.backspace_till_newline();
                     self.print_indentation(IndentationMove::Left);
                 }
-
                 self.print(RBRACE, false);
+                self.print_semicolon(stmt.has_semicolon);
             }
             Statement::If {
                 condition,
@@ -119,16 +125,19 @@ impl<'a> Printer<'a> {
 
                     self.print_statement(else_branch);
                 }
+                self.print_semicolon(stmt.has_semicolon);
             }
             Statement::While { condition, body } => {
                 self.print("while", true);
                 self.print_expr_parentheses(condition);
                 self.print_statement(body);
+                self.print_semicolon(stmt.has_semicolon);
             }
             Statement::Repeat { condition, body } => {
                 self.print("repeat", true);
                 self.print_expr_parentheses(condition);
                 self.print_statement(body);
+                self.print_semicolon(stmt.has_semicolon);
             }
             Statement::For {
                 initializer,
@@ -165,6 +174,7 @@ impl<'a> Printer<'a> {
                 self.print(RPAREN, true);
 
                 self.print_statement(body);
+                self.print_semicolon(stmt.has_semicolon);
             }
             Statement::Return { expression } => {
                 self.print("return", false);
@@ -173,12 +183,15 @@ impl<'a> Printer<'a> {
                     self.print(SPACE, false);
                     self.print_expr(expression);
                 }
+                self.print_semicolon(stmt.has_semicolon);
             }
             Statement::Break => {
                 self.print("break", false);
+                self.print_semicolon(stmt.has_semicolon);
             }
             Statement::Exit => {
                 self.print("exit", false);
+                self.print_semicolon(stmt.has_semicolon);
             }
             Statement::Switch {
                 condition,
@@ -219,6 +232,7 @@ impl<'a> Printer<'a> {
 
                 self.print_newline(IndentationMove::Left);
                 self.print(RBRACE, false);
+                self.print_semicolon(stmt.has_semicolon);
             }
             Statement::Comment { comment } => self.print_token(comment, false),
             Statement::MultilineComment { multiline_comment } => {
@@ -502,6 +516,13 @@ impl<'a> Printer<'a> {
 
         for _ in 0..self.indentation {
             self.print(TAB, false);
+        }
+    }
+
+    fn print_semicolon(&mut self, do_it: bool) {
+        if do_it {
+            self.backspace();
+            self.print(SEMICOLON, false);
         }
     }
 }
