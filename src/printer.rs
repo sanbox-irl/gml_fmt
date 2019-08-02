@@ -246,11 +246,9 @@ impl<'a> Printer<'a> {
                 self.print_expr(script_name);
                 self.backspace();
 
-                self.indentation += 1;
                 for this_stmt in body {
                     self.print_statement(this_stmt);
                 }
-                self.indentation -= 1;
             }
         }
     }
