@@ -8,6 +8,7 @@ pub mod statements;
 
 use config::Config;
 use parser::Parser;
+use printer::Printer;
 use scanner::Scanner;
 use std::{error::Error, fs, path::PathBuf};
 
@@ -46,11 +47,14 @@ fn run(source: &str, do_print: bool) {
     let mut parser = Parser::new(our_tokens);
     parser.build_ast();
 
+    let mut printer = Printer::new();
+    printer.autoformat(&parser.ast[..]);
+
     if do_print {
         println!("=========INPUT=========");
         println!("{}", source);
         println!("=========OUTPUT=========");
-        println!("{}", printer::print(&parser.ast));
+        println!("{}", Printer::get_output(&printer.output));
         println!("==========AST==========");
         println!("{:#?}", parser.ast);
     }

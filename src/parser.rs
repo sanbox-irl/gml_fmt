@@ -282,6 +282,7 @@ impl<'a> Parser<'a> {
                     None => cases = Some(vec![self.case_statement()]),
                 },
 
+                // @jack this is borked. default case can't have a constant in it. 
                 TokenType::DefaultCase => match &mut default {
                     Some(vec) => vec.push(self.case_statement()),
                     None => default = Some(vec![self.case_statement()]),

@@ -10,6 +10,7 @@ pub struct Scanner<'a> {
     iter: Peekable<CharIndices<'a>>,
 }
 
+// @jack need ot add support ofr += -= *= /= ^= |= &= etc. throughout the whole parser. shouldn't be too hard.
 impl<'a> Scanner<'a> {
     pub fn new(input: &'a str, tokens: &'a mut Vec<Token<'a>>) -> Scanner<'a> {
         Scanner {
@@ -230,7 +231,6 @@ impl<'a> Scanner<'a> {
 
                 '0'..='9' => {
                     let start = i;
-                    let mut current = self.next_char_boundary();
 
                     // Check for Hex
                     if c == '0' {
@@ -263,10 +263,10 @@ impl<'a> Scanner<'a> {
                             self.iter.next();
                         } else {
                             is_fractional = *number_char == '.';
-                            current = self.next_char_boundary();
                             break;
                         }
                     }
+                    let mut current = self.next_char_boundary();
 
                     if is_fractional {
                         // eat the "."
