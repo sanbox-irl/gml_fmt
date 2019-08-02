@@ -2,7 +2,7 @@ use super::expressions::*;
 use super::lex_token::{Token, TokenType};
 use super::statements::*;
 
-type StmtBox<'a> = Box<Statement<'a>>;
+type StmtBox<'a> = Box<StatementWrapper<'a>>;
 
 const SPACE: &str = " ";
 const TAB: &str = "    ";
@@ -424,6 +424,35 @@ impl<'a> Printer<'a> {
         false
     }
 
+    fn prev_line_was_whitespace(&self) -> bool {
+        let mut pos = self.output.len();
+        if pos == 0 {
+            return false;
+        };
+
+        pos -= 1;
+        let mut ignore_newline = true;
+
+        while pos != 0 {
+            match self.output[pos] {
+                SPACE | TAB => {
+                    pos -= 1;
+                }
+                NEWLINE => {
+                    if ignore_newline {
+                        pos -= 1;
+                        ignore_newline = false;
+                    } else {
+                        return true;
+                    }
+                }
+                _ => break,
+            }
+        }
+
+        false
+    }
+
     fn backspace_till_newline(&mut self) {
         let mut pos = self.output.len();
         if pos == 0 {
@@ -451,8 +480,11 @@ impl<'a> Printer<'a> {
     }
 
     fn print_newline(&mut self, indentation_move: IndentationMove) {
-        self.print(NEWLINE, false);
+        if self.prev_line_was_whitespace() {
+            return;
+        }
 
+        self.print(NEWLINE, false);
         self.print_indentation(indentation_move);
     }
 
@@ -474,6 +506,7 @@ impl<'a> Printer<'a> {
     }
 }
 
+#[derive(Debug)]
 enum IndentationMove {
     Right,
     Stay,

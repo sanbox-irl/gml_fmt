@@ -6,7 +6,7 @@ use std::iter::Peekable;
 use std::slice;
 
 type ExprBox<'a> = Box<Expr<'a>>;
-type StmtBox<'a> = Box<Statement<'a>>;
+type StmtBox<'a> = Box<StatementWrapper<'a>>;
 
 pub struct Parser<'a> {
     pub ast: Vec<StmtBox<'a>>,
@@ -39,13 +39,13 @@ impl<'a> Parser<'a> {
             match token.token_type {
                 TokenType::Comment(_) => {
                     let comment = self.consume_next();
-                    return Box::new(Statement::Comment { comment: *comment });
+                    return StatementWrapper::new(Statement::Comment { comment: *comment }, false);
                 }
                 TokenType::MultilineComment(_) => {
                     let multiline_comment = self.consume_next();
-                    return Box::new(Statement::MultilineComment {
+                    return StatementWrapper::new(Statement::MultilineComment {
                         multiline_comment: *multiline_comment,
-                    });
+                    }, false);
                 }
                 TokenType::RegionBegin => {
                     self.consume_next();
@@ -53,7 +53,7 @@ impl<'a> Parser<'a> {
                 }
                 TokenType::RegionEnd => {
                     self.consume_next();
-                    return Box::new(Statement::RegionEnd);
+                    return StatementWrapper::new(Statement::RegionEnd, false);
                 }
                 TokenType::Macro => {
                     self.consume_next();
@@ -125,7 +125,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        Box::new(Statement::RegionBegin { multi_word_name })
+        StatementWrapper::new(Statement::RegionBegin { multi_word_name }, false)
     }
 
     fn macro_statement(&mut self) -> StmtBox<'a> {
@@ -155,7 +155,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        Box::new(Statement::Macro { macro_body })
+        StatementWrapper::new(Statement::Macro { macro_body }, false)
     }
 
     fn define_statement(&mut self) -> StmtBox<'a> {
@@ -174,7 +174,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        Box::new(Statement::Define { script_name, body })
+        StatementWrapper::new(Statement::Define { script_name, body }, false)
     }
 
     fn series_var_declaration(&mut self) -> StmtBox<'a> {
@@ -190,11 +190,9 @@ impl<'a> Parser<'a> {
             }
         }
 
-        if self.check_next(TokenType::Semicolon) {
-            self.iter.next();
-        }
+        let has_semicolon = self.check_next_consume(TokenType::Semicolon);
 
-        Box::new(Statement::VariableDeclList { var_decl })
+        StatementWrapper::new(Statement::VariableDeclList { var_decl }, has_semicolon)
     }
 
     fn var_declaration(&mut self) -> VariableDecl<'a> {
@@ -226,7 +224,9 @@ impl<'a> Parser<'a> {
             }
         }
 
-        Box::new(Statement::Block { statements })
+        let has_semicolon = self.check_next_consume(TokenType::Semicolon);
+
+        StatementWrapper::new(Statement::Block { statements }, has_semicolon)
     }
 
     fn if_statement(&mut self) -> StmtBox<'a> {
@@ -243,11 +243,14 @@ impl<'a> Parser<'a> {
             None
         };
 
-        Box::new(Statement::If {
-            condition,
-            then_branch,
-            else_branch,
-        })
+        StatementWrapper::new(
+            Statement::If {
+                condition,
+                then_branch,
+                else_branch,
+            },
+            false,
+        )
     }
 
     fn while_statement(&mut self) -> StmtBox<'a> {
@@ -259,7 +262,7 @@ impl<'a> Parser<'a> {
 
         let body = self.statement();
 
-        Box::new(Statement::While { condition, body })
+        StatementWrapper::new(Statement::While { condition, body }, false)
     }
 
     fn switch_statement(&mut self) -> StmtBox<'a> {
@@ -294,11 +297,16 @@ impl<'a> Parser<'a> {
         self.eat_all_newlines();
         self.check_next_consume(TokenType::RightBrace);
 
-        Box::new(Statement::Switch {
-            cases,
-            condition,
-            default,
-        })
+        let has_semicolon = self.check_next_consume(TokenType::Semicolon);
+
+        StatementWrapper::new(
+            Statement::Switch {
+                cases,
+                condition,
+                default,
+            },
+            has_semicolon,
+        )
     }
 
     fn case_statement(&mut self) -> Case<'a> {
@@ -337,10 +345,9 @@ impl<'a> Parser<'a> {
         let condition = self.expression();
 
         self.check_next_consume(TokenType::RightParen);
-
         let body = self.statement();
 
-        Box::new(Statement::Repeat { condition, body })
+        StatementWrapper::new(Statement::Repeat { condition, body }, false)
     }
 
     fn for_statement(&mut self) -> StmtBox<'a> {
@@ -372,12 +379,15 @@ impl<'a> Parser<'a> {
 
         let body = self.statement();
 
-        Box::new(Statement::For {
-            initializer,
-            condition,
-            increment,
-            body,
-        })
+        StatementWrapper::new(
+            Statement::For {
+                initializer,
+                condition,
+                increment,
+                body,
+            },
+            false,
+        )
     }
 
     fn return_statement(&mut self) -> StmtBox<'a> {
@@ -387,19 +397,18 @@ impl<'a> Parser<'a> {
             Some(self.expression())
         };
 
-        self.check_next_consume(TokenType::Semicolon);
-
-        Box::new(Statement::Return { expression })
+        let has_semicolon = self.check_next_consume(TokenType::Semicolon);
+        StatementWrapper::new(Statement::Return { expression }, has_semicolon)
     }
 
     fn break_statement(&mut self) -> StmtBox<'a> {
-        self.check_next_consume(TokenType::Semicolon);
-        Box::new(Statement::Break)
+        let has_semicolon = self.check_next_consume(TokenType::Semicolon);
+        StatementWrapper::new(Statement::Break, has_semicolon)
     }
 
     fn exit_statment(&mut self) -> StmtBox<'a> {
-        self.check_next_consume(TokenType::Semicolon);
-        Box::new(Statement::Exit)
+        let has_semicolon = self.check_next_consume(TokenType::Semicolon);
+        StatementWrapper::new(Statement::Exit, has_semicolon)
     }
 
     fn enum_declaration(&mut self) -> StmtBox<'a> {
@@ -430,17 +439,19 @@ impl<'a> Parser<'a> {
         }
 
         self.check_next_consume(TokenType::RightBrace);
+        let has_semicolon = self.check_next_consume(TokenType::Semicolon);
 
-        Box::new(Statement::EnumDeclaration { name, members })
+        StatementWrapper::new(Statement::EnumDeclaration { name, members }, has_semicolon)
     }
 
     fn expression_statement(&mut self) -> StmtBox<'a> {
         let expr = self.expression();
 
-        if self.check_next(TokenType::Semicolon) {
-            self.iter.next();
-        }
-        Box::new(Statement::ExpresssionStatement { expression: expr })
+        let has_semicolon = self.check_next_consume(TokenType::Semicolon);
+        StatementWrapper::new(
+            Statement::ExpresssionStatement { expression: expr },
+            has_semicolon,
+        )
     }
 
     fn expression(&mut self) -> ExprBox<'a> {
