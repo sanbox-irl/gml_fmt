@@ -282,7 +282,7 @@ impl<'a> Parser<'a> {
                     None => cases = Some(vec![self.case_statement()]),
                 },
 
-                // @jack this is borked. default case can't have a constant in it. 
+                // @jack this is borked. default case can't have a constant in it.
                 TokenType::DefaultCase => match &mut default {
                     Some(vec) => vec.push(self.case_statement()),
                     None => default = Some(vec![self.case_statement()]),
@@ -450,13 +450,29 @@ impl<'a> Parser<'a> {
     fn assignment(&mut self) -> ExprBox<'a> {
         let mut expr = self.ternary();
 
-        if self.check_next_consume(TokenType::Equal) {
-            let assignment_expr = self.assignment();
+        if let Some(token) = self.iter.peek() {
+            match token.token_type {
+                TokenType::Equal
+                | TokenType::PlusEquals
+                | TokenType::MinusEquals
+                | TokenType::StarEquals
+                | TokenType::SlashEquals
+                | TokenType::BitXorEquals
+                | TokenType::BitOrEquals
+                | TokenType::BitAndEquals
+                | TokenType::ModEquals => {
+                    let operator = self.iter.next().unwrap();
+                    let assignment_expr = self.assignment();
 
-            expr = Box::new(Expr::Assign {
-                left: expr,
-                right: assignment_expr,
-            });
+                    expr = Box::new(Expr::Assign {
+                        left: expr,
+                        operator: *operator,
+                        right: assignment_expr,
+                    });
+                }
+
+                _ => {}
+            }
         }
 
         expr

@@ -37,6 +37,7 @@ pub enum Expr<'a> {
     },
     Assign {
         left: ExprBox<'a>,
+        operator: Token<'a>,
         right: ExprBox<'a>,
     },
     Identifier {

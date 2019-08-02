@@ -1,5 +1,5 @@
 use super::expressions::*;
-use super::lex_token::Token;
+use super::lex_token::{Token, TokenType};
 use super::statements::*;
 
 type StmtBox<'a> = Box<Statement<'a>>;
@@ -312,9 +312,13 @@ impl<'a> Printer<'a> {
                 self.print_token(operator, true);
                 self.print_expr(right);
             }
-            Expr::Assign { left, right } => {
+            Expr::Assign {
+                left,
+                operator,
+                right,
+            } => {
                 self.print_expr(left);
-                self.print("=", true);
+                self.print_token(operator, true);
                 self.print_expr(right);
             }
             Expr::Identifier { name } => self.print_token(name, true),
@@ -323,14 +327,10 @@ impl<'a> Printer<'a> {
                 object_name,
                 instance_variable,
             } => {
-                self.print_expr(&*object_name);
+                self.print_expr(object_name);
                 self.backspace();
                 self.print(".", false);
                 self.print_token(instance_variable, true);
-
-                // @jack figure out spaces here...
-                // we want a space unless the next is DotAccess...
-                // Everything else can take care of themselves.
             }
             Expr::DataStructureAccess {
                 ds_name,
@@ -338,8 +338,16 @@ impl<'a> Printer<'a> {
                 access_expr,
             } => {
                 self.print_expr(ds_name);
-                self.print_token(access_type, true);
+                self.backspace();
+
+                self.print_token(
+                    access_type,
+                    access_type.token_type != TokenType::LeftBracket,
+                );
                 self.print_expr(access_expr);
+
+                self.backspace();
+                self.print("]", true);
             }
             Expr::GridDataStructureAccess {
                 ds_name,
@@ -353,6 +361,9 @@ impl<'a> Printer<'a> {
 
                 self.print(COMMA, true);
                 self.print_expr(column_expr);
+
+                self.backspace();
+                self.print("]", true);
             }
             Expr::Ternary {
                 conditional,
