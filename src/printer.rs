@@ -220,12 +220,38 @@ impl<'a> Printer<'a> {
                 self.print_newline(IndentationMove::Left);
                 self.print(RBRACE, false);
             }
-            Statement::Comment { comment } => {}
-            Statement::MultilineComment { multiline_comment } => {}
-            Statement::RegionBegin { multi_word_name } => {}
-            Statement::RegionEnd => {}
-            Statement::Macro { macro_body } => {}
-            Statement::Define { script_name, body } => {}
+            Statement::Comment { comment } => self.print_token(comment, false),
+            Statement::MultilineComment { multiline_comment } => {
+                self.print_token(multiline_comment, false)
+            }
+            Statement::RegionBegin { multi_word_name } => {
+                self.print("#region", true);
+
+                for this_word in multi_word_name {
+                    self.print_token(this_word, true);
+                }
+                self.backspace();
+            }
+            Statement::RegionEnd => self.print("#endregion", false),
+            Statement::Macro { macro_body } => {
+                self.print("#macro", true);
+
+                for this_word in macro_body {
+                    self.print_token(this_word, true);
+                }
+                self.backspace();
+            }
+            Statement::Define { script_name, body } => {
+                self.print("#define", true);
+                self.print_expr(script_name);
+                self.backspace();
+
+                self.indentation += 1;
+                for this_stmt in body {
+                    self.print_statement(this_stmt);
+                }
+                self.indentation -= 1;
+            }
         }
     }
 
@@ -405,15 +431,6 @@ impl<'a> Printer<'a> {
                     pos -= 1;
                 }
             };
-        }
-    }
-
-    fn last_print_job(&self) -> Option<&str> {
-        let pos = self.output.len();
-        if pos == 0 {
-            None
-        } else {
-            Some(self.output[pos - 1])
         }
     }
 
