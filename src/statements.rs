@@ -1,8 +1,7 @@
 use super::expressions::*;
 use super::lex_token::Token;
 
-type ExprBox<'a> = Box<Expr<'a>>;
-type StmtBox<'a> = Box<StatementWrapper<'a>>;
+pub type StmtBox<'a> = Box<StatementWrapper<'a>>;
 
 #[derive(Debug)]
 pub struct StatementWrapper<'a> {

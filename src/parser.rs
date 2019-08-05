@@ -5,9 +5,6 @@ use super::statements::*;
 use std::iter::Peekable;
 use std::slice;
 
-type ExprBox<'a> = Box<Expr<'a>>;
-type StmtBox<'a> = Box<StatementWrapper<'a>>;
-type CommentsAndNewlines<'a> = Vec<Token<'a>>;
 
 pub struct Parser<'a> {
     pub ast: Vec<StmtBox<'a>>,
@@ -815,11 +812,21 @@ impl<'a> Parser<'a> {
         expression
     }
 
-    fn finish_call(&mut self) -> Vec<(CommentsAndNewlines<'a>, ExprBox<'a>, CommentsAndNewlines<'a>)> {
+    fn finish_call(
+        &mut self,
+    ) -> Vec<(
+        CommentsAndNewlines<'a>,
+        ExprBox<'a>,
+        CommentsAndNewlines<'a>,
+    )> {
         let mut arguments = Vec::new();
         if self.check_next(TokenType::RightParen) == false {
             loop {
-                arguments.push((self.get_newlines_and_comments(), self.expression(), self.get_newlines_and_comments()));
+                arguments.push((
+                    self.get_newlines_and_comments(),
+                    self.expression(),
+                    self.get_newlines_and_comments(),
+                ));
                 if self.check_next_consume(TokenType::Comma) == false {
                     break;
                 }
@@ -897,9 +904,6 @@ impl<'a> Parser<'a> {
             false
         }
     }
-
-    fn check_after_comments_and_newlines(&mut self) // this is our strategy now!
-
     fn get_newlines_and_comments(&mut self) -> Vec<Token<'a>> {
         let mut vec = vec![];
         while let Some(token) = self.iter.peek() {

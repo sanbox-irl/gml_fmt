@@ -1,6 +1,7 @@
 use super::lex_token::*;
-type ExprBox<'a> = Box<Expr<'a>>;
-type CommentsAndNewlines<'a> = Vec<Token<'a>>;
+pub type ExprBox<'a> = Box<(Expr<'a>, CommentsAndNewlines<'a>)>;
+pub type CommentsAndNewlines<'a> = Vec<Token<'a>>;
+
 #[derive(Debug)]
 pub enum Expr<'a> {
     Call {
