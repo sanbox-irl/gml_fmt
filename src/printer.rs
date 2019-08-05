@@ -45,216 +45,216 @@ impl<'a> Printer<'a> {
 
     fn print_statement(&mut self, stmt: &'a StatementWrapper<'a>) {
         match &stmt.statement {
-            Statement::VariableDeclList { var_decl } => {
-                self.print("var", true);
+            // Statement::VariableDeclList { var_decl } => {
+            //     self.print("var", true);
 
-                let mut iter = var_decl.into_iter().peekable();
-                while let Some(this_decl) = iter.next() {
-                    self.print_expr(&*this_decl.var_expr);
+            //     let mut iter = var_decl.into_iter().peekable();
+            //     while let Some(this_decl) = iter.next() {
+            //         self.print_expr(this_decl.var_expr);
 
-                    if let Some(expr_box) = &this_decl.assignment {
-                        self.print("=", true);
-                        self.print_expr(expr_box);
-                    }
-                    self.backspace();
+            //         if let Some(expr_box) = &this_decl.assignment {
+            //             self.print("=", true);
+            //             self.print_expr(*expr_box);
+            //         }
+            //         self.backspace();
 
-                    if let Some(_) = iter.peek() {
-                        self.print(COMMA, true);
-                    }
+            //         if let Some(_) = iter.peek() {
+            //             self.print(COMMA, true);
+            //         }
 
-                    self.print_semicolon(stmt.has_semicolon);
-                }
-            }
-            Statement::EnumDeclaration { name, members } => {
-                self.print_expr(name);
-                self.print(LBRACE, false);
-                self.print_newline(IndentationMove::Right);
+            //         self.print_semicolon(stmt.has_semicolon);
+            //     }
+            // }
+            // Statement::EnumDeclaration { name, members } => {
+            //     self.print_expr(*name);
+            //     self.print(LBRACE, false);
+            //     self.print_newline(IndentationMove::Right);
 
-                let mut iter = members.into_iter().peekable();
-                while let Some(this_member) = iter.next() {
-                    self.print_token(&this_member.name, true);
+            //     let mut iter = members.into_iter().peekable();
+            //     while let Some(this_member) = iter.next() {
+            //         self.print_token(&this_member.name, true);
 
-                    if let Some(expr_box) = &this_member.value {
-                        self.print("=", true);
-                        self.print_expr(expr_box);
-                    }
-                    self.backspace();
+            //         if let Some(expr_box) = &this_member.value {
+            //             self.print("=", true);
+            //             self.print_expr(*expr_box);
+            //         }
+            //         self.backspace();
 
-                    if let Some(_) = iter.peek() {
-                        self.print(COMMA, true);
-                        self.print_newline(IndentationMove::Stay);
-                    } else {
-                        break;
-                    }
-                }
+            //         if let Some(_) = iter.peek() {
+            //             self.print(COMMA, true);
+            //             self.print_newline(IndentationMove::Stay);
+            //         } else {
+            //             break;
+            //         }
+            //     }
 
-                self.print_newline(IndentationMove::Left);
-                self.print(RBRACE, false);
-                self.print_semicolon(stmt.has_semicolon);
-            }
-            Statement::ExpresssionStatement { expression } => {
-                self.print_expr(expression);
-                self.print_semicolon(stmt.has_semicolon);
-            }
-            Statement::Block { statements } => {
-                self.print(LBRACE, false);
+            //     self.print_newline(IndentationMove::Left);
+            //     self.print(RBRACE, false);
+            //     self.print_semicolon(stmt.has_semicolon);
+            // }
+            // Statement::ExpresssionStatement { expression } => {
+            //     self.print_expr(*expression);
+            //     self.print_semicolon(stmt.has_semicolon);
+            // }
+            // Statement::Block { statements } => {
+            //     self.print(LBRACE, false);
 
-                self.indentation += 1;
-                for this_stmt in statements {
-                    self.print_statement(this_stmt);
-                }
-                if self.on_whitespace_line() {
-                    self.backspace_till_newline();
-                    self.print_indentation(IndentationMove::Left);
-                }
-                self.print(RBRACE, false);
-                self.print_semicolon(stmt.has_semicolon);
-            }
-            Statement::If {
-                condition,
-                then_branch,
-                else_branch,
-            } => {
-                self.print("if", true);
-                self.print_expr_parentheses(condition);
-                self.print_statement(then_branch);
+            //     self.indentation += 1;
+            //     for this_stmt in statements {
+            //         self.print_statement(this_stmt);
+            //     }
+            //     if self.on_whitespace_line() {
+            //         self.backspace_till_newline();
+            //         self.print_indentation(IndentationMove::Left);
+            //     }
+            //     self.print(RBRACE, false);
+            //     self.print_semicolon(stmt.has_semicolon);
+            // }
+            // Statement::If {
+            //     condition,
+            //     then_branch,
+            //     else_branch,
+            // } => {
+            //     self.print("if", true);
+            //     // self.print_expr_parentheses(condition);
+            //     self.print_statement(then_branch);
 
-                if let Some(else_branch) = else_branch {
-                    self.print(SPACE, false);
-                    self.print("else", true);
+            //     if let Some(else_branch) = else_branch {
+            //         self.print(SPACE, false);
+            //         self.print("else", true);
 
-                    self.print_statement(else_branch);
-                }
-                self.print_semicolon(stmt.has_semicolon);
-            }
-            Statement::While { condition, body } => {
-                self.print("while", true);
-                self.print_expr_parentheses(condition);
-                self.print_statement(body);
-                self.print_semicolon(stmt.has_semicolon);
-            }
-            Statement::Repeat { condition, body } => {
-                self.print("repeat", true);
-                self.print_expr_parentheses(condition);
-                self.print_statement(body);
-                self.print_semicolon(stmt.has_semicolon);
-            }
-            Statement::For {
-                initializer,
-                condition,
-                increment,
-                body,
-            } => {
-                self.print("for", true);
-                self.print(LPAREN, false);
+            //         self.print_statement(else_branch);
+            //     }
+            //     self.print_semicolon(stmt.has_semicolon);
+            // }
+            // Statement::While { condition, body } => {
+            //     self.print("while", true);
+            //     // self.print_expr_parentheses(condition);
+            //     self.print_statement(body);
+            //     self.print_semicolon(stmt.has_semicolon);
+            // }
+            // Statement::Repeat { condition, body } => {
+            //     self.print("repeat", true);
+            //     // self.print_expr_parentheses(condition);
+            //     self.print_statement(body);
+            //     self.print_semicolon(stmt.has_semicolon);
+            // }
+            // Statement::For {
+            //     initializer,
+            //     condition,
+            //     increment,
+            //     body,
+            // } => {
+            //     self.print("for", true);
+            //     self.print(LPAREN, false);
 
-                if let Some(initializer) = initializer {
-                    self.print_statement(initializer);
-                }
+            //     if let Some(initializer) = initializer {
+            //         self.print_statement(initializer);
+            //     }
 
-                self.backspace();
-                self.print(SEMICOLON, true);
+            //     self.backspace();
+            //     self.print(SEMICOLON, true);
 
-                if let Some(condition) = condition {
-                    self.print_expr(condition);
-                } else {
-                    self.backspace();
-                }
+            //     if let Some(condition) = condition {
+            //         self.print_expr(*condition);
+            //     } else {
+            //         self.backspace();
+            //     }
 
-                self.backspace();
-                self.print(SEMICOLON, true);
+            //     self.backspace();
+            //     self.print(SEMICOLON, true);
 
-                if let Some(increment) = increment {
-                    self.print_expr(increment);
-                } else {
-                    self.backspace();
-                }
+            //     if let Some(increment) = increment {
+            //         self.print_expr(*increment);
+            //     } else {
+            //         self.backspace();
+            //     }
 
-                self.backspace();
-                self.print(RPAREN, true);
+            //     self.backspace();
+            //     self.print(RPAREN, true);
 
-                self.print_statement(body);
-                self.print_semicolon(stmt.has_semicolon);
-            }
-            Statement::Return { expression } => {
-                self.print("return", false);
+            //     self.print_statement(body);
+            //     self.print_semicolon(stmt.has_semicolon);
+            // }
+            // Statement::Return { expression } => {
+            //     self.print("return", false);
 
-                if let Some(expression) = expression {
-                    self.print(SPACE, false);
-                    self.print_expr(expression);
-                }
-                self.print_semicolon(stmt.has_semicolon);
-            }
-            Statement::Break => {
-                self.print("break", false);
-                self.print_semicolon(stmt.has_semicolon);
-            }
-            Statement::Exit => {
-                self.print("exit", false);
-                self.print_semicolon(stmt.has_semicolon);
-            }
-            Statement::Switch {
-                condition,
-                cases,
-                default,
-            } => {
-                self.print("switch", true);
-                self.print_expr_parentheses(condition);
+            //     if let Some(expression) = expression {
+            //         self.print(SPACE, false);
+            //         self.print_expr(*expression);
+            //     }
+            //     self.print_semicolon(stmt.has_semicolon);
+            // }
+            // Statement::Break => {
+            //     self.print("break", false);
+            //     self.print_semicolon(stmt.has_semicolon);
+            // }
+            // Statement::Exit => {
+            //     self.print("exit", false);
+            //     self.print_semicolon(stmt.has_semicolon);
+            // }
+            // Statement::Switch {
+            //     condition,
+            //     cases,
+            //     default,
+            // } => {
+            //     self.print("switch", true);
+            //     // self.print_expr_parentheses(condition);
 
-                self.print(LBRACE, true);
-                self.print_newline(IndentationMove::Right);
+            //     self.print(LBRACE, true);
+            //     self.print_newline(IndentationMove::Right);
 
-                if let Some(cases) = cases {
-                    for this_case in cases {
-                        self.print("case", true);
-                        self.print_expr(&*this_case.constant);
-                        self.backspace();
-                        self.print(":", true);
+            //     if let Some(cases) = cases {
+            //         for this_case in cases {
+            //             self.print("case", true);
+            //             self.print_expr(this_case.constant);
+            //             self.backspace();
+            //             self.print(":", true);
 
-                        for this_case in &this_case.statements {
-                            self.print_statement(this_case);
-                        }
-                    }
-                }
+            //             for this_case in &this_case.statements {
+            //                 self.print_statement(this_case);
+            //             }
+            //         }
+            //     }
 
-                if let Some(default) = default {
-                    for this_case in default {
-                        self.print("default", true);
-                        self.print_expr(&*this_case.constant);
-                        self.backspace();
-                        self.print(":", true);
+            //     if let Some(default) = default {
+            //         for this_case in default {
+            //             self.print("default", true);
+            //             self.print_expr(this_case.constant);
+            //             self.backspace();
+            //             self.print(":", true);
 
-                        for this_case in &this_case.statements {
-                            self.print_statement(this_case);
-                        }
-                    }
-                }
+            //             for this_case in &this_case.statements {
+            //                 self.print_statement(this_case);
+            //             }
+            //         }
+            //     }
 
-                self.print_newline(IndentationMove::Left);
-                self.print(RBRACE, false);
-                self.print_semicolon(stmt.has_semicolon);
-            }
-            Statement::Comment { comment } => self.print_token(comment, false),
-            Statement::MultilineComment { multiline_comment } => {
-                self.print_token(multiline_comment, false)
-            }
-            Statement::RegionBegin { multi_word_name } => {
-                self.print("#region", true);
+            //     self.print_newline(IndentationMove::Left);
+            //     self.print(RBRACE, false);
+            //     self.print_semicolon(stmt.has_semicolon);
+            // }
+            // Statement::Comment { comment } => self.print_token(comment, false),
+            // Statement::MultilineComment { multiline_comment } => {
+            //     self.print_token(multiline_comment, false)
+            // }
+            // Statement::RegionBegin { multi_word_name } => {
+            //     self.print("#region", true);
 
-                for this_word in multi_word_name {
-                    self.print_token(this_word, true);
-                }
-                self.backspace();
-            }
-            Statement::RegionEnd => self.print("#endregion", false),
-            Statement::Macro { macro_body } => {
-                self.print("#macro", true);
+            //     for this_word in multi_word_name {
+            //         self.print_token(this_word, true);
+            //     }
+            //     self.backspace();
+            // }
+            // Statement::RegionEnd => self.print("#endregion", false),
+            // Statement::Macro { macro_body } => {
+            //     self.print("#macro", true);
 
-                for this_word in macro_body {
-                    self.print_token(this_word, true);
-                }
-                self.backspace();
-            }
+            //     for this_word in macro_body {
+            //         self.print_token(this_word, true);
+            //     }
+            //     self.backspace();
+            // }
             Statement::Define { script_name, body } => {
                 self.print("#define", true);
                 self.print_expr(script_name);
@@ -264,149 +264,150 @@ impl<'a> Printer<'a> {
                     self.print_statement(this_stmt);
                 }
             }
+            _ => {}
         }
     }
 
-    fn print_expr(&mut self, expr: &'a Expr<'a>) {
-        match expr {
-            Expr::Call {
-                procedure_name,
-                arguments,
-                comments_and_newlines_after_lparen,
-                comments_and_newlines_before_lparen,
-            } => {
-                self.print_expr(procedure_name);
-                self.backspace();
-                self.print_comments_and_newlines(comments_and_newlines_before_lparen, IndentationMove::Stay);
-                self.print(LPAREN, false);
-                self.print_comments_and_newlines(comments_and_newlines_after_lparen, IndentationMove::Right);
+    fn print_expr(&mut self, expr: &'a ExprBox<'a>) {
+        match &expr.0 {
+            // Expr::Call {
+            //     procedure_name,
+            //     arguments,
+            //     // comments_and_newlines_after_lparen,
+            //     // comments_and_newlines_before_lparen,
+            // } => {
+            //     self.print_expr(procedure_name);
+            //     self.backspace();
+            //     self.print_comments_and_newlines(&comments_and_newlines_before_lparen, IndentationMove::Stay);
+            //     self.print(LPAREN, false);
+            //     self.print_comments_and_newlines(&comments_and_newlines_after_lparen, IndentationMove::Right);
 
-                let mut iter = arguments.into_iter().peekable();
-                while let Some((first_comments, this_argument, these_comments)) = iter.next() {
-                    self.print_comments_and_newlines(first_comments, IndentationMove::Stay);
-                    self.print_expr(this_argument);
-                    self.backspace();
+            //     let mut iter = arguments.into_iter().peekable();
+            //     while let Some((first_comments, this_argument, these_comments)) = iter.next() {
+            //         self.print_comments_and_newlines(&first_comments, IndentationMove::Stay);
+            //         self.print_expr(this_argument);
+            //         self.backspace();
 
-                    self.print_comments_and_newlines(these_comments, IndentationMove::Stay);
+            //         self.print_comments_and_newlines(&these_comments, IndentationMove::Stay);
 
-                    if let Some(_) = iter.peek() {
-                        self.print(COMMA, true);
-                    }
-                }
-                self.print(RPAREN, false);
-            }
-            Expr::Binary {
-                left,
-                operator,
-                right,
-            } => {
-                self.print_expr(left);
-                self.print_token(operator, true);
-                self.print_expr(right);
-            }
-            Expr::Grouping { expression } => {
-                self.print(LPAREN, false);
-                self.print_expr(expression);
-                self.backspace();
-                self.print(RPAREN, true);
-            }
-            Expr::Literal { literal_token } => self.print_token(literal_token, true),
-            Expr::Unary { operator, right } => {
-                self.print_token(operator, false);
-                self.print_expr(right);
-            }
-            Expr::Prefix { operator, expr } => {
-                self.print_token(operator, false);
-                self.print_expr(expr);
-            }
-            Expr::Postfix { operator, expr } => {
-                self.print_expr(expr);
-                self.backspace();
-                self.print_token(operator, false);
-            }
-            Expr::Logical {
-                left,
-                operator,
-                right,
-            } => {
-                self.print_expr(left);
-                self.print_token(operator, true);
-                self.print_expr(right);
-            }
-            Expr::Assign {
-                left,
-                operator,
-                right,
-            } => {
-                self.print_expr(left);
-                self.print_token(operator, true);
-                self.print_expr(right);
-            }
+            //         if let Some(_) = iter.peek() {
+            //             self.print(COMMA, true);
+            //         }
+            //     }
+            //     self.print(RPAREN, false);
+            // }
+            // Expr::Binary {
+            //     left,
+            //     operator,
+            //     right,
+            // } => {
+            //     self.print_expr(left);
+            //     self.print_token(&operator, true);
+            //     self.print_expr(right);
+            // }
+            // Expr::Grouping { expression } => {
+            //     self.print(LPAREN, false);
+            //     self.print_expr(expression);
+            //     self.backspace();
+            //     self.print(RPAREN, true);
+            // }
+            // Expr::Literal { literal_token } => self.print_token(&literal_token, true),
+            // Expr::Unary { operator, right } => {
+            //     self.print_token(&operator, false);
+            //     self.print_expr(right);
+            // }
+            // Expr::Prefix { operator, expr } => {
+            //     self.print_token(&operator, false);
+            //     self.print_expr(expr);
+            // }
+            // Expr::Postfix { operator, expr } => {
+            //     self.print_expr(expr);
+            //     self.backspace();
+            //     self.print_token(&operator, false);
+            // }
+            // Expr::Logical {
+            //     left,
+            //     operator,
+            //     right,
+            // } => {
+            //     self.print_expr(left);
+            //     self.print_token(&operator, true);
+            //     self.print_expr(right);
+            // }
+            // Expr::Assign {
+            //     left,
+            //     operator,
+            //     right,
+            // } => {
+            //     self.print_expr(left);
+            //     self.print_token(&operator, true);
+            //     self.print_expr(right);
+            // }
             Expr::Identifier { name } => self.print_token(name, true),
 
-            Expr::DotAccess {
-                object_name,
-                instance_variable,
-            } => {
-                self.print_expr(object_name);
-                self.backspace();
-                self.print(".", false);
-                self.print_token(instance_variable, true);
-            }
-            Expr::DataStructureAccess {
-                ds_name,
-                access_type,
-                access_expr,
-            } => {
-                self.print_expr(ds_name);
-                self.backspace();
+            // Expr::DotAccess {
+            //     object_name,
+            //     instance_variable,
+            // } => {
+            //     self.print_expr(object_name);
+            //     self.backspace();
+            //     self.print(".", false);
+            //     self.print_token(&instance_variable, true);
+            // }
+            // Expr::DataStructureAccess {
+            //     ds_name,
+            //     access_type,
+            //     access_expr,
+            // } => {
+            //     self.print_expr(ds_name);
+            //     self.backspace();
 
-                self.print_token(
-                    access_type,
-                    access_type.token_type != TokenType::LeftBracket,
-                );
-                self.print_expr(access_expr);
+            //     self.print_token(
+            //         &access_type,
+            //         access_type.token_type != TokenType::LeftBracket,
+            //     );
+            //     self.print_expr(access_expr);
 
-                self.backspace();
-                self.print("]", true);
-            }
-            Expr::GridDataStructureAccess {
-                ds_name,
-                access_type,
-                row_expr,
-                column_expr,
-            } => {
-                self.print_expr(ds_name);
-                self.print_token(access_type, true);
-                self.print_expr(row_expr);
+            //     self.backspace();
+            //     self.print("]", true);
+            // }
+            // Expr::GridDataStructureAccess {
+            //     ds_name,
+            //     access_type,
+            //     row_expr,
+            //     column_expr,
+            // } => {
+            //     self.print_expr(ds_name);
+            //     self.print_token(&access_type, true);
+            //     self.print_expr(row_expr);
 
-                self.print(COMMA, true);
-                self.print_expr(column_expr);
+            //     self.print(COMMA, true);
+            //     self.print_expr(column_expr);
 
-                self.backspace();
-                self.print("]", true);
-            }
-            Expr::Ternary {
-                conditional,
-                left,
-                right,
-            } => {
-                self.print_expr(conditional);
-                self.print("?", true);
-                self.print_expr(left);
-                self.print(":", true);
-                self.print_expr(right);
-            }
+            //     self.backspace();
+            //     self.print("]", true);
+            // }
+            // Expr::Ternary {
+            //     conditional,
+            //     left,
+            //     right,
+            // } => {
+            //     self.print_expr(conditional);
+            //     self.print("?", true);
+            //     self.print_expr(left);
+            //     self.print(":", true);
+            //     self.print_expr(right);
+            // }
 
-            Expr::Newline { token: _ } => self.print_newline(IndentationMove::Stay),
-            Expr::UnidentifiedAsLiteral { literal_token } => {
-                self.print_token(literal_token, false);
-            }
-            Expr::UnexpectedEnd => {}
+            // Expr::Newline { token: _ } => self.print_newline(IndentationMove::Stay),
+            // Expr::UnidentifiedAsLiteral { literal_token } => {
+            //     self.print_token(&literal_token, false);
+            // }
+            _ => {}
         }
     }
 
-    fn print_token(&mut self, token: &'a Token<'a>, space_after: bool) {
+    fn print_token(&mut self, token: &Token<'a>, space_after: bool) {
         self.print(token.print_name(), space_after);
     }
 
@@ -434,7 +435,7 @@ impl<'a> Printer<'a> {
 
     fn print_expr_parentheses(&mut self, expr: &'a Expr<'a>) {
         self.print(LPAREN, false);
-        self.print_expr(expr);
+        // self.print_expr(expr);
         self.backspace();
         self.print(RPAREN, true);
     }

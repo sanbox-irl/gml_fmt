@@ -6,8 +6,8 @@ pub type CommentsAndNewlines<'a> = Vec<Token<'a>>;
 pub enum Expr<'a> {
     Call {
         procedure_name: ExprBox<'a>,
-        comments_and_newlines_before_lparen: CommentsAndNewlines<'a>,
-        comments_and_newlines_after_lparen: CommentsAndNewlines<'a>,
+        // comments_and_newlines_before_lparen: CommentsAndNewlines<'a>,
+        // comments_and_newlines_after_lparen: CommentsAndNewlines<'a>,
         arguments: Vec<(CommentsAndNewlines<'a>, ExprBox<'a>, CommentsAndNewlines<'a>)>,
     },
     Binary {

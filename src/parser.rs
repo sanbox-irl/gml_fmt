@@ -5,7 +5,6 @@ use super::statements::*;
 use std::iter::Peekable;
 use std::slice;
 
-
 pub struct Parser<'a> {
     pub ast: Vec<StmtBox<'a>>,
     iter: Peekable<slice::Iter<'a, Token<'a>>>,
@@ -476,7 +475,7 @@ impl<'a> Parser<'a> {
                     let operator = self.iter.next().unwrap();
                     let assignment_expr = self.assignment();
 
-                    expr = Box::new(Expr::Assign {
+                    expr = self.create_expr_box_no_comment(Expr::Assign {
                         left: expr,
                         operator: *operator,
                         right: assignment_expr,
@@ -498,7 +497,7 @@ impl<'a> Parser<'a> {
             self.check_next_consume(TokenType::Colon);
             let right = self.ternary();
 
-            expr = Box::new(Expr::Ternary {
+            expr = self.create_expr_box_no_comment(Expr::Ternary {
                 conditional: expr,
                 left,
                 right,
@@ -517,7 +516,7 @@ impl<'a> Parser<'a> {
 
             let right = self.equality();
 
-            left = Box::new(Expr::Logical {
+            left = self.create_expr_box_no_comment(Expr::Logical {
                 left,
                 operator: *token,
                 right,
@@ -535,7 +534,7 @@ impl<'a> Parser<'a> {
 
             let right = self.xor();
 
-            left = Box::new(Expr::Logical {
+            left = self.create_expr_box_no_comment(Expr::Logical {
                 left,
                 operator: *token,
                 right,
@@ -551,7 +550,7 @@ impl<'a> Parser<'a> {
             let token = self.iter.next().unwrap();
             let right = self.equality();
 
-            left = Box::new(Expr::Logical {
+            left = self.create_expr_box_no_comment(Expr::Logical {
                 left,
                 operator: *token,
                 right,
@@ -570,7 +569,7 @@ impl<'a> Parser<'a> {
                     let token = self.iter.next().unwrap();
                     let right = self.comparison();
 
-                    expr = Box::new(Expr::Binary {
+                    expr = self.create_expr_box_no_comment(Expr::Binary {
                         left: expr,
                         operator: *token,
                         right,
@@ -595,7 +594,7 @@ impl<'a> Parser<'a> {
                     let t = self.iter.next().unwrap();
                     let right = self.binary();
 
-                    expr = Box::new(Expr::Binary {
+                    expr = self.create_expr_box_no_comment(Expr::Binary {
                         left: expr,
                         operator: *t,
                         right,
@@ -617,7 +616,7 @@ impl<'a> Parser<'a> {
                     let t = self.iter.next().unwrap();
                     let right = self.bitshift();
 
-                    expr = Box::new(Expr::Binary {
+                    expr = self.create_expr_box_no_comment(Expr::Binary {
                         left: expr,
                         operator: *t,
                         right,
@@ -639,7 +638,7 @@ impl<'a> Parser<'a> {
                     let t = self.iter.next().unwrap();
                     let right = self.addition();
 
-                    expr = Box::new(Expr::Binary {
+                    expr = self.create_expr_box_no_comment(Expr::Binary {
                         left: expr,
                         operator: *t,
                         right,
@@ -661,7 +660,7 @@ impl<'a> Parser<'a> {
                     let token = self.iter.next().unwrap();
                     let right = self.multiplication();
 
-                    expr = Box::new(Expr::Binary {
+                    expr = self.create_expr_box_no_comment(Expr::Binary {
                         left: expr,
                         operator: *token,
                         right,
@@ -687,7 +686,7 @@ impl<'a> Parser<'a> {
                     let token = self.iter.next().unwrap();
                     let right = self.unary();
 
-                    expr = Box::new(Expr::Binary {
+                    expr = self.create_expr_box_no_comment(Expr::Binary {
                         left: expr,
                         operator: *token,
                         right,
@@ -707,7 +706,7 @@ impl<'a> Parser<'a> {
                     let t = self.iter.next().unwrap();
                     let right = self.unary();
 
-                    return Box::new(Expr::Unary {
+                    return self.create_expr_box_no_comment(Expr::Unary {
                         operator: *t,
                         right,
                     });
@@ -717,7 +716,7 @@ impl<'a> Parser<'a> {
                     let t = self.iter.next().unwrap();
                     let expr = self.unary();
 
-                    return Box::new(Expr::Prefix { operator: *t, expr });
+                    return self.create_expr_box_no_comment(Expr::Prefix { operator: *t, expr });
                 }
 
                 _ => {}
@@ -732,7 +731,7 @@ impl<'a> Parser<'a> {
 
         if self.check_next_either(TokenType::Incrementer, TokenType::Decrementer) {
             let t = self.iter.next().unwrap();
-            expr = Box::new(Expr::Postfix { operator: *t, expr })
+            expr = self.create_expr_box_no_comment(Expr::Postfix { operator: *t, expr });
         }
 
         expr
@@ -744,14 +743,13 @@ impl<'a> Parser<'a> {
 
         if self.check_next_consume(TokenType::LeftParen) {
             let comments_and_newlines_after_lparen = self.get_newlines_and_comments();
-
             let arguments = self.finish_call();
 
-            expression = Box::new(Expr::Call {
+            expression = self.create_expr_box_no_comment(Expr::Call {
                 procedure_name: expression,
                 arguments,
-                comments_and_newlines_before_lparen: initial_comments_and_newlines,
-                comments_and_newlines_after_lparen,
+                // comments_and_newlines_before_lparen: initial_comments_and_newlines,
+                // comments_and_newlines_after_lparen,
             });
         }
 
@@ -761,9 +759,9 @@ impl<'a> Parser<'a> {
                     self.consume_next();
                     if let Some(t) = self.iter.peek() {
                         if let TokenType::Identifier(_) = t.token_type {
-                            let instance_variable = self.consume_next();
+                            let instance_variable = self.iter.next().unwrap();
 
-                            expression = Box::new(Expr::DotAccess {
+                            expression = self.create_expr_box_no_comment(Expr::DotAccess {
                                 instance_variable: *instance_variable,
 
                                 object_name: expression,
@@ -782,7 +780,7 @@ impl<'a> Parser<'a> {
                     self.check_next_consume(TokenType::RightBracket);
 
                     // stupid non-chained access..
-                    return Box::new(Expr::DataStructureAccess {
+                    return self.create_expr_box_no_comment(Expr::DataStructureAccess {
                         ds_name: expression,
                         access_type: *token,
                         access_expr,
@@ -797,7 +795,7 @@ impl<'a> Parser<'a> {
                     self.check_next_consume(TokenType::RightBracket);
 
                     // stupid non-chained access..
-                    return Box::new(Expr::GridDataStructureAccess {
+                    return self.create_expr_box_no_comment(Expr::GridDataStructureAccess {
                         ds_name: expression,
                         access_type: *token,
                         column_expr,
@@ -843,15 +841,15 @@ impl<'a> Parser<'a> {
             match t.token_type {
                 TokenType::False | TokenType::True => {
                     let t = self.consume_next();
-                    return Box::new(Expr::Literal { literal_token: *t });
+                    return self.create_comment_expr_box(Expr::Literal { literal_token: *t });
                 }
                 TokenType::Number(_) | TokenType::String(_) => {
                     let t = self.consume_next();
-                    return Box::new(Expr::Literal { literal_token: *t });
+                    return self.create_comment_expr_box(Expr::Literal { literal_token: *t });
                 }
                 TokenType::Identifier(_) => {
                     let t = self.consume_next();
-                    return Box::new(Expr::Identifier { name: *t });
+                    return self.create_comment_expr_box(Expr::Identifier { name: *t });
                 }
                 TokenType::LeftParen => {
                     self.consume_next();
@@ -863,21 +861,23 @@ impl<'a> Parser<'a> {
                         }
                     }
 
-                    return Box::new(Expr::Grouping { expression });
+                    return self.create_comment_expr_box(Expr::Grouping { expression });
                 }
 
                 TokenType::Newline => {
                     let t = self.consume_next();
-                    return Box::new(Expr::Newline { token: *t });
+                    return self.create_comment_expr_box(Expr::Newline { token: *t });
                 }
                 _ => {
                     let t = self.consume_next();
-                    return Box::new(Expr::UnidentifiedAsLiteral { literal_token: *t });
+                    return self.create_comment_expr_box(Expr::UnidentifiedAsLiteral {
+                        literal_token: *t,
+                    });
                 }
             }
         }
 
-        Box::new(Expr::UnexpectedEnd)
+        self.create_expr_box_no_comment(Expr::UnexpectedEnd)
     }
 
     fn check_next(&mut self, token_type: TokenType) -> bool {
@@ -934,7 +934,15 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn consume_next(&mut self) -> &Token<'a> {
+    fn consume_next(&mut self) -> &'a Token<'a> {
         self.iter.next().unwrap()
+    }
+
+    fn create_comment_expr_box(&mut self, expr: Expr<'a>) -> ExprBox<'a> {
+        Box::new((expr, self.get_newlines_and_comments()))
+    }
+
+    fn create_expr_box_no_comment(&self, expr: Expr<'a>) -> ExprBox<'a> {
+        Box::new((expr, vec![]))
     }
 }

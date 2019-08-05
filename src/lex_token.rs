@@ -122,7 +122,7 @@ impl<'a> Token<'a> {
         }
     }
 
-    pub fn print_name(&'a self) -> &str {
+    pub fn print_name(&self) -> &'a str {
         match self.token_type {
             TokenType::LeftParen => "(",
             TokenType::RightParen => ")",
