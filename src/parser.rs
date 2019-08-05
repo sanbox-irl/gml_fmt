@@ -898,6 +898,8 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn check_after_comments_and_newlines(&mut self) // this is our strategy now!
+
     fn get_newlines_and_comments(&mut self) -> Vec<Token<'a>> {
         let mut vec = vec![];
         while let Some(token) = self.iter.peek() {
