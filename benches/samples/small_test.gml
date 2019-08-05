@@ -1,9 +1,7 @@
-if 
+show_debug_message(
+x // comment
+, 
 
-(x) {
-    show_debug(x)
-
-
-
-    x = 20 * 4;
-}
+/* hello */
+4 // test
+);

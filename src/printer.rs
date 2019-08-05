@@ -272,22 +272,28 @@ impl<'a> Printer<'a> {
             Expr::Call {
                 procedure_name,
                 arguments,
+                comments_and_newlines_after_lparen,
+                comments_and_newlines_before_lparen,
             } => {
                 self.print_expr(procedure_name);
                 self.backspace();
+                self.print_comments_and_newlines(comments_and_newlines_before_lparen, IndentationMove::Stay);
                 self.print(LPAREN, false);
+                self.print_comments_and_newlines(comments_and_newlines_after_lparen, IndentationMove::Right);
 
                 let mut iter = arguments.into_iter().peekable();
-                while let Some(this_argument) = iter.next() {
+                while let Some((first_comments, this_argument, these_comments)) = iter.next() {
+                    self.print_comments_and_newlines(first_comments, IndentationMove::Stay);
                     self.print_expr(this_argument);
                     self.backspace();
 
+                    self.print_comments_and_newlines(these_comments, IndentationMove::Stay);
+
                     if let Some(_) = iter.peek() {
                         self.print(COMMA, true);
-                    } else {
-                        self.print(RPAREN, false);
                     }
                 }
+                self.print(RPAREN, false);
             }
             Expr::Binary {
                 left,
@@ -301,6 +307,7 @@ impl<'a> Printer<'a> {
             Expr::Grouping { expression } => {
                 self.print(LPAREN, false);
                 self.print_expr(expression);
+                self.backspace();
                 self.print(RPAREN, true);
             }
             Expr::Literal { literal_token } => self.print_token(literal_token, true),
@@ -410,6 +417,21 @@ impl<'a> Printer<'a> {
         }
     }
 
+    fn print_comments_and_newlines(&mut self, vec: &'a Vec<Token<'a>>, indentation_move: IndentationMove) {
+        for this_one in vec {
+            match this_one.token_type {
+                TokenType::Newline => self.print_newline(indentation_move),
+                TokenType::Comment(_) | TokenType::MultilineComment(_) => {
+                    self.print_token(this_one, false)
+                }
+                _ => {
+                    println!("Printing {} which isn't a newline or comment in a comment_newline section...", this_one);
+                    self.print_token(this_one, false);
+                }
+            }
+        }
+    }
+
     fn print_expr_parentheses(&mut self, expr: &'a Expr<'a>) {
         self.print(LPAREN, false);
         self.print_expr(expr);
@@ -498,6 +520,8 @@ impl<'a> Printer<'a> {
             return;
         }
 
+        self.backspace();
+
         self.print(NEWLINE, false);
         self.print_indentation(indentation_move);
     }
@@ -527,7 +551,7 @@ impl<'a> Printer<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 enum IndentationMove {
     Right,
     Stay,

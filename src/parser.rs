@@ -7,6 +7,7 @@ use std::slice;
 
 type ExprBox<'a> = Box<Expr<'a>>;
 type StmtBox<'a> = Box<StatementWrapper<'a>>;
+type CommentsAndNewlines<'a> = Vec<Token<'a>>;
 
 pub struct Parser<'a> {
     pub ast: Vec<StmtBox<'a>>,
@@ -43,9 +44,12 @@ impl<'a> Parser<'a> {
                 }
                 TokenType::MultilineComment(_) => {
                     let multiline_comment = self.consume_next();
-                    return StatementWrapper::new(Statement::MultilineComment {
-                        multiline_comment: *multiline_comment,
-                    }, false);
+                    return StatementWrapper::new(
+                        Statement::MultilineComment {
+                            multiline_comment: *multiline_comment,
+                        },
+                        false,
+                    );
                 }
                 TokenType::RegionBegin => {
                     self.consume_next();
@@ -739,13 +743,18 @@ impl<'a> Parser<'a> {
 
     fn call(&mut self) -> ExprBox<'a> {
         let mut expression = self.primary();
+        let initial_comments_and_newlines = self.get_newlines_and_comments();
 
         if self.check_next_consume(TokenType::LeftParen) {
+            let comments_and_newlines_after_lparen = self.get_newlines_and_comments();
+
             let arguments = self.finish_call();
 
             expression = Box::new(Expr::Call {
                 procedure_name: expression,
                 arguments,
+                comments_and_newlines_before_lparen: initial_comments_and_newlines,
+                comments_and_newlines_after_lparen,
             });
         }
 
@@ -806,12 +815,11 @@ impl<'a> Parser<'a> {
         expression
     }
 
-    fn finish_call(&mut self) -> Vec<ExprBox<'a>> {
+    fn finish_call(&mut self) -> Vec<(CommentsAndNewlines<'a>, ExprBox<'a>, CommentsAndNewlines<'a>)> {
         let mut arguments = Vec::new();
-
         if self.check_next(TokenType::RightParen) == false {
             loop {
-                arguments.push(self.expression());
+                arguments.push((self.get_newlines_and_comments(), self.expression(), self.get_newlines_and_comments()));
                 if self.check_next_consume(TokenType::Comma) == false {
                     break;
                 }
@@ -890,7 +898,26 @@ impl<'a> Parser<'a> {
         }
     }
 
-    #[allow(dead_code)]
+    fn get_newlines_and_comments(&mut self) -> Vec<Token<'a>> {
+        let mut vec = vec![];
+        while let Some(token) = self.iter.peek() {
+            match token.token_type {
+                TokenType::Newline => {
+                    let token = self.iter.next().unwrap();
+                    vec.push(*token);
+                }
+                TokenType::Comment(_) | TokenType::MultilineComment(_) => {
+                    let token = self.iter.next().unwrap();
+                    vec.push(*token);
+                }
+
+                _ => break,
+            }
+        }
+
+        vec
+    }
+
     fn eat_all_newlines(&mut self) {
         while let Some(token) = self.iter.peek() {
             if token.token_type == TokenType::Newline {
