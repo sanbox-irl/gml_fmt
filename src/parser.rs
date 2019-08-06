@@ -299,7 +299,7 @@ impl<'a> Parser<'a> {
         has_surrounding_paren.1 = self.check_next_consume(TokenType::RightParen);
 
         StatementWrapper::new(
-            Statement::Do_Until {
+            Statement::DoUntil {
                 condition,
                 body,
                 has_surrounding_paren,

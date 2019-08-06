@@ -45,7 +45,7 @@ pub enum Statement<'a> {
         condition: ExprBox<'a>,
         body: StmtBox<'a>,
     },
-    Do_Until {
+    DoUntil {
         body: StmtBox<'a>,
         has_surrounding_paren: ParenInfo,
         condition: ExprBox<'a>,

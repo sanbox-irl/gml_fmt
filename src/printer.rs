@@ -145,7 +145,7 @@ impl<'a> Printer<'a> {
                 self.print_statement(body);
                 self.print_semicolon(stmt.has_semicolon);
             }
-            Statement::Do_Until {
+            Statement::DoUntil {
                 condition,
                 body,
                 has_surrounding_paren,
