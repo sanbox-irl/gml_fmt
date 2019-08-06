@@ -46,7 +46,7 @@ deploy:
   description: 'AppVeyor Windows CI'
   on:
     RUST_VERSION: stable
-    appveyor_repo_tag: true
+  appveyor_repo_tag: true
   provider: GitHub
 
 cache:
