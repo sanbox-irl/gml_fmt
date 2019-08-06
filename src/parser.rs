@@ -24,7 +24,7 @@ impl<'a> Parser<'a> {
                 TokenType::EOF => {
                     self.ast.push(StatementWrapper::new(Statement::EOF, false));
                     break;
-                    }
+                }
                 _ => {
                     let ret = self.statement();
                     self.ast.push(ret);
@@ -52,11 +52,21 @@ impl<'a> Parser<'a> {
                 }
                 TokenType::RegionBegin => {
                     self.consume_next();
-                    return self.region_begin();
+                    return StatementWrapper::new(
+                        Statement::RegionBegin {
+                            multi_word_name: self.get_remaining_tokens_on_line(),
+                        },
+                        false,
+                    );
                 }
                 TokenType::RegionEnd => {
                     self.consume_next();
-                    return StatementWrapper::new(Statement::RegionEnd, false);
+                    return StatementWrapper::new(
+                        Statement::RegionEnd {
+                            multi_word_name: self.get_remaining_tokens_on_line(),
+                        },
+                        false,
+                    );
                 }
                 TokenType::Macro => {
                     self.consume_next();
@@ -115,7 +125,7 @@ impl<'a> Parser<'a> {
         self.expression_statement()
     }
 
-    fn region_begin(&mut self) -> StmtBox<'a> {
+    fn get_remaining_tokens_on_line(&mut self) -> Vec<Token<'a>> {
         let mut multi_word_name = vec![];
 
         while let Some(t) = self.iter.peek() {
@@ -128,7 +138,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        StatementWrapper::new(Statement::RegionBegin { multi_word_name }, false)
+        multi_word_name
     }
 
     fn macro_statement(&mut self) -> StmtBox<'a> {

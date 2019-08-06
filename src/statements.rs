@@ -71,7 +71,9 @@ pub enum Statement<'a> {
     RegionBegin {
         multi_word_name: Vec<Token<'a>>,
     },
-    RegionEnd,
+    RegionEnd {
+        multi_word_name: Vec<Token<'a>>,
+    },
     Macro {
         macro_body: Vec<Token<'a>>,
     },

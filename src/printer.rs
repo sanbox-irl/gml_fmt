@@ -17,7 +17,7 @@ const SEMICOLON: &str = ";";
 pub struct Printer<'a> {
     pub output: Vec<&'a str>,
     indentation: i32,
-    default_handler: DefaultWhitespaceHandler,
+    // default_handler: DefaultWhitespaceHandler,
     can_replace_handler: bool,
 }
 
@@ -26,7 +26,7 @@ impl<'a> Printer<'a> {
         Printer {
             output: Vec::new(),
             indentation: 0,
-            default_handler: DefaultWhitespaceHandler {},
+            // default_handler: DefaultWhitespaceHandler {},
             can_replace_handler: true,
         }
     }
@@ -249,7 +249,13 @@ impl<'a> Printer<'a> {
                 }
                 self.backspace();
             }
-            Statement::RegionEnd => self.print("#endregion", false),
+            Statement::RegionEnd { multi_word_name } => {
+                self.print("#endregion", true);
+                for this_word in multi_word_name {
+                    self.print_token(this_word, true);
+                }
+                self.backspace();
+            }
             Statement::Macro { macro_body } => {
                 self.print("#macro", true);
 

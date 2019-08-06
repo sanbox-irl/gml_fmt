@@ -40,6 +40,11 @@ pub fn run_config(config: &Config) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+pub fn run_test(input: &str) -> String {
+    let res = run(input, false);
+    return res.0;
+}
+
 fn run(source: &str, print_ast: bool) -> (String, Option<String>) {
     let mut tok = Vec::new();
     let mut scanner = Scanner::new(source, &mut tok);

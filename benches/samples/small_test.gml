@@ -1,2 +1,1 @@
-var x = //test
-4;
+input_slot_add("right", vk_right, gp_padr, [gp_axislh, +1]);
