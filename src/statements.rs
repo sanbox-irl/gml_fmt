@@ -2,6 +2,7 @@ use super::expressions::*;
 use super::lex_token::Token;
 
 pub type StmtBox<'a> = Box<StatementWrapper<'a>>;
+pub type ParenInfo = (bool, bool);
 
 #[derive(Debug)]
 pub struct StatementWrapper<'a> {
@@ -34,15 +35,18 @@ pub enum Statement<'a> {
         statements: Vec<StmtBox<'a>>,
     },
     If {
+        has_surrounding_paren: ParenInfo,
         condition: ExprBox<'a>,
         then_branch: StmtBox<'a>,
         else_branch: Option<StmtBox<'a>>,
     },
     While {
+        has_surrounding_paren: ParenInfo,
         condition: ExprBox<'a>,
         body: StmtBox<'a>,
     },
     Repeat {
+        has_surrounding_paren: ParenInfo,
         condition: ExprBox<'a>,
         body: StmtBox<'a>,
     },
@@ -58,6 +62,7 @@ pub enum Statement<'a> {
     Break,
     Exit,
     Switch {
+        has_surrounding_paren: ParenInfo,
         condition: ExprBox<'a>,
         cases: Option<Vec<Case<'a>>>,
         default: Option<Vec<Case<'a>>>,

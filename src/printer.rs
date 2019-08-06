@@ -117,11 +117,12 @@ impl<'a> Printer<'a> {
             }
             Statement::If {
                 condition,
+                has_surrounding_paren,
                 then_branch,
                 else_branch,
             } => {
                 self.print("if", true);
-                self.print_expr_parentheses(condition);
+                self.print_expr_parentheses(condition, *has_surrounding_paren);
                 self.print_statement(then_branch);
 
                 if let Some(else_branch) = else_branch {
@@ -132,15 +133,23 @@ impl<'a> Printer<'a> {
                 }
                 self.print_semicolon(stmt.has_semicolon);
             }
-            Statement::While { condition, body } => {
+            Statement::While {
+                condition,
+                body,
+                has_surrounding_paren,
+            } => {
                 self.print("while", true);
-                self.print_expr_parentheses(condition);
+                self.print_expr_parentheses(condition, *has_surrounding_paren);
                 self.print_statement(body);
                 self.print_semicolon(stmt.has_semicolon);
             }
-            Statement::Repeat { condition, body } => {
+            Statement::Repeat {
+                condition,
+                body,
+                has_surrounding_paren,
+            } => {
                 self.print("repeat", true);
-                self.print_expr_parentheses(condition);
+                self.print_expr_parentheses(condition, *has_surrounding_paren);
                 self.print_statement(body);
                 self.print_semicolon(stmt.has_semicolon);
             }
@@ -200,11 +209,12 @@ impl<'a> Printer<'a> {
             }
             Statement::Switch {
                 condition,
+                has_surrounding_paren,
                 cases,
                 default,
             } => {
                 self.print("switch", true);
-                self.print_expr_parentheses(condition);
+                self.print_expr_parentheses(condition, *has_surrounding_paren);
 
                 self.print(LBRACE, true);
                 self.print_newline(IndentationMove::Right);
@@ -347,7 +357,7 @@ impl<'a> Printer<'a> {
             }
 
             Expr::Grouping {
-                expression,
+                expressions,
                 comments_and_newlines_after_lparen,
                 comments_and_newlines_before_rparen,
             } => {
@@ -357,7 +367,9 @@ impl<'a> Printer<'a> {
                     comments_and_newlines_after_lparen,
                     IndentationMove::Right,
                 );
-                self.print_expr(expression);
+                for expression in expressions {
+                    self.print_expr(expression);
+                }
                 self.backspace();
                 whitespace_handler.print_comments_and_newlines(
                     self,
@@ -586,11 +598,15 @@ impl<'a> Printer<'a> {
         }
     }
 
-    fn print_expr_parentheses(&mut self, expr: &'a ExprBox<'a>) {
-        self.print(LPAREN, false);
+    fn print_expr_parentheses(&mut self, expr: &'a ExprBox<'a>, has_surrounding_paren: (bool, bool)) {
+        if has_surrounding_paren.0 {
+            self.print(LPAREN, false);
+        }
         self.print_expr(expr);
-        self.backspace();
-        self.print(RPAREN, true);
+        if has_surrounding_paren.1 {
+            self.backspace();
+            self.print(RPAREN, true);
+        }
     }
 
     fn on_whitespace_line(&self) -> bool {

@@ -23,3 +23,20 @@ fn multiline_string() {
 
     assert_eq!(gml_fmt::run_test(input), format);
 }
+
+#[test]
+fn else_if() {
+    let input = "if (xx < (1  2.75)) {
+    return x;
+} else if (xx < (2 / 2.75)) {
+   return z;
+}";
+    let format = "if (xx < (1 2.75)) {
+    return x;
+} else if (xx < (2 / 2.75)) {
+    return z;
+}
+";
+
+    assert_eq!(gml_fmt::run_test(input), format);
+}

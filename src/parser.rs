@@ -241,11 +241,10 @@ impl<'a> Parser<'a> {
     }
 
     fn if_statement(&mut self) -> StmtBox<'a> {
-        self.check_next_consume(TokenType::LeftParen);
+        let mut has_surrounding_paren = (self.check_next_consume(TokenType::LeftParen), false);
 
         let condition = self.expression();
-
-        self.check_next_consume(TokenType::RightParen);
+        has_surrounding_paren.1 = self.check_next_consume(TokenType::RightParen);
 
         let then_branch = self.statement();
         let else_branch = if self.check_next_consume(TokenType::Else) {
@@ -257,6 +256,7 @@ impl<'a> Parser<'a> {
         StatementWrapper::new(
             Statement::If {
                 condition,
+                has_surrounding_paren,
                 then_branch,
                 else_branch,
             },
@@ -265,23 +265,28 @@ impl<'a> Parser<'a> {
     }
 
     fn while_statement(&mut self) -> StmtBox<'a> {
-        self.check_next_consume(TokenType::LeftParen);
-
+        let mut has_surrounding_paren = (self.check_next_consume(TokenType::LeftParen), false);
         let condition = self.expression();
-
-        self.check_next_consume(TokenType::RightParen);
+        has_surrounding_paren.1 = self.check_next_consume(TokenType::RightParen);
 
         let body = self.statement();
 
-        StatementWrapper::new(Statement::While { condition, body }, false)
+        StatementWrapper::new(
+            Statement::While {
+                condition,
+                body,
+                has_surrounding_paren,
+            },
+            false,
+        )
     }
 
     fn switch_statement(&mut self) -> StmtBox<'a> {
-        self.check_next_consume(TokenType::LeftParen);
+        let mut has_surrounding_paren = (self.check_next_consume(TokenType::LeftParen), false);
 
         let condition = self.expression();
+        has_surrounding_paren.1 = self.check_next_consume(TokenType::RightParen);
 
-        self.check_next_consume(TokenType::RightParen);
         self.check_next_consume(TokenType::LeftBrace);
 
         self.eat_all_newlines();
@@ -313,6 +318,7 @@ impl<'a> Parser<'a> {
         StatementWrapper::new(
             Statement::Switch {
                 cases,
+                has_surrounding_paren,
                 condition,
                 default,
             },
@@ -348,14 +354,20 @@ impl<'a> Parser<'a> {
     }
 
     fn repeat_statement(&mut self) -> StmtBox<'a> {
-        self.check_next_consume(TokenType::LeftParen);
-
+        let mut has_surrounding_paren = (self.check_next_consume(TokenType::LeftParen), false);
         let condition = self.expression();
+        has_surrounding_paren.1 = self.check_next_consume(TokenType::RightParen);
 
-        self.check_next_consume(TokenType::RightParen);
         let body = self.statement();
 
-        StatementWrapper::new(Statement::Repeat { condition, body }, false)
+        StatementWrapper::new(
+            Statement::Repeat {
+                condition,
+                body,
+                has_surrounding_paren,
+            },
+            false,
+        )
     }
 
     fn for_statement(&mut self) -> StmtBox<'a> {
@@ -884,13 +896,17 @@ impl<'a> Parser<'a> {
                 TokenType::LeftParen => {
                     self.consume_next();
                     let comments_and_newlines_after_lparen = self.get_newlines_and_comments();
-                    let expression = self.expression();
 
-                    self.check_next_consume(TokenType::RightParen);
+                    let mut expressions = vec![];
+                    expressions.push(self.expression());
+                    while self.check_next_consume(TokenType::RightParen) == false {
+                        expressions.push(self.expression());
+                    }
+
                     let comments_and_newlines_before_rparen = self.get_newlines_and_comments();
 
                     return self.create_comment_expr_box(Expr::Grouping {
-                        expression,
+                        expressions,
                         comments_and_newlines_after_lparen,
                         comments_and_newlines_before_rparen,
                     });

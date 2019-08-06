@@ -20,7 +20,7 @@ pub enum Expr<'a> {
     },
     Grouping {
         comments_and_newlines_after_lparen: CommentsAndNewlines<'a>,
-        expression: ExprBox<'a>,
+        expressions: Vec<ExprBox<'a>>,
         comments_and_newlines_before_rparen: CommentsAndNewlines<'a>,
     },
     ArrayLiteral {
