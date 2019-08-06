@@ -28,7 +28,7 @@ pub enum Expr<'a> {
     },
     Literal {
         literal_token: Token<'a>,
-        comments: CommentsAndNewlines<'a>
+        comments: CommentsAndNewlines<'a>,
     },
     Unary {
         operator: Token<'a>,
@@ -59,35 +59,32 @@ pub enum Expr<'a> {
     },
     Identifier {
         name: Token<'a>,
-        comments: CommentsAndNewlines<'a>
+        comments: CommentsAndNewlines<'a>,
     },
     DotAccess {
         object_name: ExprBox<'a>,
-        instance_variable: ExprBox<'a>
+        instance_variable: ExprBox<'a>,
     },
     DataStructureAccess {
         ds_name: ExprBox<'a>,
-        // comments_and_newlines_between_name_and_access: CommentsAndNewlines<'a>,
         access_type: Token<'a>,
-        // comments_and_newlines_between_access_and_expr: CommentsAndNewlines<'a>,
+        comments_and_newlines_between_access_and_expr: CommentsAndNewlines<'a>,
         access_expr: ExprBox<'a>,
-        // comments_and_newlines_before_rbracket: CommentsAndNewlines<'a>,
     },
     GridDataStructureAccess {
         ds_name: ExprBox<'a>,
-        // comments_and_newlines_between_name_and_access: CommentsAndNewlines<'a>,
         access_type: Token<'a>,
-        // comments_and_newlines_between_access_type_and_row_expr: CommentsAndNewlines<'a>,
+        comments_and_newlines_between_access_type_and_row_expr: CommentsAndNewlines<'a>,
         row_expr: ExprBox<'a>,
-        // comments_and_newlines_between_row_expr_and_column: CommentsAndNewlines<'a>,
+        comments_and_newlines_after_comma: CommentsAndNewlines<'a>,
         column_expr: ExprBox<'a>,
-        // comments_and_newlines_before_rbracket: CommentsAndNewlines<'a>,
     },
+    // x ? y : z;
     Ternary {
         conditional: ExprBox<'a>,
-        // comments_and_newlines_after_conditions: CommentsAndNewlines<'a>,
+        comments_and_newlines_after_q: CommentsAndNewlines<'a>,
         left: ExprBox<'a>,
-        // comments_and_newlines_between_l_and_r: CommentsAndNewlines<'a>,
+        comments_and_newlines_after_colon: CommentsAndNewlines<'a>,
         right: ExprBox<'a>,
     },
 

@@ -495,13 +495,17 @@ impl<'a> Parser<'a> {
         let mut expr = self.or();
 
         if self.check_next_consume(TokenType::Hook) {
+            let comments_and_newlines_after_q = self.get_newlines_and_comments();
             let left = self.ternary();
             self.check_next_consume(TokenType::Colon);
+            let comments_and_newlines_after_colon = self.get_newlines_and_comments();
             let right = self.ternary();
 
             expr = self.create_expr_box_no_comment(Expr::Ternary {
                 conditional: expr,
+                comments_and_newlines_after_q,
                 left,
+                comments_and_newlines_after_colon,
                 right,
             });
         }
@@ -800,6 +804,8 @@ impl<'a> Parser<'a> {
                 | TokenType::MapIndexer
                 | TokenType::ListIndexer => {
                     let token = self.iter.next().unwrap();
+                    let comments_and_newlines_between_access_and_expr =
+                        self.get_newlines_and_comments();
                     let access_expr = self.expression();
 
                     self.check_next_consume(TokenType::RightBracket);
@@ -807,6 +813,7 @@ impl<'a> Parser<'a> {
                     // stupid non-chained access..
                     return self.create_expr_box_no_comment(Expr::DataStructureAccess {
                         ds_name: expression,
+                        comments_and_newlines_between_access_and_expr,
                         access_type: *token,
                         access_expr,
                     });
@@ -814,8 +821,11 @@ impl<'a> Parser<'a> {
 
                 TokenType::GridIndexer => {
                     let token = self.iter.next().unwrap();
+                    let comments_and_newlines_between_access_type_and_row_expr =
+                        self.get_newlines_and_comments();
                     let row_expr = self.expression();
                     self.check_next_consume(TokenType::Comma);
+                    let comments_and_newlines_after_comma = self.get_newlines_and_comments();
                     let column_expr = self.expression();
                     self.check_next_consume(TokenType::RightBracket);
 
@@ -825,6 +835,8 @@ impl<'a> Parser<'a> {
                         access_type: *token,
                         column_expr,
                         row_expr,
+                        comments_and_newlines_between_access_type_and_row_expr,
+                        comments_and_newlines_after_comma,
                     });
                 }
 
@@ -906,7 +918,7 @@ impl<'a> Parser<'a> {
 
                 TokenType::Newline => {
                     let t = self.consume_next();
-                    return self.create_comment_expr_box(Expr::Newline { token: *t });
+                    return self.create_expr_box_no_comment(Expr::Newline { token: *t });
                 }
                 _ => {
                     let t = self.consume_next();

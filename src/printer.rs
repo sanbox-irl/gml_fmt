@@ -461,6 +461,7 @@ impl<'a> Printer<'a> {
             Expr::DataStructureAccess {
                 ds_name,
                 access_type,
+                comments_and_newlines_between_access_and_expr,
                 access_expr,
             } => {
                 self.print_expr(ds_name);
@@ -470,6 +471,11 @@ impl<'a> Printer<'a> {
                     &access_type,
                     access_type.token_type != TokenType::LeftBracket,
                 );
+                whitespace_handler.print_comments_and_newlines(
+                    self,
+                    comments_and_newlines_between_access_and_expr,
+                    IndentationMove::Stay,
+                );
                 self.print_expr(access_expr);
 
                 self.backspace();
@@ -478,29 +484,67 @@ impl<'a> Printer<'a> {
             Expr::GridDataStructureAccess {
                 ds_name,
                 access_type,
+                comments_and_newlines_between_access_type_and_row_expr,
                 row_expr,
+                comments_and_newlines_after_comma,
                 column_expr,
             } => {
                 self.print_expr(ds_name);
                 self.print_token(&access_type, true);
+                whitespace_handler.print_comments_and_newlines(
+                    self,
+                    comments_and_newlines_between_access_type_and_row_expr,
+                    IndentationMove::Stay,
+                );
                 self.print_expr(row_expr);
 
                 self.print(COMMA, true);
+                whitespace_handler.print_comments_and_newlines(
+                    self,
+                    comments_and_newlines_after_comma,
+                    IndentationMove::Stay,
+                );
+
                 self.print_expr(column_expr);
 
                 self.backspace();
                 self.print("]", true);
             }
+            /*
+            result = foo == bar  ? result1 :
+                     foo == baz  ? result2 :
+                     foo == qux  ? result3 :
+                     foo == quux ? result4 :
+                                     fail_result;
+            */
             Expr::Ternary {
                 conditional,
+                comments_and_newlines_after_q,
                 left,
+                comments_and_newlines_after_colon,
                 right,
             } => {
                 self.print_expr(conditional);
                 self.print("?", true);
+                if self.only_newlines(comments_and_newlines_after_q) == false {
+                    whitespace_handler.print_comments_and_newlines(
+                        self,
+                        comments_and_newlines_after_q,
+                        IndentationMove::Right,
+                    );
+                }
                 self.print_expr(left);
                 self.print(":", true);
+                let did_move = whitespace_handler.print_comments_and_newlines(
+                    self,
+                    comments_and_newlines_after_colon,
+                    IndentationMove::Right,
+                );
                 self.print_expr(right);
+
+                if did_move {
+                    self.indentation -= 1;
+                }
             }
 
             Expr::Newline { token: _ } => self.print_newline(IndentationMove::Stay),
@@ -633,6 +677,16 @@ impl<'a> Printer<'a> {
         }
     }
 
+    fn only_newlines(&mut self, vec: &'a Vec<Token<'a>>) -> bool {
+        for this_token in vec {
+            if this_token.token_type == TokenType::Newline {
+                continue;
+            }
+            return false;
+        }
+        true
+    }
+
     fn print_semicolon(&mut self, do_it: bool) {
         if do_it {
             self.backspace();
@@ -733,5 +787,3 @@ impl<'a> WhiteSpaceHandler<'a> for DotWhitespaceHandler {
         did_move
     }
 }
-
-
