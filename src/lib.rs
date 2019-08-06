@@ -6,40 +6,41 @@ pub mod printer;
 pub mod scanner;
 pub mod statements;
 
-use config::Config;
+use config::{Config, PrintFlags};
 use parser::Parser;
 use printer::Printer;
 use scanner::Scanner;
-use std::{error::Error, fs, path::PathBuf};
+use std::{error::Error, fs};
 
-pub fn run_config(input_path: PathBuf, do_file: bool) -> Result<(), Box<dyn Error>> {
-    let config = Config::new(input_path, do_file)?;
+pub fn run_config(config: &Config) -> Result<(), Box<dyn Error>> {
+    let log = config.print_flags.contains(PrintFlags::LOGS);
+    let overwrite = config.print_flags.contains(PrintFlags::OVERWRITE);
 
-    for this_file in config.files {
+    for this_file in &config.files {
         let contents = fs::read_to_string(this_file)?;
-        run(&contents, &this_file, &config);
+
+        if log {
+            println!("=========INPUT=========");
+            println!("{}", contents);
+        }
+
+        let res = run(&contents, log);
+        if log {
+            println!("=========OUTPUT=========");
+            println!("{}", res.0);
+            println!("==========AST===========");
+            println!("{}", res.1.unwrap());
+        }
+
+        if overwrite {
+            fs::write(this_file, res.0)?;
+        }
     }
 
     Ok(())
 }
 
-// pub fn run_config_test_file_no_output(file_path: &str) -> Result<(), Box<dyn Error>> {
-//     let config = Config::new(PathBuf::from(file_path), true)?;
-
-//     for this_file in config.files {
-//         let contents = fs::read_to_string(this_file)?;
-
-//         run(&contents, &this_file, &config);
-//     }
-
-//     Ok(())
-// }
-
-pub fn run_config_test_file_output(file_path: &str) -> Result<(), Box<dyn Error>> {
-    run_config(PathBuf::from(file_path), true)
-}
-
-fn run(source: &str, file_output: &PathBuf, config: &Config) {
+fn run(source: &str, print_ast: bool) -> (String, Option<String>) {
     let mut tok = Vec::new();
     let mut scanner = Scanner::new(source, &mut tok);
 
@@ -49,13 +50,12 @@ fn run(source: &str, file_output: &PathBuf, config: &Config) {
 
     let mut printer = Printer::new();
     printer.autoformat(&parser.ast[..]);
-
-    // if printing_flags & PrintingControls::Logs == PrintingControls::Logs {
-    //     println!("=========INPUT=========");
-    //     println!("{}", source);
-    //     println!("=========OUTPUT=========");
-    //     println!("{}", Printer::get_output(&printer.output));
-    //     println!("==========AST==========");
-    //     println!("{:#?}", parser.ast);
-    // }
+    (
+        Printer::get_output(&printer.output),
+        if print_ast {
+            Some(format!("{:#?}", parser.ast))
+        } else {
+            None
+        },
+    )
 }

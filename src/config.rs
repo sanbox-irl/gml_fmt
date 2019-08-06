@@ -1,13 +1,22 @@
+use bitflags;
 use std::path::PathBuf;
 use std::{ffi::OsStr, fs};
 
 pub struct Config {
     pub files: Vec<PathBuf>,
+    pub print_flags: PrintFlags,
 }
 
 impl Config {
-    pub fn new(input_path: PathBuf, do_file: bool) -> Result<Config, &'static str> {
-        let mut config = Config { files: Vec::new() };
+    pub fn new(
+        input_path: PathBuf,
+        print_flags: PrintFlags,
+        do_file: bool,
+    ) -> Result<Config, &'static str> {
+        let mut config = Config {
+            files: Vec::new(),
+            print_flags,
+        };
 
         if input_path.exists() == false {
             return Err("Filepath given does not exist.");
@@ -58,8 +67,10 @@ impl Config {
     }
 }
 
-pub enum PrintingFlags {
-    NoOutput = 0b001,
-    NormalOverwrite = 0b010,
-    PrintLogs = 0b100,
+bitflags::bitflags! {
+    pub struct PrintFlags: u8 {
+        const NO_OUTPUT =           0b00000000;
+        const OVERWRITE =    0b00000001;
+        const LOGS =          0b00000010;
+    }
 }

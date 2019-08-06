@@ -3,9 +3,17 @@ extern crate criterion;
 
 use criterion::Criterion;
 use gml_fmt;
+use gml_fmt::config::{Config, PrintFlags};
+use std::{path::PathBuf, process};
 
 fn lex_test() {
-    gml_fmt::run_config_test_file_no_output("benches/samples/osg_lex_speed.gml")
+    let path = PathBuf::from("benches/samples/osg_lex_speed.gml");
+    let config = Config::new(path, PrintFlags::NO_OUTPUT, true).unwrap_or_else(|e| {
+        eprintln!("File reading error: {}", e);
+        process::exit(1);
+    });
+
+    gml_fmt::run_config(&config)
         .expect("Attempted to run osg_lex_speed test, but failed. Did you move the file?");
 }
 
