@@ -32,21 +32,17 @@ test_script:
     )
 
 before_deploy:
-  - cargo rustc --target %TARGET% --release --bin gml_fmt 
+  - cargo rustc --target %TARGET% --release 
   - ps: ci\before_deploy.ps1
 
 deploy:
   artifact: /.*\.zip/
-  # TODO update `auth_token.secure`
-  # - Create a `public_repo` GitHub token. Go to: https://github.com/settings/tokens/new
-  # - Encrypt it. Go to https://ci.appveyor.com/tools/encrypt
-  # - Paste the output down here
   auth_token:
     secure: Sm5DyuCws/pCqh3gqCtD1334CbjtDcX70/zzccH8Pd99F2potOyN2aL1M4G08WgB
   description: 'AppVeyor Windows CI'
   on:
     RUST_VERSION: stable
-  appveyor_repo_tag: true
+    appveyor_repo_tag: true
   provider: GitHub
 
 cache:
