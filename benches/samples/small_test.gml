@@ -1,1 +1,3 @@
-var function, xx, xx2, xxm1;
+for (var x = 0; i < 10; i++) {
+    show_debug_message("test");
+}

@@ -67,3 +67,39 @@ show_debug_message(x);
 
     assert_eq!(gml_fmt::run_test(input), format);
 }
+
+#[test]
+fn for_loops() {
+    let input = "for (var x = 0; i < 10; i++) {
+show_debug_message(\"test\");
+for (; i < 10; i++) {
+show_debug_message(3);
+}
+}
+for (var i;; i++) {
+	show_debug_message(3);	
+}
+
+for (var i;;) {
+	show_debug_message(4);
+}
+";
+
+    let format = "for (var x = 0; i < 10; i++) {
+    show_debug_message(\"test\");
+    for (; i < 10; i++) {
+        show_debug_message(3);
+    }
+}
+for (var i;; i++) {
+    show_debug_message(3);
+}
+
+for (var i;;) {
+    show_debug_message(4);
+}
+
+";
+
+    assert_eq!(gml_fmt::run_test(input), format);
+}

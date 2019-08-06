@@ -179,15 +179,13 @@ impl<'a> Printer<'a> {
 
                 if let Some(initializer) = initializer {
                     self.print_statement(initializer);
+                    self.ensure_space();
+                } else {
+                    self.print(SEMICOLON, true);
                 }
-
-                self.backspace();
-                self.print(SEMICOLON, true);
 
                 if let Some(condition) = condition {
                     self.print_expr(condition);
-                } else {
-                    self.backspace();
                 }
 
                 self.backspace();
@@ -299,7 +297,15 @@ impl<'a> Printer<'a> {
                 }
             }
             Statement::EOF => {
+                if self.prev_line_was_whitespace() {
+                    return;
+                }
+                if self.output.len() == 0 {
+                    return;
+                }
+
                 self.backspace();
+
                 self.print(NEWLINE, false);
             }
         }
