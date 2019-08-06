@@ -27,22 +27,22 @@ install:
 
 test_script:
   - if [%APPVEYOR_REPO_TAG%]==[false] (
-      cargo build --target %TARGET% &&
-      cargo build --target %TARGET% --release
+    cargo build --target %TARGET% &&
+    cargo build --target %TARGET% --release
     )
 
 before_deploy:
-  - cargo rustc --target %TARGET% --release 
+  - cargo rustc --target %TARGET% --release
   - ps: ci\before_deploy.ps1
 
 deploy:
   artifact: /.*\.zip/
   auth_token:
     secure: Sm5DyuCws/pCqh3gqCtD1334CbjtDcX70/zzccH8Pd99F2potOyN2aL1M4G08WgB
-  description: 'AppVeyor Windows CI'
+  description: "AppVeyor Windows CI"
   on:
     RUST_VERSION: stable
-    appveyor_repo_tag: true
+  appveyor_repo_tag: true
   provider: GitHub
 
 cache:
