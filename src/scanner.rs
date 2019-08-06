@@ -220,9 +220,7 @@ impl<'a> Scanner<'a> {
                     let token_returned = self.check_for_compiler_directive(start, current);
 
                     match token_returned {
-                        Some(macro_directive) => {
-                            self.add_multiple_token(macro_directive, (current - start) as u32)
-                        }
+                        Some(macro_directive) => self.add_multiple_token(macro_directive, (current - start) as u32),
 
                         None => {
                             // we're adding a hashtag token, which doesn't really mean anything,
@@ -241,6 +239,47 @@ impl<'a> Scanner<'a> {
                 }
 
                 // string literals
+                '@' => {
+                    let start = i;
+                    let start_line = self.line_number;
+                    let start_column = self.column_number;
+
+                    if self.peek_and_check_consume('"') {
+                        let mut last_column_break = start;
+
+                        while let Some((_, break_char)) = self.iter.next() {
+                            println!("Made it to character {}", break_char);
+                            match break_char {
+                                '\n' => {
+                                    last_column_break = self.next_char_boundary();
+                                    self.next_line();
+                                }
+
+                                '"' => {
+                                    self.iter.next();
+                                    break;
+                                }
+                                _ => {}
+                            }
+                        }
+                        let current = self.next_char_boundary();
+
+                        self.tokens.push(Token::new(
+                            TokenType::String(&self.input[start..current]),
+                            start_line,
+                            start_column,
+                        ));
+                        println!("Current is {}", current);
+                        println!("Column_break is {}", last_column_break);
+                        self.column_number += (current - last_column_break) as u32;
+                    } else {
+                        let end_byte = self.next_char_boundary();
+                        self.add_multiple_token(
+                            TokenType::UnidentifiedInput(&self.input[i..end_byte]),
+                            (end_byte - i) as u32,
+                        );
+                    };
+                }
                 '"' => {
                     let start = i;
                     let mut current = start;
@@ -264,10 +303,7 @@ impl<'a> Scanner<'a> {
                         }
                     }
 
-                    self.add_multiple_token(
-                        TokenType::String(&self.input[start..current]),
-                        (current - start) as u32,
-                    );
+                    self.add_multiple_token(TokenType::String(&self.input[start..current]), (current - start) as u32);
                 }
 
                 '.' => {
@@ -350,10 +386,7 @@ impl<'a> Scanner<'a> {
                         }
                     }
 
-                    self.add_multiple_token(
-                        TokenType::Number(&self.input[start..current]),
-                        (current - start) as u32,
-                    )
+                    self.add_multiple_token(TokenType::Number(&self.input[start..current]), (current - start) as u32)
                 }
 
                 // Secondary Hex
@@ -371,10 +404,7 @@ impl<'a> Scanner<'a> {
                         }
                     }
 
-                    self.add_multiple_token(
-                        TokenType::Number(&self.input[start..current]),
-                        (current - start) as u32,
-                    );
+                    self.add_multiple_token(TokenType::Number(&self.input[start..current]), (current - start) as u32);
                 }
 
                 // Comments
@@ -450,13 +480,10 @@ impl<'a> Scanner<'a> {
                         current = self.next_char_boundary();
                     };
 
-                    let keyword_token_type: Option<TokenType> =
-                        self.check_for_keyword(start, current);
+                    let keyword_token_type: Option<TokenType> = self.check_for_keyword(start, current);
 
                     match keyword_token_type {
-                        Some(token_type) => {
-                            self.add_multiple_token(token_type, (current - start) as u32)
-                        }
+                        Some(token_type) => self.add_multiple_token(token_type, (current - start) as u32),
                         None => self.add_multiple_token(
                             TokenType::Identifier(&self.input[start..current]),
                             (current - start) as u32,
@@ -664,7 +691,9 @@ mod scanner_test {
         let input_string = "\"This is a good string.\"
 \"This is a bad string.
 \"\"
-\"This is another good string!\"";
+\"This is another good string!\"
+@\"This is a
+multi-linestring. The demon's plaything!\"";
         let vec = &mut Vec::new();
         let mut scanner = Scanner::new(input_string, vec);
 
@@ -678,7 +707,13 @@ mod scanner_test {
                 Token::new(TokenType::String("\"\""), 2, 0),
                 Token::new(TokenType::Newline, 2, 2),
                 Token::new(TokenType::String("\"This is another good string!\""), 3, 0),
-                Token::new(TokenType::EOF, 3, 30),
+                Token::new(TokenType::Newline, 3, 30),
+                Token::new(
+                    TokenType::String("@\"This is a\nmulti-linestring. The demon's plaything!\""),
+                    4,
+                    0
+                ),
+                Token::new(TokenType::EOF, 5, 41),
             ]
         );
     }
@@ -931,11 +966,7 @@ liner comment
                 Token::new(TokenType::MultilineComment("/* one liner */"), 2, 0),
                 Token::new(TokenType::Newline, 2, 15),
                 // line 3
-                Token::new(
-                    TokenType::MultilineComment("/* multi\nliner comment\n*/"),
-                    3,
-                    0
-                ),
+                Token::new(TokenType::MultilineComment("/* multi\nliner comment\n*/"), 3, 0),
                 Token::new(TokenType::EOF, 5, 2),
             ]
         )

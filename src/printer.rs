@@ -274,6 +274,7 @@ impl<'a> Printer<'a> {
                 }
             }
             Statement::EOF => {
+                self.backspace();
                 self.print(NEWLINE, false);
             }
         }
