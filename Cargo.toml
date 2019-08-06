@@ -11,6 +11,7 @@ clap = "2.33.0"
 
 [dev-dependencies]
 criterion = "0.2.11"
+enumflags2 = "0.5.2"
 
 
 [[bench]]

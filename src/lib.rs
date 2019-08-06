@@ -17,29 +17,29 @@ pub fn run_config(input_path: PathBuf, do_file: bool) -> Result<(), Box<dyn Erro
 
     for this_file in config.files {
         let contents = fs::read_to_string(this_file)?;
-        run(&contents, true);
+        run(&contents, &this_file, &config);
     }
 
     Ok(())
 }
 
-pub fn run_config_test_file_no_output(file_path: &str) -> Result<(), Box<dyn Error>> {
-    let config = Config::new(PathBuf::from(file_path), true)?;
+// pub fn run_config_test_file_no_output(file_path: &str) -> Result<(), Box<dyn Error>> {
+//     let config = Config::new(PathBuf::from(file_path), true)?;
 
-    for this_file in config.files {
-        let contents = fs::read_to_string(this_file)?;
+//     for this_file in config.files {
+//         let contents = fs::read_to_string(this_file)?;
 
-        run(&contents, false);
-    }
+//         run(&contents, &this_file, &config);
+//     }
 
-    Ok(())
-}
+//     Ok(())
+// }
 
 pub fn run_config_test_file_output(file_path: &str) -> Result<(), Box<dyn Error>> {
     run_config(PathBuf::from(file_path), true)
 }
 
-fn run(source: &str, do_print: bool) {
+fn run(source: &str, file_output: &PathBuf, config: &Config) {
     let mut tok = Vec::new();
     let mut scanner = Scanner::new(source, &mut tok);
 
@@ -50,12 +50,12 @@ fn run(source: &str, do_print: bool) {
     let mut printer = Printer::new();
     printer.autoformat(&parser.ast[..]);
 
-    if do_print {
-        println!("=========INPUT=========");
-        println!("{}", source);
-        println!("=========OUTPUT=========");
-        println!("{}", Printer::get_output(&printer.output));
-        println!("==========AST==========");
-        println!("{:#?}", parser.ast);
-    }
+    // if printing_flags & PrintingControls::Logs == PrintingControls::Logs {
+    //     println!("=========INPUT=========");
+    //     println!("{}", source);
+    //     println!("=========OUTPUT=========");
+    //     println!("{}", Printer::get_output(&printer.output));
+    //     println!("==========AST==========");
+    //     println!("{:#?}", parser.ast);
+    // }
 }

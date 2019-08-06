@@ -1,4 +1,9 @@
 extern crate clap;
+extern crate enumflags2;
+#[macro_use]
+extern crate enumflags2_derive;
+
+pub use enumflags2::Bitflags;
 
 use clap::{App, Arg};
 use std::{path::PathBuf, process};

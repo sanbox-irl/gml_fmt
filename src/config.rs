@@ -57,3 +57,9 @@ impl Config {
         self.files.push(path);
     }
 }
+
+pub enum PrintingFlags {
+    NoOutput = 0b001,
+    NormalOverwrite = 0b010,
+    PrintLogs = 0b100,
+}
