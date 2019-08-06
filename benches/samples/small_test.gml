@@ -1,4 +1,7 @@
-#define _okay
-var x;
+var x = 4 ? 
+x :
+y == 20 ? 4 : 
+5;
 
-#define okay
+
+var z = o;

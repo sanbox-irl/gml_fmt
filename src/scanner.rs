@@ -31,23 +31,54 @@ impl<'a> Scanner<'a> {
                 '}' => self.add_simple_token(TokenType::RightBrace),
                 ',' => self.add_simple_token(TokenType::Comma),
                 '-' => {
-                    if self.peek_and_check_consume('-') {
-                        self.add_simple_token(TokenType::Decrementer);
+                    if let Some((_, c)) = self.iter.peek() {
+                        if let Some(token) = match c {
+                            '=' => Some(TokenType::MinusEquals),
+                            '+' => Some(TokenType::Decrementer),
+                            _ => None,
+                        } {
+                            self.add_multiple_token(token, 2);
+                            self.iter.next();
+                        } else {
+                            self.add_simple_token(TokenType::Minus);
+                        }
                     } else {
                         self.add_simple_token(TokenType::Minus);
                     }
                 }
                 '+' => {
-                    if self.peek_and_check_consume('+') {
-                        self.add_simple_token(TokenType::Incrementer);
+                    if let Some((_, c)) = self.iter.peek() {
+                        if let Some(token) = match c {
+                            '=' => Some(TokenType::PlusEquals),
+                            '+' => Some(TokenType::Incrementer),
+                            _ => None,
+                        } {
+                            self.add_multiple_token(token, 2);
+                            self.iter.next();
+                        } else {
+                            self.add_simple_token(TokenType::Plus);
+                        }
                     } else {
                         self.add_simple_token(TokenType::Plus);
                     }
                 }
+
                 ';' => self.add_simple_token(TokenType::Semicolon),
-                '*' => self.add_simple_token(TokenType::Star),
+                '*' => {
+                    if self.peek_and_check_consume('=') {
+                        self.add_multiple_token(TokenType::StarEquals, 2);
+                    } else {
+                        self.add_simple_token(TokenType::Star);
+                    }
+                }
                 ':' => self.add_simple_token(TokenType::Colon),
-                '%' => self.add_simple_token(TokenType::Mod),
+                '%' => {
+                    if self.peek_and_check_consume('=') {
+                        self.add_multiple_token(TokenType::ModEquals, 2);
+                    } else {
+                        self.add_simple_token(TokenType::Mod);
+                    }
+                }
                 ']' => self.add_simple_token(TokenType::RightBracket),
                 '?' => self.add_simple_token(TokenType::Hook),
                 '\\' => self.add_simple_token(TokenType::Backslash),
@@ -68,12 +99,22 @@ impl<'a> Scanner<'a> {
                     }
                 }
                 '<' => {
-                    if self.peek_and_check_consume('=') {
-                        self.add_multiple_token(TokenType::LessEqual, 2);
-                    } else if self.peek_and_check_consume('<') {
-                        self.add_multiple_token(TokenType::BitLeft, 2);
-                    } else {
-                        self.add_simple_token(TokenType::Less)
+                    if let Some((_, c)) = self.iter.peek() {
+                        match c {
+                            '=' => {
+                                self.add_multiple_token(TokenType::LessEqual, 2);
+                                self.iter.next();
+                            }
+                            '>' => {
+                                self.add_multiple_token(TokenType::LessThanGreaterThan, 2);
+                                self.iter.next();
+                            }
+                            '<' => {
+                                self.add_multiple_token(TokenType::BitLeft, 2);
+                                self.iter.next();
+                            }
+                            _ => self.add_simple_token(TokenType::Less),
+                        }
                     }
                 }
                 '>' => {
@@ -85,27 +126,55 @@ impl<'a> Scanner<'a> {
                         self.add_simple_token(TokenType::Greater)
                     }
                 }
+
                 '&' => {
-                    if self.peek_and_check_consume('&') {
-                        self.add_multiple_token(TokenType::LogicalAnd, 2);
+                    if let Some((_, c)) = self.iter.peek() {
+                        if let Some(token) = match c {
+                            '&' => Some(TokenType::LogicalAnd),
+                            '=' => Some(TokenType::BitAndEquals),
+                            _ => None,
+                        } {
+                            self.add_multiple_token(token, 2);
+                            self.iter.next();
+                        } else {
+                            self.add_simple_token(TokenType::BitAnd);
+                        }
                     } else {
                         self.add_simple_token(TokenType::BitAnd);
                     }
                 }
 
                 '|' => {
-                    if self.peek_and_check_consume('|') {
-                        self.add_multiple_token(TokenType::LogicalOr, 2);
+                    if let Some((_, c)) = self.iter.peek() {
+                        if let Some(token) = match c {
+                            '|' => Some(TokenType::LogicalOr),
+                            '=' => Some(TokenType::BitOrEquals),
+                            _ => None,
+                        } {
+                            self.add_multiple_token(token, 2);
+                            self.iter.next();
+                        } else {
+                            self.add_simple_token(TokenType::BitOr);
+                        }
                     } else {
-                        self.add_simple_token(TokenType::BitOr);
+                        self.add_simple_token(TokenType::BitOr)
                     }
                 }
 
                 '^' => {
-                    if self.peek_and_check_consume('^') {
-                        self.add_multiple_token(TokenType::LogicalXor, 2);
+                    if let Some((_, c)) = self.iter.peek() {
+                        if let Some(token) = match c {
+                            '^' => Some(TokenType::LogicalXor),
+                            '=' => Some(TokenType::BitXorEquals),
+                            _ => None,
+                        } {
+                            self.add_multiple_token(token, 2);
+                            self.iter.next();
+                        } else {
+                            self.add_simple_token(TokenType::BitXor);
+                        }
                     } else {
-                        self.add_simple_token(TokenType::BitXor);
+                        self.add_simple_token(TokenType::BitXor)
                     }
                 }
 
@@ -230,7 +299,6 @@ impl<'a> Scanner<'a> {
 
                 '0'..='9' => {
                     let start = i;
-                    let mut current = self.next_char_boundary();
 
                     // Check for Hex
                     if c == '0' {
@@ -263,10 +331,10 @@ impl<'a> Scanner<'a> {
                             self.iter.next();
                         } else {
                             is_fractional = *number_char == '.';
-                            current = self.next_char_boundary();
                             break;
                         }
                     }
+                    let mut current = self.next_char_boundary();
 
                     if is_fractional {
                         // eat the "."
@@ -363,6 +431,8 @@ impl<'a> Scanner<'a> {
                             start_column,
                         ));
                         self.column_number += (current - last_column_break) as u32;
+                    } else if self.peek_and_check_consume('=') {
+                        self.add_multiple_token(TokenType::SlashEquals, 2);
                     } else {
                         self.add_simple_token(TokenType::Slash);
                     }
@@ -513,12 +583,13 @@ mod scanner_test {
     use super::*;
 
     #[test]
-    fn lex_basic_symbols() {
-        let input_string = "// this is a comment
-(){}[] // grouping stuff
-!*+-/=%<> >= <= == & | ^ # ? // operators
+    fn lex_symbols() {
+        let input_string = "(){}[] // grouping stuff
+! * + - / % & | ^ # ? // binary operators
+= == <> > < >= <= // equality operators
 .:;, // dots and commas
-&& || ^^ // logical operators";
+&& || ^^ // logical operators
++= -= *= /= ^= |= &= %= // set operators";
 
         let vec = &mut Vec::new();
         let mut scanner = Scanner::new(input_string, vec);
@@ -527,37 +598,38 @@ mod scanner_test {
             scanner.lex_input(),
             &vec![
                 // line 0
-                Token::new(TokenType::Comment("// this is a comment"), 0, 0),
-                Token::new(TokenType::Newline, 0, 20),
+                Token::new(TokenType::LeftParen, 0, 0),
+                Token::new(TokenType::RightParen, 0, 1),
+                Token::new(TokenType::LeftBrace, 0, 2),
+                Token::new(TokenType::RightBrace, 0, 3),
+                Token::new(TokenType::LeftBracket, 0, 4),
+                Token::new(TokenType::RightBracket, 0, 5),
+                Token::new(TokenType::Comment("// grouping stuff"), 0, 7),
+                Token::new(TokenType::Newline, 0, 24),
                 // line 1
-                Token::new(TokenType::LeftParen, 1, 0),
-                Token::new(TokenType::RightParen, 1, 1),
-                Token::new(TokenType::LeftBrace, 1, 2),
-                Token::new(TokenType::RightBrace, 1, 3),
-                Token::new(TokenType::LeftBracket, 1, 4),
-                Token::new(TokenType::RightBracket, 1, 5),
-                Token::new(TokenType::Comment("// grouping stuff"), 1, 7),
-                Token::new(TokenType::Newline, 1, 24),
+                Token::new(TokenType::Bang, 1, 0),
+                Token::new(TokenType::Star, 1, 2),
+                Token::new(TokenType::Plus, 1, 4),
+                Token::new(TokenType::Minus, 1, 6),
+                Token::new(TokenType::Slash, 1, 8),
+                Token::new(TokenType::Mod, 1, 10),
+                Token::new(TokenType::BitAnd, 1, 12),
+                Token::new(TokenType::BitOr, 1, 14),
+                Token::new(TokenType::BitXor, 1, 16),
+                Token::new(TokenType::Hashtag, 1, 18),
+                Token::new(TokenType::Hook, 1, 20),
+                Token::new(TokenType::Comment("// binary operators"), 1, 22),
+                Token::new(TokenType::Newline, 1, 41),
                 // line 2
-                Token::new(TokenType::Bang, 2, 0),
-                Token::new(TokenType::Star, 2, 1),
-                Token::new(TokenType::Plus, 2, 2),
-                Token::new(TokenType::Minus, 2, 3),
-                Token::new(TokenType::Slash, 2, 4),
-                Token::new(TokenType::Equal, 2, 5),
-                Token::new(TokenType::Mod, 2, 6),
-                Token::new(TokenType::Less, 2, 7),
+                Token::new(TokenType::Equal, 2, 0),
+                Token::new(TokenType::EqualEqual, 2, 2),
+                Token::new(TokenType::LessThanGreaterThan, 2, 5),
                 Token::new(TokenType::Greater, 2, 8),
-                Token::new(TokenType::GreaterEqual, 2, 10),
-                Token::new(TokenType::LessEqual, 2, 13),
-                Token::new(TokenType::EqualEqual, 2, 16),
-                Token::new(TokenType::BitAnd, 2, 19),
-                Token::new(TokenType::BitOr, 2, 21),
-                Token::new(TokenType::BitXor, 2, 23),
-                Token::new(TokenType::Hashtag, 2, 25),
-                Token::new(TokenType::Hook, 2, 27),
-                Token::new(TokenType::Comment("// operators"), 2, 29),
-                Token::new(TokenType::Newline, 2, 41),
+                Token::new(TokenType::Less, 2, 10),
+                Token::new(TokenType::GreaterEqual, 2, 12),
+                Token::new(TokenType::LessEqual, 2, 15),
+                Token::new(TokenType::Comment("// equality operators"), 2, 18),
+                Token::new(TokenType::Newline, 2, 39),
                 // line 3
                 Token::new(TokenType::Dot, 3, 0),
                 Token::new(TokenType::Colon, 3, 1),
@@ -570,8 +642,19 @@ mod scanner_test {
                 Token::new(TokenType::LogicalOr, 4, 3),
                 Token::new(TokenType::LogicalXor, 4, 6),
                 Token::new(TokenType::Comment("// logical operators"), 4, 9),
-                //EOF
-                Token::new(TokenType::EOF, 4, 29)
+                Token::new(TokenType::Newline, 4, 29),
+                // line 5
+                Token::new(TokenType::PlusEquals, 5, 0),
+                Token::new(TokenType::MinusEquals, 5, 3),
+                Token::new(TokenType::StarEquals, 5, 6),
+                Token::new(TokenType::SlashEquals, 5, 9),
+                Token::new(TokenType::BitXorEquals, 5, 12),
+                Token::new(TokenType::BitOrEquals, 5, 15),
+                Token::new(TokenType::BitAndEquals, 5, 18),
+                Token::new(TokenType::ModEquals, 5, 21),
+                Token::new(TokenType::Comment("// set operators"), 5, 24),
+                // EOF
+                Token::new(TokenType::EOF, 5, 40)
             ]
         );
     }

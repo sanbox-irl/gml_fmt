@@ -4,3 +4,5 @@
 ignored/
 
 .DS_Store
+
+.vscode/

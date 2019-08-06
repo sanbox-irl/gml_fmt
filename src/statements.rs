@@ -1,8 +1,22 @@
 use super::expressions::*;
 use super::lex_token::Token;
 
-type ExprBox<'a> = Box<Expr<'a>>;
-type StmtBox<'a> = Box<Statement<'a>>;
+pub type StmtBox<'a> = Box<StatementWrapper<'a>>;
+
+#[derive(Debug)]
+pub struct StatementWrapper<'a> {
+    pub statement: Statement<'a>,
+    pub has_semicolon: bool,
+}
+
+impl<'a> StatementWrapper<'a> {
+    pub fn new(statement: Statement<'a>, has_semicolon: bool) -> Box<StatementWrapper<'a>> {
+        Box::new(StatementWrapper {
+            statement,
+            has_semicolon,
+        })
+    }
+}
 
 #[derive(Debug)]
 pub enum Statement<'a> {

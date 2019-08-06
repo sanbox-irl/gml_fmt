@@ -11,13 +11,7 @@
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=main",
-                    "--package=gml_fmt"
-                ],
-                "filter": {
-                    "name": "main",
-                    "kind": "bin"
-                }
+                ]
             },
             "args": [
                 "-f",

@@ -17,6 +17,15 @@ pub enum TokenType<'a> {
     Hashtag,
     Newline,
 
+    PlusEquals,
+    MinusEquals,
+    StarEquals,
+    SlashEquals,
+    BitXorEquals,
+    BitOrEquals,
+    BitAndEquals,
+    ModEquals,
+
     ListIndexer,
     MapIndexer,
     GridIndexer,
@@ -28,6 +37,8 @@ pub enum TokenType<'a> {
     Decrementer,
     Bang,
     Hook,
+
+    LessThanGreaterThan,
 
     LogicalAnd,
     LogicalOr,
@@ -108,6 +119,106 @@ impl<'a> Token<'a> {
             token_type,
             line_number,
             column_number,
+        }
+    }
+
+    pub fn print_name(&self) -> &'a str {
+        match self.token_type {
+            TokenType::LeftParen => "(",
+            TokenType::RightParen => ")",
+            TokenType::LeftBrace => "{",
+            TokenType::RightBrace => "}",
+            TokenType::LeftBracket => "[",
+            TokenType::RightBracket => "]",
+            TokenType::Comma => ",",
+            TokenType::Dot => ".",
+            TokenType::Colon => ":",
+            TokenType::Semicolon => ";",
+            TokenType::Slash => "/",
+            TokenType::Backslash => "\\",
+            TokenType::Star => "*",
+            TokenType::Mod => "%",
+            TokenType::Hashtag => "#",
+            TokenType::Newline => "\n",
+
+            TokenType::ListIndexer => "[|",
+            TokenType::MapIndexer => "[?",
+            TokenType::GridIndexer => "[#",
+            TokenType::ArrayIndexer => "[@",
+
+            TokenType::LessThanGreaterThan => "<>",
+
+            TokenType::Minus => "-",
+            TokenType::Plus => "+",
+            TokenType::Incrementer => "++",
+            TokenType::Decrementer => "--",
+            TokenType::Bang => "!",
+            TokenType::Hook => "?",
+
+            TokenType::PlusEquals => "+=",
+            TokenType::MinusEquals => "-=",
+            TokenType::StarEquals => "*=",
+            TokenType::SlashEquals => "/=",
+            TokenType::BitXorEquals => "^=",
+            TokenType::BitOrEquals => "|=",
+            TokenType::BitAndEquals => "&=",
+            TokenType::ModEquals => "%=",
+
+            TokenType::LogicalAnd => "&&",
+            TokenType::LogicalOr => "||",
+            TokenType::LogicalXor => "^^",
+            TokenType::BitAnd => "&",
+            TokenType::BitOr => "|",
+            TokenType::BitXor => "^",
+            TokenType::BitLeft => "<<",
+            TokenType::BitRight => ">>",
+            TokenType::BangEqual => "!=",
+            TokenType::Equal => "=",
+            TokenType::EqualEqual => "==",
+            TokenType::Greater => ">",
+            TokenType::GreaterEqual => ">=",
+            TokenType::Less => "<",
+            TokenType::LessEqual => "<=",
+
+            TokenType::Macro => "#macro",
+            TokenType::RegionBegin => "#region",
+            TokenType::RegionEnd => "#endregion",
+            TokenType::Define => "#define",
+
+            TokenType::Var => "var",
+            TokenType::If => "if",
+            TokenType::Else => "else",
+            TokenType::Return => "return",
+            TokenType::For => "for",
+            TokenType::Repeat => "repeat",
+            TokenType::While => "while",
+            TokenType::Do => "do",
+            TokenType::Until => "until",
+            TokenType::Switch => "switch",
+            TokenType::Case => "case",
+            TokenType::DefaultCase => "default",
+            TokenType::Break => "break",
+            TokenType::Exit => "exit",
+            TokenType::True => "true",
+            TokenType::False => "false",
+            TokenType::Enum => "enum",
+
+            TokenType::AndAlias => "and",
+            TokenType::OrAlias => "or",
+            TokenType::XorAlias => "xor",
+            TokenType::NotAlias => "not",
+            TokenType::ModAlias => "mod",
+            TokenType::Div => "div",
+
+            TokenType::Identifier(literal) => literal,
+            TokenType::String(literal) => literal,
+            TokenType::Number(literal) => literal,
+
+            TokenType::Comment(literal) => literal,
+            TokenType::MultilineComment(literal) => literal,
+
+            TokenType::UnidentifiedInput(literal) => literal,
+            TokenType::EOF => "\n",
         }
     }
 }
