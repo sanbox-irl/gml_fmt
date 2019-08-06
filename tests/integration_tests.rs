@@ -51,3 +51,19 @@ var x = 2, y, var q
 
     assert_eq!(gml_fmt::run_test(input), format);
 }
+
+#[test]
+fn do_until() {
+    let input = "do {
+// whatever
+show_debug_message(x);
+} until (test);";
+
+    let format = "do {
+    // whatever
+    show_debug_message(x);
+} until (test);
+";
+
+    assert_eq!(gml_fmt::run_test(input), format);
+}

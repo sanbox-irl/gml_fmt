@@ -99,6 +99,10 @@ impl<'a> Parser<'a> {
                     self.consume_next();
                     return self.exit_statment();
                 }
+                TokenType::Do => {
+                    self.consume_next();
+                    return self.do_until_statement();
+                }
                 TokenType::While => {
                     self.consume_next();
                     return self.while_statement();
@@ -222,7 +226,11 @@ impl<'a> Parser<'a> {
             None
         };
 
-        VariableDecl { var_expr, assignment, say_var }
+        VariableDecl {
+            var_expr,
+            assignment,
+            say_var,
+        }
     }
 
     fn block(&mut self) -> StmtBox<'a> {
@@ -274,6 +282,24 @@ impl<'a> Parser<'a> {
 
         StatementWrapper::new(
             Statement::While {
+                condition,
+                body,
+                has_surrounding_paren,
+            },
+            false,
+        )
+    }
+
+    fn do_until_statement(&mut self) -> StmtBox<'a> {
+        let body = self.statement();
+
+        let mut has_surrounding_paren = (self.check_next_consume(TokenType::LeftParen), false);
+        self.check_next_consume(TokenType::Until);
+        let condition = self.expression();
+        has_surrounding_paren.1 = self.check_next_consume(TokenType::RightParen);
+
+        StatementWrapper::new(
+            Statement::Do_Until {
                 condition,
                 body,
                 has_surrounding_paren,

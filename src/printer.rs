@@ -145,6 +145,19 @@ impl<'a> Printer<'a> {
                 self.print_statement(body);
                 self.print_semicolon(stmt.has_semicolon);
             }
+            Statement::Do_Until {
+                condition,
+                body,
+                has_surrounding_paren,
+            } => {
+                self.print("do", true);
+                self.print_statement(body);
+                self.ensure_space();
+                self.print("until", true);
+                self.print_expr_parentheses(condition, *has_surrounding_paren);
+                self.backspace();
+                self.print_semicolon(stmt.has_semicolon);
+            }
             Statement::Repeat {
                 condition,
                 body,
@@ -684,6 +697,17 @@ impl<'a> Printer<'a> {
         let pos = self.output.len();
         if pos != 0 && self.output[pos - 1] == SPACE {
             self.output.remove(pos - 1);
+        }
+    }
+
+    fn ensure_space(&mut self) {
+        let pos = self.output.len();
+        if pos != 0 {
+            if self.output[pos - 1] == SPACE {
+                return;
+            } else {
+                self.print(SPACE, false);
+            }
         }
     }
 

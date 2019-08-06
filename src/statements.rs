@@ -45,6 +45,11 @@ pub enum Statement<'a> {
         condition: ExprBox<'a>,
         body: StmtBox<'a>,
     },
+    Do_Until {
+        body: StmtBox<'a>,
+        has_surrounding_paren: ParenInfo,
+        condition: ExprBox<'a>,
+    },
     Repeat {
         has_surrounding_paren: ParenInfo,
         condition: ExprBox<'a>,
@@ -86,7 +91,7 @@ pub enum Statement<'a> {
         script_name: ExprBox<'a>,
         body: Vec<StmtBox<'a>>,
     },
-    EOF
+    EOF,
 }
 
 #[derive(Debug)]
