@@ -103,3 +103,13 @@ for (var i;;) {
 
     assert_eq!(gml_fmt::run_test(input), format);
 }
+
+#[test]
+fn decimal_number() {
+    let input = "var x = .3;";
+
+    let format = "var x = 0.3;
+";
+
+    assert_eq!(gml_fmt::run_test(input), format);
+}

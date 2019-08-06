@@ -907,7 +907,7 @@ impl<'a> Parser<'a> {
                         comments,
                     });
                 }
-                TokenType::Number(_) | TokenType::String(_) => {
+                TokenType::Number(_) | TokenType::String(_) | TokenType::DecimalNumber(_) => {
                     let t = self.consume_next();
                     let comments = self.get_newlines_and_comments();
                     return self.create_comment_expr_box(Expr::Literal {

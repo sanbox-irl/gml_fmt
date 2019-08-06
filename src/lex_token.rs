@@ -89,6 +89,7 @@ pub enum TokenType<'a> {
     Identifier(&'a str),
     String(&'a str),
     Number(&'a str),
+    DecimalNumber(&'a str),
 
     Comment(&'a str),
     MultilineComment(&'a str),
@@ -213,6 +214,7 @@ impl<'a> Token<'a> {
             TokenType::Identifier(literal) => literal,
             TokenType::String(literal) => literal,
             TokenType::Number(literal) => literal,
+            TokenType::DecimalNumber(literal) => literal,
 
             TokenType::Comment(literal) => literal,
             TokenType::MultilineComment(literal) => literal,

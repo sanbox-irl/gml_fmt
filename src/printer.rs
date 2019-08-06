@@ -441,6 +441,10 @@ impl<'a> Printer<'a> {
                 literal_token,
                 comments,
             } => {
+                if let TokenType::DecimalNumber(_) = literal_token.token_type {
+                    self.print("0", false);
+                }
+
                 self.print_token(&literal_token, true);
                 whitespace_handler.print_comments_and_newlines(self, comments, IndentationMove::Stay);
             }
