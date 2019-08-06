@@ -32,7 +32,7 @@ test_script:
     )
 
 before_deploy:
-  - cargo rustc --target %TARGET% --release --bin 
+  - cargo rustc --target %TARGET% --release --bin gml_fmt 
   - ps: ci\before_deploy.ps1
 
 deploy:
