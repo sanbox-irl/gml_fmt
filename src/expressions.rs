@@ -1,6 +1,7 @@
 use super::lex_token::*;
 pub type ExprBox<'a> = Box<(Expr<'a>, CommentsAndNewlines<'a>)>;
 pub type CommentsAndNewlines<'a> = Vec<Token<'a>>;
+pub type Arguments<'a> = Vec<(CommentsAndNewlines<'a>,ExprBox<'a>,CommentsAndNewlines<'a>)>;
 
 #[derive(Debug)]
 pub enum Expr<'a> {
@@ -8,11 +9,7 @@ pub enum Expr<'a> {
     Call {
         procedure_name: ExprBox<'a>,
         comments_and_newlines_after_lparen: CommentsAndNewlines<'a>,
-        arguments: Vec<(
-            CommentsAndNewlines<'a>,
-            ExprBox<'a>,
-            CommentsAndNewlines<'a>,
-        )>,
+        arguments: Arguments<'a>,
     },
     Binary {
         left: ExprBox<'a>,
@@ -25,6 +22,10 @@ pub enum Expr<'a> {
         comments_and_newlines_after_lparen: CommentsAndNewlines<'a>,
         expression: ExprBox<'a>,
         comments_and_newlines_before_rparen: CommentsAndNewlines<'a>,
+    },
+    ArrayLiteral {
+        comments_and_newlines_after_lbracket: CommentsAndNewlines<'a>,
+        arguments: Arguments<'a>,
     },
     Literal {
         literal_token: Token<'a>,

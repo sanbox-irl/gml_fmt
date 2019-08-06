@@ -10,21 +10,21 @@ fn main() {
         .version("0.1.0")
         .author("Jonathan Spira <jjspira@gmail.com>")
         .about("Code Formatter for GML")
-        .arg(Arg::with_name("file")
-            .short("f")
-            .long("file")
-            .help("Sets gml_fmt to format a file")
-        )
+        .arg(Arg::with_name("file").short("f").help("Sets gml_fmt to format a file"))
         .arg(
             Arg::with_name("PATH")
                 .help("Sets the path to the file or directory to use. Leave blank to use the current directory.")
-                .index(1)
+                .index(1),
         )
         .arg(
-            Arg::with_name("logs")
+            Arg::with_name("log")
                 .short("l")
-                .long("logs")
-                .help("Prints out logging information along with formatting")
+                .help("Prints out logging information along with formatting"),
+        )
+        .arg(
+            Arg::with_name("no-overwrite")
+                .short("n")
+                .help("Do not overwrite the original file. Mostly used in conjungtion with -l to log output."),
         )
         .get_matches();
 
@@ -39,8 +39,13 @@ fn main() {
     let do_file = matches.is_present("file");
 
     // Do we print logs?
-    let mut print_flags = PrintFlags::OVERWRITE;
-    if matches.is_present("logs") {
+    let mut print_flags = if matches.is_present("no-overwrite") {
+        PrintFlags::NO_OUTPUT
+    } else {
+        PrintFlags::OVERWRITE
+    };
+
+    if matches.is_present("log") {
         print_flags |= PrintFlags::LOGS;
     }
 

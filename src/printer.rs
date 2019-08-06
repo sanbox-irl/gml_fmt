@@ -239,9 +239,7 @@ impl<'a> Printer<'a> {
                 self.print_semicolon(stmt.has_semicolon);
             }
             Statement::Comment { comment } => self.print_token(comment, false),
-            Statement::MultilineComment { multiline_comment } => {
-                self.print_token(multiline_comment, false)
-            }
+            Statement::MultilineComment { multiline_comment } => self.print_token(multiline_comment, false),
             Statement::RegionBegin { multi_word_name } => {
                 self.print("#region", true);
 
@@ -267,6 +265,9 @@ impl<'a> Printer<'a> {
                 for this_stmt in body {
                     self.print_statement(this_stmt);
                 }
+            }
+            Statement::EOF => {
+                self.print(NEWLINE, false);
             }
         }
     }
@@ -299,19 +300,11 @@ impl<'a> Printer<'a> {
 
                 let mut iter = arguments.into_iter().peekable();
                 while let Some((first_comments, this_argument, these_comments)) = iter.next() {
-                    whitespace_handler.print_comments_and_newlines(
-                        self,
-                        first_comments,
-                        IndentationMove::Stay,
-                    );
+                    whitespace_handler.print_comments_and_newlines(self, first_comments, IndentationMove::Stay);
                     self.print_expr(this_argument);
                     self.backspace();
 
-                    whitespace_handler.print_comments_and_newlines(
-                        self,
-                        these_comments,
-                        IndentationMove::Stay,
-                    );
+                    whitespace_handler.print_comments_and_newlines(self, these_comments, IndentationMove::Stay);
 
                     if let Some(_) = iter.peek() {
                         self.print(COMMA, true);
@@ -373,16 +366,42 @@ impl<'a> Printer<'a> {
                 }
                 self.print(RPAREN, true);
             }
+
+            Expr::ArrayLiteral {
+                comments_and_newlines_after_lbracket,
+                arguments,
+            } => {
+                self.print("[", false);
+                let did_move = whitespace_handler.print_comments_and_newlines(
+                    self,
+                    comments_and_newlines_after_lbracket,
+                    IndentationMove::Right,
+                );
+
+                let mut iter = arguments.into_iter().peekable();
+                while let Some((initial_comment, this_argument, trailing_comment)) = iter.next() {
+                    whitespace_handler.print_comments_and_newlines(self, initial_comment, IndentationMove::Stay);
+                    self.print_expr(this_argument);
+                    self.backspace();
+
+                    whitespace_handler.print_comments_and_newlines(self, trailing_comment, IndentationMove::Stay);
+
+                    if let Some(_) = iter.peek() {
+                        self.print(COMMA, true);
+                    }
+                }
+                if did_move {
+                    self.print_newline(IndentationMove::Left);
+                }
+                self.print("]", false);
+            }
+
             Expr::Literal {
                 literal_token,
                 comments,
             } => {
                 self.print_token(&literal_token, true);
-                whitespace_handler.print_comments_and_newlines(
-                    self,
-                    comments,
-                    IndentationMove::Stay,
-                );
+                whitespace_handler.print_comments_and_newlines(self, comments, IndentationMove::Stay);
             }
             Expr::Unary { operator, right } => {
                 self.print_token(&operator, false);
@@ -429,11 +448,7 @@ impl<'a> Printer<'a> {
             }
             Expr::Identifier { name, comments } => {
                 self.print_token(name, true);
-                whitespace_handler.print_comments_and_newlines(
-                    self,
-                    comments,
-                    IndentationMove::Stay,
-                );
+                whitespace_handler.print_comments_and_newlines(self, comments, IndentationMove::Stay);
             }
 
             Expr::DotAccess {
@@ -467,10 +482,7 @@ impl<'a> Printer<'a> {
                 self.print_expr(ds_name);
                 self.backspace();
 
-                self.print_token(
-                    &access_type,
-                    access_type.token_type != TokenType::LeftBracket,
-                );
+                self.print_token(&access_type, access_type.token_type != TokenType::LeftBracket);
                 whitespace_handler.print_comments_and_newlines(
                     self,
                     comments_and_newlines_between_access_and_expr,
@@ -653,6 +665,9 @@ impl<'a> Printer<'a> {
         if self.prev_line_was_whitespace() {
             return;
         }
+        if self.output.len() == 0 {
+            return;
+        }
 
         self.backspace();
 
@@ -721,11 +736,12 @@ trait WhiteSpaceHandler<'a> {
                         printer.print_newline(indentation_move);
                     }
                 }
-                TokenType::Comment(_) | TokenType::MultilineComment(_) => {
-                    printer.print_token(this_one, false)
-                }
+                TokenType::Comment(_) | TokenType::MultilineComment(_) => printer.print_token(this_one, false),
                 _ => {
-                    println!("Printing {} which isn't a newline or comment in a comment_newline section...", this_one);
+                    println!(
+                        "Printing {} which isn't a newline or comment in a comment_newline section...",
+                        this_one
+                    );
                     printer.print_token(this_one, false);
                 }
             }
@@ -773,12 +789,13 @@ impl<'a> WhiteSpaceHandler<'a> for DotWhitespaceHandler {
                     }
                 }
 
-                TokenType::Comment(_) | TokenType::MultilineComment(_) => {
-                    printer.print_token(this_one, false)
-                }
+                TokenType::Comment(_) | TokenType::MultilineComment(_) => printer.print_token(this_one, false),
 
                 _ => {
-                    println!("Printing {} which isn't a newline or comment in a comment_newline section...", this_one);
+                    println!(
+                        "Printing {} which isn't a newline or comment in a comment_newline section...",
+                        this_one
+                    );
                     printer.print_token(this_one, false);
                 }
             }

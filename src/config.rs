@@ -8,11 +8,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(
-        input_path: PathBuf,
-        print_flags: PrintFlags,
-        do_file: bool,
-    ) -> Result<Config, &'static str> {
+    pub fn new(input_path: PathBuf, print_flags: PrintFlags, do_file: bool) -> Result<Config, &'static str> {
         let mut config = Config {
             files: Vec::new(),
             print_flags,
@@ -31,8 +27,8 @@ impl Config {
                 fn take_in_gml_files(directory_path: &PathBuf, config: &mut Config) {
                     let gml_name = OsStr::new("gml");
 
-                    for entry in fs::read_dir(directory_path)
-                        .expect(&format!("Error reading directory {:?}.", directory_path))
+                    for entry in
+                        fs::read_dir(directory_path).expect(&format!("Error reading directory {:?}.", directory_path))
                     {
                         let entry = entry.expect(&format!("Error reading file"));
                         let path = entry.path();

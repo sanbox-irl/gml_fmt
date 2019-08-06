@@ -21,7 +21,10 @@ impl<'a> Parser<'a> {
     pub fn build_ast(&mut self) {
         while let Some(t) = self.iter.peek() {
             match t.token_type {
-                TokenType::EOF => break,
+                TokenType::EOF => {
+                    self.ast.push(StatementWrapper::new(Statement::EOF, false));
+                    break;
+                    }
                 _ => {
                     let ret = self.statement();
                     self.ast.push(ret);
@@ -207,10 +210,7 @@ impl<'a> Parser<'a> {
             None
         };
 
-        VariableDecl {
-            var_expr,
-            assignment,
-        }
+        VariableDecl { var_expr, assignment }
     }
 
     fn block(&mut self) -> StmtBox<'a> {
@@ -333,10 +333,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        Case {
-            statements,
-            constant,
-        }
+        Case { statements, constant }
     }
 
     fn repeat_statement(&mut self) -> StmtBox<'a> {
@@ -448,10 +445,7 @@ impl<'a> Parser<'a> {
         let expr = self.expression();
 
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
-        StatementWrapper::new(
-            Statement::ExpresssionStatement { expression: expr },
-            has_semicolon,
-        )
+        StatementWrapper::new(Statement::ExpresssionStatement { expression: expr }, has_semicolon)
     }
 
     fn expression(&mut self) -> ExprBox<'a> {
@@ -600,10 +594,7 @@ impl<'a> Parser<'a> {
 
         while let Some(t) = self.iter.peek() {
             match t.token_type {
-                TokenType::Greater
-                | TokenType::GreaterEqual
-                | TokenType::Less
-                | TokenType::LessEqual => {
+                TokenType::Greater | TokenType::GreaterEqual | TokenType::Less | TokenType::LessEqual => {
                     let comments_and_newlines_between_l_and_op = self.get_newlines_and_comments();
                     let t = self.iter.next().unwrap();
                     let comments_and_newlines_between_r_and_op = self.get_newlines_and_comments();
@@ -707,11 +698,7 @@ impl<'a> Parser<'a> {
 
         while let Some(t) = self.iter.peek() {
             match t.token_type {
-                TokenType::Slash
-                | TokenType::Star
-                | TokenType::Mod
-                | TokenType::ModAlias
-                | TokenType::Div => {
+                TokenType::Slash | TokenType::Star | TokenType::Mod | TokenType::ModAlias | TokenType::Div => {
                     let comments_and_newlines_between_l_and_op = self.get_newlines_and_comments();
                     let token = self.iter.next().unwrap();
                     let comments_and_newlines_between_r_and_op = self.get_newlines_and_comments();
@@ -739,10 +726,7 @@ impl<'a> Parser<'a> {
                     let t = self.iter.next().unwrap();
                     let right = self.unary();
 
-                    return self.create_expr_box_no_comment(Expr::Unary {
-                        operator: *t,
-                        right,
-                    });
+                    return self.create_expr_box_no_comment(Expr::Unary { operator: *t, right });
                 }
 
                 TokenType::Incrementer | TokenType::Decrementer => {
@@ -775,7 +759,7 @@ impl<'a> Parser<'a> {
 
         if self.check_next_consume(TokenType::LeftParen) {
             let comments_and_newlines_after_lparen = self.get_newlines_and_comments();
-            let arguments = self.finish_call();
+            let arguments = self.finish_call(TokenType::RightParen, TokenType::Comma);
 
             expression = self.create_expr_box_no_comment(Expr::Call {
                 procedure_name: expression,
@@ -799,13 +783,9 @@ impl<'a> Parser<'a> {
                     }
                 }
 
-                TokenType::LeftBracket
-                | TokenType::ArrayIndexer
-                | TokenType::MapIndexer
-                | TokenType::ListIndexer => {
+                TokenType::LeftBracket | TokenType::ArrayIndexer | TokenType::MapIndexer | TokenType::ListIndexer => {
                     let token = self.iter.next().unwrap();
-                    let comments_and_newlines_between_access_and_expr =
-                        self.get_newlines_and_comments();
+                    let comments_and_newlines_between_access_and_expr = self.get_newlines_and_comments();
                     let access_expr = self.expression();
 
                     self.check_next_consume(TokenType::RightBracket);
@@ -821,8 +801,7 @@ impl<'a> Parser<'a> {
 
                 TokenType::GridIndexer => {
                     let token = self.iter.next().unwrap();
-                    let comments_and_newlines_between_access_type_and_row_expr =
-                        self.get_newlines_and_comments();
+                    let comments_and_newlines_between_access_type_and_row_expr = self.get_newlines_and_comments();
                     let row_expr = self.expression();
                     self.check_next_consume(TokenType::Comma);
                     let comments_and_newlines_after_comma = self.get_newlines_and_comments();
@@ -847,28 +826,22 @@ impl<'a> Parser<'a> {
         expression
     }
 
-    fn finish_call(
-        &mut self,
-    ) -> Vec<(
-        CommentsAndNewlines<'a>,
-        ExprBox<'a>,
-        CommentsAndNewlines<'a>,
-    )> {
+    fn finish_call(&mut self, end_token_type: TokenType, delimiter_type: TokenType) -> Arguments<'a> {
         let mut arguments = Vec::new();
-        if self.check_next(TokenType::RightParen) == false {
+        if self.check_next(end_token_type) == false {
             loop {
                 arguments.push((
                     self.get_newlines_and_comments(),
                     self.expression(),
                     self.get_newlines_and_comments(),
                 ));
-                if self.check_next_consume(TokenType::Comma) == false {
+                if self.check_next_consume(delimiter_type) == false {
                     break;
                 }
             }
         };
 
-        self.check_next_consume(TokenType::RightParen);
+        self.check_next_consume(end_token_type);
 
         arguments
     }
@@ -902,11 +875,7 @@ impl<'a> Parser<'a> {
                     let comments_and_newlines_after_lparen = self.get_newlines_and_comments();
                     let expression = self.expression();
 
-                    if let Some(t) = self.iter.peek() {
-                        if t.token_type == TokenType::RightParen {
-                            self.iter.next();
-                        }
-                    }
+                    self.check_next_consume(TokenType::RightParen);
                     let comments_and_newlines_before_rparen = self.get_newlines_and_comments();
 
                     return self.create_comment_expr_box(Expr::Grouping {
@@ -916,15 +885,24 @@ impl<'a> Parser<'a> {
                     });
                 }
 
+                TokenType::LeftBracket => {
+                    self.consume_next();
+                    let comments_and_newlines_after_lbracket = self.get_newlines_and_comments();
+                    let arguments = self.finish_call(TokenType::RightBracket, TokenType::Comma);
+
+                    return self.create_expr_box_no_comment(Expr::ArrayLiteral {
+                        comments_and_newlines_after_lbracket,
+                        arguments,
+                    });
+                }
+
                 TokenType::Newline => {
                     let t = self.consume_next();
                     return self.create_expr_box_no_comment(Expr::Newline { token: *t });
                 }
                 _ => {
                     let t = self.consume_next();
-                    return self.create_comment_expr_box(Expr::UnidentifiedAsLiteral {
-                        literal_token: *t,
-                    });
+                    return self.create_comment_expr_box(Expr::UnidentifiedAsLiteral { literal_token: *t });
                 }
             }
         }
