@@ -1,6 +1,9 @@
 # gml_fmt: GML Code Formatter
 
 [![Build Status](https://travis-ci.org/sanboxrunner/gml_fmt.svg?branch=master)](https://travis-ci.org/sanboxrunner/gml_fmt)
+[![Build status](https://ci.appveyor.com/api/projects/status/8d61fgtay14oij13/branch/master?svg=true)](https://ci.appveyor.com/project/sanboxrunner/gml-fmt/branch/master)
+
+
 
 gml_fmt is an autoformatter written in Rust for GML. It is fast, test-based, and works on code which will not compile, and always produces an identical output regardless of the original whitespace. Additionally, it will form the basis of a future Rust based linter for GMS2.
 
