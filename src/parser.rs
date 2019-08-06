@@ -191,8 +191,9 @@ impl<'a> Parser<'a> {
     }
 
     fn series_var_declaration(&mut self) -> StmtBox<'a> {
-        let mut var_decl = Vec::new();
+        self.check_next_consume(TokenType::Var);
 
+        let mut var_decl = Vec::new();
         var_decl.push(self.var_declaration());
 
         while let Some(_) = self.iter.peek() {
@@ -209,7 +210,7 @@ impl<'a> Parser<'a> {
     }
 
     fn var_declaration(&mut self) -> VariableDecl<'a> {
-        self.check_next_consume(TokenType::Var);
+        let say_var = self.check_next_consume(TokenType::Var);
 
         let var_expr = self.primary();
 
@@ -221,7 +222,7 @@ impl<'a> Parser<'a> {
             None
         };
 
-        VariableDecl { var_expr, assignment }
+        VariableDecl { var_expr, assignment, say_var }
     }
 
     fn block(&mut self) -> StmtBox<'a> {

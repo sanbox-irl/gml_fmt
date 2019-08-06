@@ -54,6 +54,9 @@ impl<'a> Printer<'a> {
 
                 let mut iter = var_decl.into_iter().peekable();
                 while let Some(this_decl) = iter.next() {
+                    if this_decl.say_var {
+                        self.print("var", true);
+                    }
                     self.print_expr(&this_decl.var_expr);
 
                     if let Some((comments, expr_box)) = &this_decl.assignment {
@@ -66,9 +69,8 @@ impl<'a> Printer<'a> {
                     if let Some(_) = iter.peek() {
                         self.print(COMMA, true);
                     }
-
-                    self.print_semicolon(stmt.has_semicolon);
                 }
+                self.print_semicolon(stmt.has_semicolon);
             }
             Statement::EnumDeclaration { name, members } => {
                 self.print_expr(name);

@@ -40,3 +40,14 @@ fn else_if() {
 
     assert_eq!(gml_fmt::run_test(input), format);
 }
+
+#[test]
+fn series_of_declarations() {
+    let input = "var function, xx, xx2, xxm1;
+var x = 2, y, var q";
+    let format = "var function, xx, xx2, xxm1;
+var x = 2, y, var q
+";
+
+    assert_eq!(gml_fmt::run_test(input), format);
+}
