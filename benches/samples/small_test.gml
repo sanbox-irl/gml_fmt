@@ -1,7 +1,3 @@
-show_debug_message(
-x // comment
-, 
-
-/* hello */
-4 // test
-);
+objHealth.test // test
+.okay
+.three

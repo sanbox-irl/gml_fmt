@@ -4,26 +4,31 @@ pub type CommentsAndNewlines<'a> = Vec<Token<'a>>;
 
 #[derive(Debug)]
 pub enum Expr<'a> {
+    // @jack need to handle bad arguments
     Call {
         procedure_name: ExprBox<'a>,
-        // comments_and_newlines_before_lparen: CommentsAndNewlines<'a>,
-        // comments_and_newlines_after_lparen: CommentsAndNewlines<'a>,
-        arguments: Vec<(CommentsAndNewlines<'a>, ExprBox<'a>, CommentsAndNewlines<'a>)>,
+        comments_and_newlines_after_lparen: CommentsAndNewlines<'a>,
+        arguments: Vec<(
+            CommentsAndNewlines<'a>,
+            ExprBox<'a>,
+            CommentsAndNewlines<'a>,
+        )>,
     },
     Binary {
         left: ExprBox<'a>,
-        // comments_and_newlines_between_l_and_op: CommentsAndNewlines<'a>,
+        comments_and_newlines_between_l_and_op: CommentsAndNewlines<'a>,
         operator: Token<'a>,
-        // comments_and_newlines_between_r_and_op: CommentsAndNewlines<'a>,
+        comments_and_newlines_between_r_and_op: CommentsAndNewlines<'a>,
         right: ExprBox<'a>,
     },
     Grouping {
-        // comments_and_newlines_after_lparen: CommentsAndNewlines<'a>,
+        comments_and_newlines_after_lparen: CommentsAndNewlines<'a>,
         expression: ExprBox<'a>,
-        // comments_and_newlines_before_rparen: CommentsAndNewlines<'a>,
+        comments_and_newlines_before_rparen: CommentsAndNewlines<'a>,
     },
     Literal {
         literal_token: Token<'a>,
+        comments: CommentsAndNewlines<'a>
     },
     Unary {
         operator: Token<'a>,
@@ -42,25 +47,23 @@ pub enum Expr<'a> {
     },
     Logical {
         left: ExprBox<'a>,
-        // comments_and_newlines_between_l_and_op: CommentsAndNewlines<'a>,
         operator: Token<'a>,
-        // comments_and_newlines_between_r_and_op: CommentsAndNewlines<'a>,
+        comments_and_newlines_between_op_and_r: CommentsAndNewlines<'a>,
         right: ExprBox<'a>,
     },
     Assign {
         left: ExprBox<'a>,
-        // comments_and_newlines_between_l_and_op: CommentsAndNewlines<'a>,
         operator: Token<'a>,
-        // comments_and_newlines_between_r_and_op: CommentsAndNewlines<'a>,
+        comments_and_newlines_between_op_and_r: CommentsAndNewlines<'a>,
         right: ExprBox<'a>,
     },
     Identifier {
         name: Token<'a>,
+        comments: CommentsAndNewlines<'a>
     },
     DotAccess {
         object_name: ExprBox<'a>,
-        // comments_and_newlines_between: CommentsAndNewlines<'a>,
-        instance_variable: Token<'a>,
+        instance_variable: ExprBox<'a>
     },
     DataStructureAccess {
         ds_name: ExprBox<'a>,

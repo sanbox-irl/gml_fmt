@@ -473,11 +473,13 @@ impl<'a> Parser<'a> {
                 | TokenType::BitAndEquals
                 | TokenType::ModEquals => {
                     let operator = self.iter.next().unwrap();
+                    let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
                     let assignment_expr = self.assignment();
 
                     expr = self.create_expr_box_no_comment(Expr::Assign {
                         left: expr,
                         operator: *operator,
+                        comments_and_newlines_between_op_and_r,
                         right: assignment_expr,
                     });
                 }
@@ -513,12 +515,13 @@ impl<'a> Parser<'a> {
 
         if self.check_next(TokenType::LogicalOr) || self.check_next(TokenType::OrAlias) {
             let token = self.iter.next().unwrap();
-
+            let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
             let right = self.equality();
 
             left = self.create_expr_box_no_comment(Expr::Logical {
                 left,
                 operator: *token,
+                comments_and_newlines_between_op_and_r,
                 right,
             });
         }
@@ -531,12 +534,13 @@ impl<'a> Parser<'a> {
 
         if self.check_next_either(TokenType::LogicalAnd, TokenType::AndAlias) {
             let token = self.iter.next().unwrap();
-
+            let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
             let right = self.xor();
 
             left = self.create_expr_box_no_comment(Expr::Logical {
                 left,
                 operator: *token,
+                comments_and_newlines_between_op_and_r,
                 right,
             });
         }
@@ -548,11 +552,13 @@ impl<'a> Parser<'a> {
 
         if self.check_next_either(TokenType::LogicalXor, TokenType::XorAlias) {
             let token = self.iter.next().unwrap();
+            let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
             let right = self.equality();
 
             left = self.create_expr_box_no_comment(Expr::Logical {
                 left,
                 operator: *token,
+                comments_and_newlines_between_op_and_r,
                 right,
             })
         }
@@ -564,19 +570,22 @@ impl<'a> Parser<'a> {
         let mut expr = self.comparison();
 
         while let Some(t) = self.iter.peek() {
-            match t.token_type {
-                TokenType::EqualEqual | TokenType::BangEqual => {
-                    let token = self.iter.next().unwrap();
-                    let right = self.comparison();
+            if t.token_type == TokenType::EqualEqual || t.token_type == TokenType::BangEqual {
+                let comments_and_newlines_between_l_and_op = self.get_newlines_and_comments();
+                let token = self.iter.next().unwrap();
+                let comments_and_newlines_between_r_and_op = self.get_newlines_and_comments();
+                let right = self.comparison();
 
-                    expr = self.create_expr_box_no_comment(Expr::Binary {
-                        left: expr,
-                        operator: *token,
-                        right,
-                    });
-                }
-                _ => break,
-            };
+                expr = self.create_expr_box_no_comment(Expr::Binary {
+                    left: expr,
+                    comments_and_newlines_between_l_and_op,
+                    operator: *token,
+                    comments_and_newlines_between_r_and_op,
+                    right,
+                });
+            } else {
+                break;
+            }
         }
 
         expr
@@ -591,12 +600,16 @@ impl<'a> Parser<'a> {
                 | TokenType::GreaterEqual
                 | TokenType::Less
                 | TokenType::LessEqual => {
+                    let comments_and_newlines_between_l_and_op = self.get_newlines_and_comments();
                     let t = self.iter.next().unwrap();
+                    let comments_and_newlines_between_r_and_op = self.get_newlines_and_comments();
                     let right = self.binary();
 
                     expr = self.create_expr_box_no_comment(Expr::Binary {
                         left: expr,
+                        comments_and_newlines_between_l_and_op,
                         operator: *t,
+                        comments_and_newlines_between_r_and_op,
                         right,
                     });
                 }
@@ -613,12 +626,16 @@ impl<'a> Parser<'a> {
         while let Some(t) = self.iter.peek() {
             match t.token_type {
                 TokenType::BitAnd | TokenType::BitOr | TokenType::BitXor => {
+                    let comments_and_newlines_between_l_and_op = self.get_newlines_and_comments();
                     let t = self.iter.next().unwrap();
+                    let comments_and_newlines_between_r_and_op = self.get_newlines_and_comments();
                     let right = self.bitshift();
 
                     expr = self.create_expr_box_no_comment(Expr::Binary {
                         left: expr,
+                        comments_and_newlines_between_l_and_op,
                         operator: *t,
+                        comments_and_newlines_between_r_and_op,
                         right,
                     });
                 }
@@ -635,12 +652,16 @@ impl<'a> Parser<'a> {
         while let Some(t) = self.iter.peek() {
             match t.token_type {
                 TokenType::BitLeft | TokenType::BitRight => {
+                    let comments_and_newlines_between_l_and_op = self.get_newlines_and_comments();
                     let t = self.iter.next().unwrap();
+                    let comments_and_newlines_between_r_and_op = self.get_newlines_and_comments();
                     let right = self.addition();
 
                     expr = self.create_expr_box_no_comment(Expr::Binary {
                         left: expr,
+                        comments_and_newlines_between_l_and_op,
                         operator: *t,
+                        comments_and_newlines_between_r_and_op,
                         right,
                     });
                 }
@@ -657,12 +678,16 @@ impl<'a> Parser<'a> {
         while let Some(t) = self.iter.peek() {
             match t.token_type {
                 TokenType::Minus | TokenType::Plus => {
+                    let comments_and_newlines_between_l_and_op = self.get_newlines_and_comments();
                     let token = self.iter.next().unwrap();
+                    let comments_and_newlines_between_r_and_op = self.get_newlines_and_comments();
                     let right = self.multiplication();
 
                     expr = self.create_expr_box_no_comment(Expr::Binary {
                         left: expr,
+                        comments_and_newlines_between_l_and_op,
                         operator: *token,
+                        comments_and_newlines_between_r_and_op,
                         right,
                     });
                 }
@@ -683,12 +708,16 @@ impl<'a> Parser<'a> {
                 | TokenType::Mod
                 | TokenType::ModAlias
                 | TokenType::Div => {
+                    let comments_and_newlines_between_l_and_op = self.get_newlines_and_comments();
                     let token = self.iter.next().unwrap();
+                    let comments_and_newlines_between_r_and_op = self.get_newlines_and_comments();
                     let right = self.unary();
 
                     expr = self.create_expr_box_no_comment(Expr::Binary {
                         left: expr,
+                        comments_and_newlines_between_l_and_op,
                         operator: *token,
+                        comments_and_newlines_between_r_and_op,
                         right,
                     });
                 }
@@ -739,7 +768,6 @@ impl<'a> Parser<'a> {
 
     fn call(&mut self) -> ExprBox<'a> {
         let mut expression = self.primary();
-        let initial_comments_and_newlines = self.get_newlines_and_comments();
 
         if self.check_next_consume(TokenType::LeftParen) {
             let comments_and_newlines_after_lparen = self.get_newlines_and_comments();
@@ -748,8 +776,7 @@ impl<'a> Parser<'a> {
             expression = self.create_expr_box_no_comment(Expr::Call {
                 procedure_name: expression,
                 arguments,
-                // comments_and_newlines_before_lparen: initial_comments_and_newlines,
-                // comments_and_newlines_after_lparen,
+                comments_and_newlines_after_lparen,
             });
         }
 
@@ -759,12 +786,10 @@ impl<'a> Parser<'a> {
                     self.consume_next();
                     if let Some(t) = self.iter.peek() {
                         if let TokenType::Identifier(_) = t.token_type {
-                            let instance_variable = self.iter.next().unwrap();
-
+                            let instance_variable = self.expression();
                             expression = self.create_expr_box_no_comment(Expr::DotAccess {
-                                instance_variable: *instance_variable,
-
                                 object_name: expression,
+                                instance_variable,
                             });
                         }
                     }
@@ -841,18 +866,28 @@ impl<'a> Parser<'a> {
             match t.token_type {
                 TokenType::False | TokenType::True => {
                     let t = self.consume_next();
-                    return self.create_comment_expr_box(Expr::Literal { literal_token: *t });
+                    let comments = self.get_newlines_and_comments();
+                    return self.create_comment_expr_box(Expr::Literal {
+                        literal_token: *t,
+                        comments,
+                    });
                 }
                 TokenType::Number(_) | TokenType::String(_) => {
                     let t = self.consume_next();
-                    return self.create_comment_expr_box(Expr::Literal { literal_token: *t });
+                    let comments = self.get_newlines_and_comments();
+                    return self.create_comment_expr_box(Expr::Literal {
+                        literal_token: *t,
+                        comments,
+                    });
                 }
                 TokenType::Identifier(_) => {
                     let t = self.consume_next();
-                    return self.create_comment_expr_box(Expr::Identifier { name: *t });
+                    let comments = self.get_newlines_and_comments();
+                    return self.create_comment_expr_box(Expr::Identifier { name: *t, comments });
                 }
                 TokenType::LeftParen => {
                     self.consume_next();
+                    let comments_and_newlines_after_lparen = self.get_newlines_and_comments();
                     let expression = self.expression();
 
                     if let Some(t) = self.iter.peek() {
@@ -860,8 +895,13 @@ impl<'a> Parser<'a> {
                             self.iter.next();
                         }
                     }
+                    let comments_and_newlines_before_rparen = self.get_newlines_and_comments();
 
-                    return self.create_comment_expr_box(Expr::Grouping { expression });
+                    return self.create_comment_expr_box(Expr::Grouping {
+                        expression,
+                        comments_and_newlines_after_lparen,
+                        comments_and_newlines_before_rparen,
+                    });
                 }
 
                 TokenType::Newline => {
