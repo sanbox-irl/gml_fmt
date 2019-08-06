@@ -91,7 +91,7 @@ pub struct Case<'a> {
 #[derive(Debug)]
 pub struct VariableDecl<'a> {
     pub var_expr: ExprBox<'a>,
-    pub assignment: Option<ExprBox<'a>>,
+    pub assignment: Option<(CommentsAndNewlines<'a>, ExprBox<'a>)>,
 }
 
 #[derive(Debug)]

@@ -56,8 +56,9 @@ impl<'a> Printer<'a> {
                 while let Some(this_decl) = iter.next() {
                     self.print_expr(&this_decl.var_expr);
 
-                    if let Some(expr_box) = &this_decl.assignment {
+                    if let Some((comments, expr_box)) = &this_decl.assignment {
                         self.print("=", true);
+                        DefaultWhitespaceHandler {}.print_comments_and_newlines(self, comments, IndentationMove::Stay);
                         self.print_expr(expr_box);
                     }
                     self.backspace();

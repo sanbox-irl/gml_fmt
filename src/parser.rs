@@ -205,7 +205,8 @@ impl<'a> Parser<'a> {
 
         let assignment = if self.check_next(TokenType::Equal) {
             self.iter.next();
-            Some(self.expression())
+            let comments = self.get_newlines_and_comments();
+            Some((comments, self.expression()))
         } else {
             None
         };
