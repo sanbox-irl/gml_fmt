@@ -113,3 +113,12 @@ fn decimal_number() {
 
     assert_eq!(gml_fmt::run_test(input), format);
 }
+
+#[test]
+fn trailing_commas() {
+    let input = "func(a,b,c,);";
+    let format = "func(a, b, c);
+";
+
+    assert_eq!(gml_fmt::run_test(input), format);
+}

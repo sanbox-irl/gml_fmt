@@ -1,1 +1,1 @@
-var x = .3; var z = 3.;
+var x = func(,);

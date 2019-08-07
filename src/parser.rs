@@ -880,11 +880,16 @@ impl<'a> Parser<'a> {
         let mut arguments = Vec::new();
         if self.check_next(end_token_type) == false {
             loop {
+                if self.check_next(end_token_type) {
+                    break;
+                }
+
                 arguments.push((
                     self.get_newlines_and_comments(),
                     self.expression(),
                     self.get_newlines_and_comments(),
                 ));
+
                 if self.check_next_consume(delimiter_type) == false {
                     break;
                 }
