@@ -463,34 +463,7 @@ impl<'a> Parser<'a> {
 
         self.check_next_consume(TokenType::LeftBrace);
         let comments_after_lbrace = self.get_newlines_and_comments();
-        let mut members = Vec::new();
-
-        while let Some(token) = self.iter.peek() {
-            if token.token_type == TokenType::RightBrace {
-                break;
-            }
-
-            let initial_comments = self.get_newlines_and_comments();
-            let name = self.expression();
-
-            let value = if self.check_next_consume(TokenType::Equal) {
-                Some(self.expression())
-            } else {
-                None
-            };
-
-            members.push(EnumMemberDecl {
-                initial_comments,
-                name,
-                value,
-            });
-
-            if self.check_next_consume(TokenType::Comma) == false {
-                break;
-            }
-        }
-
-        self.check_next_consume(TokenType::RightBrace);
+        let members = self.finish_call_delimited_expression(TokenType::RightBrace, TokenType::Comma);
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
 
         StatementWrapper::new(
@@ -897,6 +870,39 @@ impl<'a> Parser<'a> {
                 ));
 
                 if self.check_next_consume(delimiter_type) == false {
+                    break;
+                }
+            }
+        };
+
+        self.check_next_consume(end_token_type);
+
+        arguments
+    }
+
+    fn finish_call_delimited_expression(
+        &mut self,
+        end_token_type: TokenType,
+        delimiter_type: TokenType,
+    ) -> DeliminatedLines<'a> {
+        let mut arguments = Vec::new();
+        if self.check_next(end_token_type) == false {
+            loop {
+                if self.check_next(end_token_type) {
+                    break;
+                }
+
+                let expr = self.expression();
+                let do_break = self.check_next_consume(delimiter_type) == false;
+
+                let trailing_comment = if do_break {
+                    None
+                } else {
+                    Some(self.get_newlines_and_comments())
+                };
+
+                arguments.push(DeliminatedLine { expr, trailing_comment });
+                if do_break {
                     break;
                 }
             }

@@ -80,36 +80,48 @@ impl<'a> Printer<'a> {
                 members,
             } => {
                 self.print_expr(name);
-                self.print(LBRACE, false);
+                self.print(LBRACE, true);
 
                 let mut whitespace_handler = DefaultWhitespaceHandler {};
-                let did_move = whitespace_handler.print_comments_and_newlines(self, comments_after_lbrace, IndentationMove::Right);
-                self.print_newline(if did_move {
-                    IndentationMove::Stay
-                } else {
-                    IndentationMove::Right
-                });
+                let did_move =
+                    whitespace_handler.print_comments_and_newlines(self, comments_after_lbrace, IndentationMove::Right);
+                if did_move == false {
+                    self.print_newline(IndentationMove::Right);
+                }
+                self.backspace();
 
                 let mut iter = members.into_iter().peekable();
-                while let Some(this_member) = iter.next() {
-                    whitespace_handler.print_comments_and_newlines(self, &this_member.initial_comments, IndentationMove::Stay);
-                    self.print_expr(&this_member.name);
-
-                    if let Some(expr_box) = &this_member.value {
-                        self.print("=", true);
-                        self.print_expr(expr_box);
-                    }
+                while let Some(delimited_line) = iter.next() {
+                    self.print_expr(&delimited_line.expr);
                     self.backspace();
 
-                    if let Some(_) = iter.peek() {
+                    let at_end = if let Some(_) = iter.peek() {
                         self.print(COMMA, true);
-                        self.print_newline(IndentationMove::Stay);
+                        false
                     } else {
-                        break;
-                    }
-                }
+                        true
+                    };
 
-                self.print_newline(IndentationMove::Left);
+                    match &delimited_line.trailing_comment {
+                        Some(comment) => {
+                            let did_newlines =
+                                whitespace_handler.print_comments_and_newlines(self, &comment, IndentationMove::Stay);
+
+                            if did_newlines == false {
+                                self.print_newline(IndentationMove::Stay);
+                            }
+                        }
+                        None => {
+                            self.backspace();
+                            if at_end == false {
+                                self.print_newline(IndentationMove::Stay);
+                            }
+                        }
+                    };
+                }
+                self.indentation -= 1;
+                self.backspace_till_newline();
+                
                 self.print(RBRACE, false);
                 self.print_semicolon(stmt.has_semicolon);
             }
@@ -794,13 +806,15 @@ trait WhiteSpaceHandler<'a> {
             match this_one.token_type {
                 TokenType::Newline => {
                     if did_move {
+                        printer.backspace();
                         printer.print_newline(IndentationMove::Stay);
                     } else {
                         did_move = true;
+                        printer.backspace();
                         printer.print_newline(indentation_move);
                     }
                 }
-                TokenType::Comment(_) | TokenType::MultilineComment(_) => printer.print_token(this_one, false),
+                TokenType::Comment(_) | TokenType::MultilineComment(_) => printer.print_token(this_one, true),
                 _ => {
                     println!(
                         "Printing {} which isn't a newline or comment in a comment_newline section...",

@@ -3,6 +3,7 @@ use super::lex_token::Token;
 
 pub type StmtBox<'a> = Box<StatementWrapper<'a>>;
 pub type ParenInfo = (bool, bool);
+pub type DeliminatedLines<'a> = Vec<DeliminatedLine<'a>>;
 
 #[derive(Debug)]
 pub struct StatementWrapper<'a> {
@@ -25,9 +26,9 @@ pub enum Statement<'a> {
         var_decl: Vec<VariableDecl<'a>>,
     },
     EnumDeclaration {
-        name: ExprBox<'a>, 
+        name: ExprBox<'a>,
         comments_after_lbrace: CommentsAndNewlines<'a>,
-        members: Vec<EnumMemberDecl<'a>>,
+        members: DeliminatedLines<'a>,
     },
     ExpresssionStatement {
         expression: ExprBox<'a>,
@@ -109,8 +110,7 @@ pub struct VariableDecl<'a> {
 }
 
 #[derive(Debug)]
-pub struct EnumMemberDecl<'a> {
-    pub initial_comments: CommentsAndNewlines<'a>,
-    pub name: ExprBox<'a>,
-    pub value: Option<ExprBox<'a>>,
+pub struct DeliminatedLine<'a> {
+    pub expr: ExprBox<'a>,
+    pub trailing_comment: Option<CommentsAndNewlines<'a>>,
 }
