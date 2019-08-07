@@ -444,6 +444,25 @@ impl<'a> Printer<'a> {
                 self.print_token(&literal_token, true);
                 whitespace_handler.print_comments_and_newlines(self, comments, IndentationMove::Stay);
             }
+
+            Expr::NumberStartDot {
+                literal_token,
+                comments,
+            } => {
+                self.print("0", false);
+                self.print_token(&literal_token, true);
+                whitespace_handler.print_comments_and_newlines(self, comments, IndentationMove::Stay);
+            }
+
+            Expr::NumberEndDot {
+                literal_token,
+                comments,
+            } => {
+                self.print_token(&literal_token, false);
+                self.print("0", true);
+                whitespace_handler.print_comments_and_newlines(self, comments, IndentationMove::Stay);
+            }
+
             Expr::Unary { operator, right } => {
                 self.print_token(&operator, false);
                 self.print_expr(right);
@@ -761,7 +780,7 @@ impl<'a> Printer<'a> {
     fn print_semicolon(&mut self, do_it: bool) {
         if do_it {
             self.backspace();
-            self.print(SEMICOLON, false);
+            self.print(SEMICOLON, true);
         }
     }
 }

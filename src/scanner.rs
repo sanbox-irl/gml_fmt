@@ -306,32 +306,27 @@ impl<'a> Scanner<'a> {
                     self.add_multiple_token(TokenType::String(&self.input[start..current]), (current - start) as u32);
                 }
 
-                '.' => {
-                    match self.iter.peek() {
-                        Some((_, next_char)) if next_char.is_digit(10) => {
-                            let start = i;
-                            let mut current = start;
+                '.' => match self.iter.peek() {
+                    Some((_, next_char)) if next_char.is_digit(10) => {
+                        let start = i;
+                        let mut current = start;
 
-                            // eat the "."
-                            self.iter.next();
-
-                            while let Some((_, number_char)) = self.iter.peek() {
-                                if number_char.is_digit(10) {
-                                    self.iter.next();
-                                    current = self.next_char_boundary();
-                                } else {
-                                    break;
-                                }
+                        while let Some((_, number_char)) = self.iter.peek() {
+                            if number_char.is_digit(10) {
+                                self.iter.next();
+                                current = self.next_char_boundary();
+                            } else {
+                                break;
                             }
-
-                            self.add_multiple_token(
-                                TokenType::Number(&self.input[start..current]),
-                                (current - start) as u32,
-                            );
                         }
-                        _ => self.add_simple_token(TokenType::Dot),
+
+                        self.add_multiple_token(
+                            TokenType::NumberStartDot(&self.input[start..current]),
+                            (current - start) as u32,
+                        );
                     }
-                }
+                    _ => self.add_simple_token(TokenType::Dot),
+                },
 
                 '0'..='9' => {
                     let start = i;
@@ -375,14 +370,22 @@ impl<'a> Scanner<'a> {
                     if is_fractional {
                         // eat the "."
                         self.iter.next();
-
+                        let mut is_end_dot = true;
                         while let Some((_, number_char)) = self.iter.peek() {
                             if number_char.is_digit(10) {
+                                is_end_dot = false;
                                 self.iter.next();
                             } else {
                                 current = self.next_char_boundary();
                                 break;
                             }
+                        }
+                        if is_end_dot {
+                            self.add_multiple_token(
+                                TokenType::NumberEndDot(&self.input[start..current]),
+                                (current - start) as u32,
+                            );
+                            continue;
                         }
                     }
 
@@ -726,7 +729,8 @@ multi-linestring. The demon's plaything!\"";
 .314159
 4
 9
-0";
+0
+.3";
 
         let vec = &mut Vec::new();
         let mut scanner = Scanner::new(input_string, vec);
@@ -738,16 +742,18 @@ multi-linestring. The demon's plaything!\"";
                 Token::new(TokenType::Newline, 0, 6),
                 Token::new(TokenType::Number("3.14159"), 1, 0),
                 Token::new(TokenType::Newline, 1, 7),
-                Token::new(TokenType::Number("314159."), 2, 0),
+                Token::new(TokenType::NumberEndDot("314159."), 2, 0),
                 Token::new(TokenType::Newline, 2, 7),
-                Token::new(TokenType::Number(".314159"), 3, 0),
+                Token::new(TokenType::NumberStartDot(".314159"), 3, 0),
                 Token::new(TokenType::Newline, 3, 7),
                 Token::new(TokenType::Number("4"), 4, 0),
                 Token::new(TokenType::Newline, 4, 1),
                 Token::new(TokenType::Number("9"), 5, 0),
                 Token::new(TokenType::Newline, 5, 1),
                 Token::new(TokenType::Number("0"), 6, 0),
-                Token::new(TokenType::EOF, 6, 1),
+                Token::new(TokenType::Newline, 6, 1),
+                Token::new(TokenType::NumberStartDot(".3"), 7, 0),
+                Token::new(TokenType::EOF, 7, 2),
             ]
         );
     }

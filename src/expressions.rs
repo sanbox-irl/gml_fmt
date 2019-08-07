@@ -1,7 +1,7 @@
 use super::lex_token::*;
 pub type ExprBox<'a> = Box<(Expr<'a>, CommentsAndNewlines<'a>)>;
 pub type CommentsAndNewlines<'a> = Vec<Token<'a>>;
-pub type Arguments<'a> = Vec<(CommentsAndNewlines<'a>,ExprBox<'a>,CommentsAndNewlines<'a>)>;
+pub type Arguments<'a> = Vec<(CommentsAndNewlines<'a>, ExprBox<'a>, CommentsAndNewlines<'a>)>;
 
 #[derive(Debug)]
 pub enum Expr<'a> {
@@ -28,6 +28,14 @@ pub enum Expr<'a> {
         arguments: Arguments<'a>,
     },
     Literal {
+        literal_token: Token<'a>,
+        comments: CommentsAndNewlines<'a>,
+    },
+    NumberStartDot {
+        literal_token: Token<'a>,
+        comments: CommentsAndNewlines<'a>,
+    },
+    NumberEndDot {
         literal_token: Token<'a>,
         comments: CommentsAndNewlines<'a>,
     },

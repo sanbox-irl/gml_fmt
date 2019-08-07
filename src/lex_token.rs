@@ -89,6 +89,8 @@ pub enum TokenType<'a> {
     Identifier(&'a str),
     String(&'a str),
     Number(&'a str),
+    NumberStartDot(&'a str),
+    NumberEndDot(&'a str),
 
     Comment(&'a str),
     MultilineComment(&'a str),
@@ -210,14 +212,15 @@ impl<'a> Token<'a> {
             TokenType::ModAlias => "mod",
             TokenType::Div => "div",
 
-            TokenType::Identifier(literal) => literal,
-            TokenType::String(literal) => literal,
-            TokenType::Number(literal) => literal,
-
-            TokenType::Comment(literal) => literal,
-            TokenType::MultilineComment(literal) => literal,
-
-            TokenType::UnidentifiedInput(literal) => literal,
+            TokenType::Identifier(literal)
+            | TokenType::String(literal)
+            | TokenType::Number(literal)
+            | TokenType::NumberStartDot(literal)
+            | TokenType::NumberEndDot(literal)
+            | TokenType::Comment(literal)
+            | TokenType::MultilineComment(literal)
+            | TokenType::UnidentifiedInput(literal) => literal,
+            
             TokenType::EOF => "\n",
         }
     }

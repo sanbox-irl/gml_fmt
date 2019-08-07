@@ -915,6 +915,22 @@ impl<'a> Parser<'a> {
                         comments,
                     });
                 }
+                TokenType::NumberStartDot(_) => {
+                    let t = self.consume_next();
+                    let comments = self.get_newlines_and_comments();
+                    return self.create_comment_expr_box(Expr::NumberStartDot {
+                        literal_token: *t,
+                        comments,
+                    });
+                }
+                TokenType::NumberEndDot(_) => {
+                    let t = self.consume_next();
+                    let comments = self.get_newlines_and_comments();
+                    return self.create_comment_expr_box(Expr::NumberEndDot {
+                        literal_token: *t,
+                        comments,
+                    });
+                }
                 TokenType::Identifier(_) => {
                     let t = self.consume_next();
                     let comments = self.get_newlines_and_comments();
