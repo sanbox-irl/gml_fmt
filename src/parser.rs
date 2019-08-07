@@ -772,7 +772,7 @@ impl<'a> Parser<'a> {
     fn unary(&mut self) -> ExprBox<'a> {
         if let Some(t) = self.iter.peek() {
             match t.token_type {
-                TokenType::Bang | TokenType::Minus => {
+                TokenType::Bang | TokenType::Minus | TokenType::Plus => {
                     let t = self.iter.next().unwrap();
                     let right = self.unary();
 
