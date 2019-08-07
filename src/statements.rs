@@ -69,10 +69,9 @@ pub enum Statement<'a> {
     Break,
     Exit,
     Switch {
-        has_surrounding_paren: ParenInfo,
         condition: ExprBox<'a>,
-        cases: Option<Vec<Case<'a>>>,
-        default: Option<Vec<Case<'a>>>,
+        comments_after_lbrace: CommentsAndNewlines<'a>,
+        cases: Vec<Case<'a>>,
     },
     Comment {
         comment: Token<'a>,
@@ -98,8 +97,16 @@ pub enum Statement<'a> {
 
 #[derive(Debug)]
 pub struct Case<'a> {
-    pub constant: ExprBox<'a>,
+    pub comments_after_case: CommentsAndNewlines<'a>,
+    pub case_type: CaseType<'a>,
+    pub comments_after_colon: CommentsAndNewlines<'a>,
     pub statements: Vec<StmtBox<'a>>,
+}
+
+#[derive(Debug)]
+pub enum CaseType<'a> {
+    Case(ExprBox<'a>),
+    Default,
 }
 
 #[derive(Debug)]

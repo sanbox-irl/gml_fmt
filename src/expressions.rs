@@ -6,7 +6,6 @@ pub type DSAccess<'a> = Vec<(CommentsAndNewlines<'a>, ExprBox<'a>)>;
 
 #[derive(Debug)]
 pub enum Expr<'a> {
-    // @jack need to handle bad arguments
     Call {
         procedure_name: ExprBox<'a>,
         comments_and_newlines_after_lparen: CommentsAndNewlines<'a>,
@@ -22,7 +21,7 @@ pub enum Expr<'a> {
     Grouping {
         comments_and_newlines_after_lparen: CommentsAndNewlines<'a>,
         expressions: Vec<ExprBox<'a>>,
-        comments_and_newlines_before_rparen: CommentsAndNewlines<'a>,
+        comments_and_newlines_after_rparen: CommentsAndNewlines<'a>,
     },
     ArrayLiteral {
         comments_and_newlines_after_lbracket: CommentsAndNewlines<'a>,

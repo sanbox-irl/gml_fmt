@@ -1,14 +1,9 @@
-enum EInputConstants{//Starts at high negative number to not interfere with other input constants
-//P - Positive axis (Axis is regular coordinates with 0;0 being bottom left)
-//N - Negative axis
-//Note that return is always positive
-    GP_AXISLV_P = -100,
-    GP_AXISLV_N,   GP_AXISLH_P,
-    GP_AXISLH_N,
-    GP_AXISRV_P, //down
-    GP_AXISRV_N, //up
+switch(argument[0])
+
+{
+    case "impact blood":
+        
+        var x = 20;
+        break;
     
-    GP_AXISRH_P, /* gah a test */ GP_AXISRH_N,
-    SCROLL_DOWN,
-    SCROLL_UP,ANY,NONE
 }

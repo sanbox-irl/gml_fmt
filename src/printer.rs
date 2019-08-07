@@ -17,8 +17,10 @@ const SEMICOLON: &str = ";";
 pub struct Printer<'a> {
     pub output: Vec<&'a str>,
     indentation: i32,
-    // default_handler: DefaultWhitespaceHandler,
     can_replace_handler: bool,
+    force_indentation: Option<IndentationMove>,
+    do_not_print_newline_comments: bool,
+    do_not_print_single_blankline_comments: bool,
 }
 
 impl<'a> Printer<'a> {
@@ -26,8 +28,10 @@ impl<'a> Printer<'a> {
         Printer {
             output: Vec::new(),
             indentation: 0,
-            // default_handler: DefaultWhitespaceHandler {},
             can_replace_handler: true,
+            force_indentation: None,
+            do_not_print_newline_comments: false,
+            do_not_print_single_blankline_comments: false,
         }
     }
 
@@ -52,8 +56,6 @@ impl<'a> Printer<'a> {
             Statement::VariableDeclList { var_decl } => {
                 self.print("var", true);
 
-                let mut whitespace_handler = DefaultWhitespaceHandler {};
-
                 let mut iter = var_decl.into_iter().peekable();
                 while let Some(this_decl) = iter.next() {
                     if this_decl.say_var {
@@ -63,7 +65,7 @@ impl<'a> Printer<'a> {
 
                     if let Some((comments, expr_box)) = &this_decl.assignment {
                         self.print("=", true);
-                        whitespace_handler.print_comments_and_newlines(self, comments, IndentationMove::Stay);
+                        self.print_comments_and_newlines(comments, IndentationMove::Stay);
                         self.print_expr(expr_box);
                     }
                     self.backspace();
@@ -82,9 +84,7 @@ impl<'a> Printer<'a> {
                 self.print_expr(name);
                 self.print(LBRACE, true);
 
-                let mut whitespace_handler = DefaultWhitespaceHandler {};
-                let did_move =
-                    whitespace_handler.print_comments_and_newlines(self, comments_after_lbrace, IndentationMove::Right);
+                let did_move = self.print_comments_and_newlines(comments_after_lbrace, IndentationMove::Right);
                 if did_move == false {
                     self.print_newline(IndentationMove::Right);
                 }
@@ -104,8 +104,7 @@ impl<'a> Printer<'a> {
 
                     match &delimited_line.trailing_comment {
                         Some(comment) => {
-                            let did_newlines =
-                                whitespace_handler.print_comments_and_newlines(self, &comment, IndentationMove::Stay);
+                            let did_newlines = self.print_comments_and_newlines(&comment, IndentationMove::Stay);
 
                             if did_newlines == false {
                                 self.print_newline(IndentationMove::Stay);
@@ -121,7 +120,7 @@ impl<'a> Printer<'a> {
                 }
                 self.indentation -= 1;
                 self.backspace_till_newline();
-                
+
                 self.print(RBRACE, false);
                 self.print_semicolon(stmt.has_semicolon);
             }
@@ -248,43 +247,66 @@ impl<'a> Printer<'a> {
             }
             Statement::Switch {
                 condition,
-                has_surrounding_paren,
+                comments_after_lbrace,
                 cases,
-                default,
             } => {
                 self.print("switch", true);
-                self.print_expr_parentheses(condition, *has_surrounding_paren);
+                self.do_not_print_newline_comments = true;
+                self.print_expr(condition);
+                self.do_not_print_newline_comments = false;
 
+                self.ensure_space();
                 self.print(LBRACE, true);
-                self.print_newline(IndentationMove::Right);
+                let did_move = self.print_comments_and_newlines(comments_after_lbrace, IndentationMove::Right);
 
-                if let Some(cases) = cases {
-                    for this_case in cases {
+                if did_move == false {
+                    self.print_newline(IndentationMove::Right);
+                }
+
+                let iter = cases.into_iter().peekable();
+                for Case {
+                    case_type,
+                    comments_after_case,
+                    comments_after_colon,
+                    statements,
+                } in iter
+                {
+                    if let CaseType::Case(case_constant) = case_type {
                         self.print("case", true);
-                        self.print_expr(&this_case.constant);
-                        self.backspace();
-                        self.print(":", true);
+                        self.print_expr(&case_constant);
+                    } else {
+                        self.print("default", false);
+                    }
 
-                        for this_case in &this_case.statements {
-                            self.print_statement(this_case);
-                        }
+                    self.print_comments_and_newlines(comments_after_case, IndentationMove::Stay);
+                    self.backspace();
+                    self.print(":", true);
+
+                    self.do_not_print_single_blankline_comments = true;
+                    let did_move = self.print_comments_and_newlines(comments_after_colon, IndentationMove::Right);
+                    self.do_not_print_single_blankline_comments = false;
+
+                    if did_move == false {
+                        self.print_newline(IndentationMove::Right);
+                    }
+
+                    for this_statement in statements {
+                        self.print_statement(this_statement);
+                    }
+
+                    if self.on_whitespace_line() == false {
+                        self.print_newline(IndentationMove::Left);
+                    } else {
+                        self.backspace_till_newline();
+                        self.print_indentation(IndentationMove::Left);
                     }
                 }
 
-                if let Some(default) = default {
-                    for this_case in default {
-                        self.print("default", true);
-                        self.print_expr(&this_case.constant);
-                        self.backspace();
-                        self.print(":", true);
-
-                        for this_case in &this_case.statements {
-                            self.print_statement(this_case);
-                        }
-                    }
+                if self.on_whitespace_line() {
+                    self.backspace_till_newline();
+                    self.print_indentation(IndentationMove::Left);
                 }
 
-                self.print_newline(IndentationMove::Left);
                 self.print(RBRACE, false);
                 self.print_semicolon(stmt.has_semicolon);
             }
@@ -338,15 +360,6 @@ impl<'a> Printer<'a> {
     }
 
     fn print_expr(&mut self, expr: &'a ExprBox<'a>) {
-        let mut new_handle = DefaultWhitespaceHandler {};
-        self.print_expr_white_space_controller(expr, &mut new_handle);
-    }
-
-    fn print_expr_white_space_controller(
-        &mut self,
-        expr: &'a ExprBox<'a>,
-        whitespace_handler: &mut WhiteSpaceHandler<'a>,
-    ) {
         match &expr.0 {
             Expr::Call {
                 procedure_name,
@@ -357,19 +370,16 @@ impl<'a> Printer<'a> {
                 self.backspace();
 
                 self.print(LPAREN, false);
-                let did_move = whitespace_handler.print_comments_and_newlines(
-                    self,
-                    comments_and_newlines_after_lparen,
-                    IndentationMove::Right,
-                );
+                let did_move =
+                    self.print_comments_and_newlines(comments_and_newlines_after_lparen, IndentationMove::Right);
 
                 let mut iter = arguments.into_iter().peekable();
                 while let Some((first_comments, this_argument, these_comments)) = iter.next() {
-                    whitespace_handler.print_comments_and_newlines(self, first_comments, IndentationMove::Stay);
+                    self.print_comments_and_newlines(first_comments, IndentationMove::Stay);
                     self.print_expr(this_argument);
                     self.backspace();
 
-                    whitespace_handler.print_comments_and_newlines(self, these_comments, IndentationMove::Stay);
+                    self.print_comments_and_newlines(these_comments, IndentationMove::Stay);
 
                     if let Some(_) = iter.peek() {
                         self.print(COMMA, true);
@@ -389,40 +399,24 @@ impl<'a> Printer<'a> {
                 right,
             } => {
                 self.print_expr(left);
-                whitespace_handler.print_comments_and_newlines(
-                    self,
-                    comments_and_newlines_between_l_and_op,
-                    IndentationMove::Stay,
-                );
+                self.print_comments_and_newlines(comments_and_newlines_between_l_and_op, IndentationMove::Stay);
                 self.print_token(operator, true);
-                whitespace_handler.print_comments_and_newlines(
-                    self,
-                    comments_and_newlines_between_r_and_op,
-                    IndentationMove::Stay,
-                );
+                self.print_comments_and_newlines(comments_and_newlines_between_r_and_op, IndentationMove::Stay);
                 self.print_expr(right);
             }
 
             Expr::Grouping {
                 expressions,
                 comments_and_newlines_after_lparen,
-                comments_and_newlines_before_rparen,
+                comments_and_newlines_after_rparen,
             } => {
                 self.print(LPAREN, false);
-                let did_move = whitespace_handler.print_comments_and_newlines(
-                    self,
-                    comments_and_newlines_after_lparen,
-                    IndentationMove::Right,
-                );
+                let did_move =
+                    self.print_comments_and_newlines(comments_and_newlines_after_lparen, IndentationMove::Right);
                 for expression in expressions {
                     self.print_expr(expression);
                 }
                 self.backspace();
-                whitespace_handler.print_comments_and_newlines(
-                    self,
-                    comments_and_newlines_before_rparen,
-                    IndentationMove::Stay,
-                );
                 if did_move {
                     if self.on_whitespace_line() {
                         self.backspace_till_newline();
@@ -432,6 +426,8 @@ impl<'a> Printer<'a> {
                     }
                 }
                 self.print(RPAREN, true);
+                self.print_comments_and_newlines(comments_and_newlines_after_rparen, IndentationMove::Stay);
+                self.backspace();
             }
 
             Expr::ArrayLiteral {
@@ -439,19 +435,16 @@ impl<'a> Printer<'a> {
                 arguments,
             } => {
                 self.print("[", false);
-                let did_move = whitespace_handler.print_comments_and_newlines(
-                    self,
-                    comments_and_newlines_after_lbracket,
-                    IndentationMove::Right,
-                );
+                let did_move =
+                    self.print_comments_and_newlines(comments_and_newlines_after_lbracket, IndentationMove::Right);
 
                 let mut iter = arguments.into_iter().peekable();
                 while let Some((initial_comment, this_argument, trailing_comment)) = iter.next() {
-                    whitespace_handler.print_comments_and_newlines(self, initial_comment, IndentationMove::Stay);
+                    self.print_comments_and_newlines(initial_comment, IndentationMove::Stay);
                     self.print_expr(this_argument);
                     self.backspace();
 
-                    whitespace_handler.print_comments_and_newlines(self, trailing_comment, IndentationMove::Stay);
+                    self.print_comments_and_newlines(trailing_comment, IndentationMove::Stay);
 
                     if let Some(_) = iter.peek() {
                         self.print(COMMA, true);
@@ -468,7 +461,7 @@ impl<'a> Printer<'a> {
                 comments,
             } => {
                 self.print_token(&literal_token, true);
-                whitespace_handler.print_comments_and_newlines(self, comments, IndentationMove::Stay);
+                self.print_comments_and_newlines(comments, IndentationMove::Stay);
             }
 
             Expr::NumberStartDot {
@@ -477,7 +470,7 @@ impl<'a> Printer<'a> {
             } => {
                 self.print("0", false);
                 self.print_token(&literal_token, true);
-                whitespace_handler.print_comments_and_newlines(self, comments, IndentationMove::Stay);
+                self.print_comments_and_newlines(comments, IndentationMove::Stay);
             }
 
             Expr::NumberEndDot {
@@ -486,7 +479,7 @@ impl<'a> Printer<'a> {
             } => {
                 self.print_token(&literal_token, false);
                 self.print("0", true);
-                whitespace_handler.print_comments_and_newlines(self, comments, IndentationMove::Stay);
+                self.print_comments_and_newlines(comments, IndentationMove::Stay);
             }
 
             Expr::Unary { operator, right } => {
@@ -510,11 +503,7 @@ impl<'a> Printer<'a> {
             } => {
                 self.print_expr(left);
                 self.print_token(&operator, true);
-                whitespace_handler.print_comments_and_newlines(
-                    self,
-                    comments_and_newlines_between_op_and_r,
-                    IndentationMove::Stay,
-                );
+                self.print_comments_and_newlines(comments_and_newlines_between_op_and_r, IndentationMove::Stay);
                 self.print_expr(right);
             }
             Expr::Assign {
@@ -525,16 +514,12 @@ impl<'a> Printer<'a> {
             } => {
                 self.print_expr(left);
                 self.print_token(&operator, true);
-                whitespace_handler.print_comments_and_newlines(
-                    self,
-                    comments_and_newlines_between_op_and_r,
-                    IndentationMove::Stay,
-                );
+                self.print_comments_and_newlines(comments_and_newlines_between_op_and_r, IndentationMove::Stay);
                 self.print_expr(right);
             }
             Expr::Identifier { name, comments } => {
                 self.print_token(name, true);
-                whitespace_handler.print_comments_and_newlines(self, comments, IndentationMove::Stay);
+                self.print_comments_and_newlines(comments, IndentationMove::Stay);
             }
 
             Expr::DotAccess {
@@ -543,20 +528,22 @@ impl<'a> Printer<'a> {
             } => {
                 if self.can_replace_handler {
                     self.can_replace_handler = false;
-                    let mut our_handle = DotWhitespaceHandler::new();
+                    self.force_indentation = Some(IndentationMove::Right);
 
-                    self.print_expr_white_space_controller(object_name, &mut our_handle);
+                    self.print_expr(object_name);
                     self.backspace();
                     self.print(".", false);
 
-                    self.print_expr_white_space_controller(instance_variable, &mut our_handle);
+                    self.print_expr(instance_variable);
+
+                    self.force_indentation = None;
                     self.can_replace_handler = true;
                 } else {
-                    self.print_expr_white_space_controller(object_name, whitespace_handler);
+                    self.print_expr(object_name);
                     self.backspace();
                     self.print(".", false);
 
-                    self.print_expr_white_space_controller(instance_variable, whitespace_handler);
+                    self.print_expr(instance_variable);
                 }
             }
             Expr::DataStructureAccess {
@@ -571,7 +558,7 @@ impl<'a> Printer<'a> {
 
                 let mut iter = access_exprs.into_iter().peekable();
                 while let Some((comments, expr)) = iter.next() {
-                    whitespace_handler.print_comments_and_newlines(self, comments, IndentationMove::Stay);
+                    self.print_comments_and_newlines(comments, IndentationMove::Stay);
                     self.print_expr(expr);
                     self.backspace();
 
@@ -600,19 +587,12 @@ impl<'a> Printer<'a> {
                 self.print_expr(conditional);
                 self.print("?", true);
                 if self.only_newlines(comments_and_newlines_after_q) == false {
-                    whitespace_handler.print_comments_and_newlines(
-                        self,
-                        comments_and_newlines_after_q,
-                        IndentationMove::Right,
-                    );
+                    self.print_comments_and_newlines(comments_and_newlines_after_q, IndentationMove::Right);
                 }
                 self.print_expr(left);
                 self.print(":", true);
-                let did_move = whitespace_handler.print_comments_and_newlines(
-                    self,
-                    comments_and_newlines_after_colon,
-                    IndentationMove::Right,
-                );
+                let did_move =
+                    self.print_comments_and_newlines(comments_and_newlines_after_colon, IndentationMove::Right);
                 self.print_expr(right);
 
                 if did_move {
@@ -778,6 +758,48 @@ impl<'a> Printer<'a> {
         true
     }
 
+    fn print_comments_and_newlines(&mut self, vec: &'a Vec<Token<'a>>, indentation_move: IndentationMove) -> bool {
+        if self.do_not_print_newline_comments && self.only_newlines(vec) {
+            return false;
+        }
+
+        if self.do_not_print_single_blankline_comments && self.only_newlines(vec) && vec.len() == 2 {
+            return false;
+        }
+
+        let mut did_move = false;
+
+        for this_one in vec {
+            match this_one.token_type {
+                TokenType::Newline => {
+                    if did_move {
+                        self.print_newline(IndentationMove::Stay);
+                    } else {
+                        did_move = true;
+                        if let Some(indent) = self.force_indentation {
+                            self.print_newline(indent);
+                            self.force_indentation = None;
+                        } else {
+                            self.print_newline(indentation_move);
+                        }
+                    }
+                }
+
+                TokenType::Comment(_) | TokenType::MultilineComment(_) => self.print_token(this_one, false),
+
+                _ => {
+                    println!(
+                        "Printing {} which isn't a newline or comment in a comment_newline section...",
+                        this_one
+                    );
+                    self.print_token(this_one, false);
+                }
+            }
+        }
+
+        did_move
+    }
+
     fn print_semicolon(&mut self, do_it: bool) {
         if do_it {
             self.backspace();
@@ -791,94 +813,4 @@ enum IndentationMove {
     Right,
     Stay,
     Left,
-}
-
-trait WhiteSpaceHandler<'a> {
-    fn print_comments_and_newlines(
-        &mut self,
-        printer: &mut Printer<'a>,
-        vec: &'a Vec<Token<'a>>,
-        indentation_move: IndentationMove,
-    ) -> bool {
-        let mut did_move = false;
-
-        for this_one in vec {
-            match this_one.token_type {
-                TokenType::Newline => {
-                    if did_move {
-                        printer.backspace();
-                        printer.print_newline(IndentationMove::Stay);
-                    } else {
-                        did_move = true;
-                        printer.backspace();
-                        printer.print_newline(indentation_move);
-                    }
-                }
-                TokenType::Comment(_) | TokenType::MultilineComment(_) => printer.print_token(this_one, true),
-                _ => {
-                    println!(
-                        "Printing {} which isn't a newline or comment in a comment_newline section...",
-                        this_one
-                    );
-                    printer.print_token(this_one, false);
-                }
-            }
-        }
-
-        did_move
-    }
-}
-
-struct DefaultWhitespaceHandler {}
-impl<'a> WhiteSpaceHandler<'a> for DefaultWhitespaceHandler {}
-
-struct DotWhitespaceHandler {
-    do_it: bool,
-}
-
-impl DotWhitespaceHandler {
-    fn new() -> DotWhitespaceHandler {
-        DotWhitespaceHandler { do_it: true }
-    }
-}
-
-impl<'a> WhiteSpaceHandler<'a> for DotWhitespaceHandler {
-    fn print_comments_and_newlines(
-        &mut self,
-        printer: &mut Printer<'a>,
-        vec: &'a Vec<Token<'a>>,
-        indentation_move: IndentationMove,
-    ) -> bool {
-        let mut did_move = false;
-
-        for this_one in vec {
-            match this_one.token_type {
-                TokenType::Newline => {
-                    if did_move {
-                        printer.print_newline(IndentationMove::Stay);
-                    } else {
-                        did_move = true;
-                        if self.do_it {
-                            printer.print_newline(IndentationMove::Right);
-                            self.do_it = false;
-                        } else {
-                            printer.print_newline(indentation_move);
-                        }
-                    }
-                }
-
-                TokenType::Comment(_) | TokenType::MultilineComment(_) => printer.print_token(this_one, false),
-
-                _ => {
-                    println!(
-                        "Printing {} which isn't a newline or comment in a comment_newline section...",
-                        this_one
-                    );
-                    printer.print_token(this_one, false);
-                }
-            }
-        }
-
-        did_move
-    }
 }

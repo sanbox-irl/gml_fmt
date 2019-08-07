@@ -309,75 +309,89 @@ impl<'a> Parser<'a> {
     }
 
     fn switch_statement(&mut self) -> StmtBox<'a> {
-        let mut has_surrounding_paren = (self.check_next_consume(TokenType::LeftParen), false);
-
         let condition = self.expression();
-        has_surrounding_paren.1 = self.check_next_consume(TokenType::RightParen);
-
         self.check_next_consume(TokenType::LeftBrace);
+        let comments_after_lbrace = self.get_newlines_and_comments();
 
-        self.eat_all_newlines();
+        let mut cases: Vec<Case<'a>> = vec![];
 
-        let mut cases: Option<Vec<Case<'a>>> = None;
-        let mut default: Option<Vec<Case<'a>>> = None;
-
-        while let Some(token) = self.iter.peek() {
+        while let Some(token) = self.iter.next() {
+            println!("Found token {}", token);
             match token.token_type {
-                TokenType::Case => match &mut cases {
-                    Some(vec) => vec.push(self.case_statement()),
-                    None => cases = Some(vec![self.case_statement()]),
-                },
+                TokenType::Case => {
+                    // this is a copy of default below, with modification
+                    let constant = self.expression();
+                    let comments_after_case = self.get_newlines_and_comments();
+                    self.check_next_consume(TokenType::Colon);
+                    let comments_after_colon = self.get_newlines_and_comments();
 
-                // @jack this is borked. default case can't have a constant in it.
-                TokenType::DefaultCase => match &mut default {
-                    Some(vec) => vec.push(self.case_statement()),
-                    None => default = Some(vec![self.case_statement()]),
-                },
+                    let mut statements = Vec::new();
+                    while let Some(token) = self.iter.peek() {
+                        match token.token_type {
+                            TokenType::DefaultCase | TokenType::Case => {
+                                break;
+                            }
+                            TokenType::RightBrace => {
+                                break;
+                            }
+                            _ => {
+                                statements.push(self.statement());
+                            }
+                        }
+                    }
+
+                    cases.push(Case {
+                        comments_after_case,
+                        case_type: CaseType::Case(constant),
+                        comments_after_colon,
+                        statements,
+                    });
+                }
+
+                TokenType::DefaultCase => {
+                    // This is a copy of case above, with modification
+                    let comments_after_case = self.get_newlines_and_comments();
+                    self.check_next_consume(TokenType::Colon);
+                    let comments_after_colon = self.get_newlines_and_comments();
+
+                    let mut statements = Vec::new();
+                    while let Some(token) = self.iter.peek() {
+                        match token.token_type {
+                            TokenType::DefaultCase | TokenType::Case => {
+                                break;
+                            }
+                            TokenType::RightBrace => {
+                                break;
+                            }
+                            _ => {
+                                statements.push(self.statement());
+                            }
+                        }
+                    }
+
+                    cases.push(Case {
+                        comments_after_case,
+                        case_type: CaseType::Default,
+                        comments_after_colon,
+                        statements,
+                    });
+                }
                 _ => break,
             }
         }
 
-        self.eat_all_newlines();
         self.check_next_consume(TokenType::RightBrace);
 
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
 
         StatementWrapper::new(
             Statement::Switch {
+                comments_after_lbrace,
                 cases,
-                has_surrounding_paren,
                 condition,
-                default,
             },
             has_semicolon,
         )
-    }
-
-    fn case_statement(&mut self) -> Case<'a> {
-        if self.check_next(TokenType::Case) || self.check_next(TokenType::DefaultCase) {
-            self.consume_next();
-        }
-
-        let constant = self.expression();
-        self.check_next_consume(TokenType::Colon);
-
-        let mut statements = Vec::new();
-
-        while let Some(token) = self.iter.peek() {
-            match token.token_type {
-                TokenType::DefaultCase | TokenType::Case => {
-                    break;
-                }
-                TokenType::RightBrace => {
-                    break;
-                }
-                _ => {
-                    statements.push(self.statement());
-                }
-            }
-        }
-
-        Case { statements, constant }
     }
 
     fn repeat_statement(&mut self) -> StmtBox<'a> {
@@ -963,12 +977,12 @@ impl<'a> Parser<'a> {
                         expressions.push(self.expression());
                     }
 
-                    let comments_and_newlines_before_rparen = self.get_newlines_and_comments();
+                    let comments_and_newlines_after_rparen = self.get_newlines_and_comments();
 
                     return self.create_comment_expr_box(Expr::Grouping {
                         expressions,
                         comments_and_newlines_after_lparen,
-                        comments_and_newlines_before_rparen,
+                        comments_and_newlines_after_rparen,
                     });
                 }
 
