@@ -25,7 +25,8 @@ pub enum Statement<'a> {
         var_decl: Vec<VariableDecl<'a>>,
     },
     EnumDeclaration {
-        name: ExprBox<'a>,
+        name: ExprBox<'a>, 
+        comments_after_lbrace: CommentsAndNewlines<'a>,
         members: Vec<EnumMemberDecl<'a>>,
     },
     ExpresssionStatement {
@@ -109,6 +110,7 @@ pub struct VariableDecl<'a> {
 
 #[derive(Debug)]
 pub struct EnumMemberDecl<'a> {
-    pub name: Token<'a>,
+    pub initial_comments: CommentsAndNewlines<'a>,
+    pub name: ExprBox<'a>,
     pub value: Option<ExprBox<'a>>,
 }

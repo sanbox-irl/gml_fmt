@@ -462,25 +462,30 @@ impl<'a> Parser<'a> {
         let name = self.expression();
 
         self.check_next_consume(TokenType::LeftBrace);
-        self.eat_all_newlines();
-
+        let comments_after_lbrace = self.get_newlines_and_comments();
         let mut members = Vec::new();
 
         while let Some(token) = self.iter.peek() {
-            if let TokenType::Identifier(_) = token.token_type {
-                let name = self.iter.next().unwrap();
+            if token.token_type == TokenType::RightBrace {
+                break;
+            }
 
-                let value = if self.check_next_consume(TokenType::Equal) {
-                    Some(self.expression())
-                } else {
-                    None
-                };
+            let initial_comments = self.get_newlines_and_comments();
+            let name = self.expression();
 
-                members.push(EnumMemberDecl { name: *name, value });
-
-                self.check_next_consume(TokenType::Comma);
-                self.eat_all_newlines();
+            let value = if self.check_next_consume(TokenType::Equal) {
+                Some(self.expression())
             } else {
+                None
+            };
+
+            members.push(EnumMemberDecl {
+                initial_comments,
+                name,
+                value,
+            });
+
+            if self.check_next_consume(TokenType::Comma) == false {
                 break;
             }
         }
@@ -488,7 +493,14 @@ impl<'a> Parser<'a> {
         self.check_next_consume(TokenType::RightBrace);
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
 
-        StatementWrapper::new(Statement::EnumDeclaration { name, members }, has_semicolon)
+        StatementWrapper::new(
+            Statement::EnumDeclaration {
+                name,
+                comments_after_lbrace,
+                members,
+            },
+            has_semicolon,
+        )
     }
 
     fn expression_statement(&mut self) -> StmtBox<'a> {
@@ -1023,6 +1035,7 @@ impl<'a> Parser<'a> {
         vec
     }
 
+    #[deprecated]
     fn eat_all_newlines(&mut self) {
         while let Some(token) = self.iter.peek() {
             if token.token_type == TokenType::Newline {

@@ -52,6 +52,8 @@ impl<'a> Printer<'a> {
             Statement::VariableDeclList { var_decl } => {
                 self.print("var", true);
 
+                let mut whitespace_handler = DefaultWhitespaceHandler {};
+
                 let mut iter = var_decl.into_iter().peekable();
                 while let Some(this_decl) = iter.next() {
                     if this_decl.say_var {
@@ -61,7 +63,7 @@ impl<'a> Printer<'a> {
 
                     if let Some((comments, expr_box)) = &this_decl.assignment {
                         self.print("=", true);
-                        DefaultWhitespaceHandler {}.print_comments_and_newlines(self, comments, IndentationMove::Stay);
+                        whitespace_handler.print_comments_and_newlines(self, comments, IndentationMove::Stay);
                         self.print_expr(expr_box);
                     }
                     self.backspace();
@@ -72,14 +74,26 @@ impl<'a> Printer<'a> {
                 }
                 self.print_semicolon(stmt.has_semicolon);
             }
-            Statement::EnumDeclaration { name, members } => {
+            Statement::EnumDeclaration {
+                name,
+                comments_after_lbrace,
+                members,
+            } => {
                 self.print_expr(name);
                 self.print(LBRACE, false);
-                self.print_newline(IndentationMove::Right);
+
+                let mut whitespace_handler = DefaultWhitespaceHandler {};
+                let did_move = whitespace_handler.print_comments_and_newlines(self, comments_after_lbrace, IndentationMove::Right);
+                self.print_newline(if did_move {
+                    IndentationMove::Stay
+                } else {
+                    IndentationMove::Right
+                });
 
                 let mut iter = members.into_iter().peekable();
                 while let Some(this_member) = iter.next() {
-                    self.print_token(&this_member.name, true);
+                    whitespace_handler.print_comments_and_newlines(self, &this_member.initial_comments, IndentationMove::Stay);
+                    self.print_expr(&this_member.name);
 
                     if let Some(expr_box) = &this_member.value {
                         self.print("=", true);
