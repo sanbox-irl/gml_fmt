@@ -833,39 +833,33 @@ impl<'a> Parser<'a> {
                     }
                 }
 
-                TokenType::LeftBracket | TokenType::ArrayIndexer | TokenType::MapIndexer | TokenType::ListIndexer => {
-                    let token = self.iter.next().unwrap();
-                    let comments_and_newlines_between_access_and_expr = self.get_newlines_and_comments();
-                    let access_expr = self.expression();
+                TokenType::LeftBracket
+                | TokenType::ArrayIndexer
+                | TokenType::MapIndexer
+                | TokenType::ListIndexer
+                | TokenType::GridIndexer => {
+                    let access_type = self.iter.next().unwrap();
+                    let mut access_exprs = vec![];
+
+                    while let Some(token) = self.iter.peek() {
+                        if token.token_type == TokenType::RightBracket {
+                            break;
+                        }
+
+                        access_exprs.push((self.get_newlines_and_comments(), self.expression()));
+
+                        if self.check_next_consume(TokenType::Comma) == false {
+                            break;
+                        }
+                    }
 
                     self.check_next_consume(TokenType::RightBracket);
 
                     // stupid non-chained access..
                     return self.create_expr_box_no_comment(Expr::DataStructureAccess {
                         ds_name: expression,
-                        comments_and_newlines_between_access_and_expr,
-                        access_type: *token,
-                        access_expr,
-                    });
-                }
-
-                TokenType::GridIndexer => {
-                    let token = self.iter.next().unwrap();
-                    let comments_and_newlines_between_access_type_and_row_expr = self.get_newlines_and_comments();
-                    let row_expr = self.expression();
-                    self.check_next_consume(TokenType::Comma);
-                    let comments_and_newlines_after_comma = self.get_newlines_and_comments();
-                    let column_expr = self.expression();
-                    self.check_next_consume(TokenType::RightBracket);
-
-                    // stupid non-chained access..
-                    return self.create_expr_box_no_comment(Expr::GridDataStructureAccess {
-                        ds_name: expression,
-                        access_type: *token,
-                        column_expr,
-                        row_expr,
-                        comments_and_newlines_between_access_type_and_row_expr,
-                        comments_and_newlines_after_comma,
+                        access_type: *access_type,
+                        access_exprs,
                     });
                 }
 

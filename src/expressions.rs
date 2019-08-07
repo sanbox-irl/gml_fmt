@@ -2,6 +2,7 @@ use super::lex_token::*;
 pub type ExprBox<'a> = Box<(Expr<'a>, CommentsAndNewlines<'a>)>;
 pub type CommentsAndNewlines<'a> = Vec<Token<'a>>;
 pub type Arguments<'a> = Vec<(CommentsAndNewlines<'a>, ExprBox<'a>, CommentsAndNewlines<'a>)>;
+pub type DSAccess<'a> = Vec<(CommentsAndNewlines<'a>, ExprBox<'a>)>;
 
 #[derive(Debug)]
 pub enum Expr<'a> {
@@ -77,16 +78,7 @@ pub enum Expr<'a> {
     DataStructureAccess {
         ds_name: ExprBox<'a>,
         access_type: Token<'a>,
-        comments_and_newlines_between_access_and_expr: CommentsAndNewlines<'a>,
-        access_expr: ExprBox<'a>,
-    },
-    GridDataStructureAccess {
-        ds_name: ExprBox<'a>,
-        access_type: Token<'a>,
-        comments_and_newlines_between_access_type_and_row_expr: CommentsAndNewlines<'a>,
-        row_expr: ExprBox<'a>,
-        comments_and_newlines_after_comma: CommentsAndNewlines<'a>,
-        column_expr: ExprBox<'a>,
+        access_exprs: DSAccess<'a>,
     },
     // x ? y : z;
     Ternary {

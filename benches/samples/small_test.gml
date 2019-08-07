@@ -1,1 +1,1 @@
-input_slot_add("right", vk_right, gp_padr, [gp_axislh, +1]);
+var x = 2d_array[# 0, 1];

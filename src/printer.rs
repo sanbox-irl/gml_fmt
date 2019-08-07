@@ -536,48 +536,23 @@ impl<'a> Printer<'a> {
             Expr::DataStructureAccess {
                 ds_name,
                 access_type,
-                comments_and_newlines_between_access_and_expr,
-                access_expr,
+                access_exprs,
             } => {
                 self.print_expr(ds_name);
                 self.backspace();
 
                 self.print_token(&access_type, access_type.token_type != TokenType::LeftBracket);
-                whitespace_handler.print_comments_and_newlines(
-                    self,
-                    comments_and_newlines_between_access_and_expr,
-                    IndentationMove::Stay,
-                );
-                self.print_expr(access_expr);
 
-                self.backspace();
-                self.print("]", true);
-            }
-            Expr::GridDataStructureAccess {
-                ds_name,
-                access_type,
-                comments_and_newlines_between_access_type_and_row_expr,
-                row_expr,
-                comments_and_newlines_after_comma,
-                column_expr,
-            } => {
-                self.print_expr(ds_name);
-                self.print_token(&access_type, true);
-                whitespace_handler.print_comments_and_newlines(
-                    self,
-                    comments_and_newlines_between_access_type_and_row_expr,
-                    IndentationMove::Stay,
-                );
-                self.print_expr(row_expr);
+                let mut iter = access_exprs.into_iter().peekable();
+                while let Some((comments, expr)) = iter.next() {
+                    whitespace_handler.print_comments_and_newlines(self, comments, IndentationMove::Stay);
+                    self.print_expr(expr);
+                    self.backspace();
 
-                self.print(COMMA, true);
-                whitespace_handler.print_comments_and_newlines(
-                    self,
-                    comments_and_newlines_after_comma,
-                    IndentationMove::Stay,
-                );
-
-                self.print_expr(column_expr);
+                    if let Some(_) = iter.peek() {
+                        self.print(COMMA, true);
+                    }
+                }
 
                 self.backspace();
                 self.print("]", true);
