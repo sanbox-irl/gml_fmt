@@ -43,9 +43,9 @@ before_deploy:
   - cargo rustc --target %TARGET% --release
   - ps: ci\before_deploy.ps1
 
-deploy:
-  artifacts:
+artifacts:
     - path: '**/*.zip'
+deploy:
   auth_token:
     secure: D/IVELa18SuLQTD/ZuWwM20q17p/bbaaniz8Bi/vifWiQjbxjTvdyYdn71KKOk3t
   description: "Appveyor auth token"
