@@ -15,7 +15,6 @@ pub enum TokenType<'a> {
     Star,
     Mod,
     Hashtag,
-    Newline,
 
     PlusEquals,
     MinusEquals,
@@ -86,6 +85,7 @@ pub enum TokenType<'a> {
     ModAlias,
     Div,
 
+    Newline(&'a str),
     Identifier(&'a str),
     String(&'a str),
     Number(&'a str),
@@ -141,7 +141,6 @@ impl<'a> Token<'a> {
             TokenType::Star => "*",
             TokenType::Mod => "%",
             TokenType::Hashtag => "#",
-            TokenType::Newline => "\n",
 
             TokenType::ListIndexer => "[|",
             TokenType::MapIndexer => "[?",
@@ -211,6 +210,7 @@ impl<'a> Token<'a> {
             TokenType::NotAlias => "not",
             TokenType::ModAlias => "mod",
             TokenType::Div => "div",
+            TokenType::Newline(_) => "\n",
 
             TokenType::Identifier(literal)
             | TokenType::String(literal)

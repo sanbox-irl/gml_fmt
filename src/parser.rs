@@ -134,7 +134,7 @@ impl<'a> Parser<'a> {
 
         while let Some(t) = self.iter.peek() {
             match t.token_type {
-                TokenType::Newline => break,
+                TokenType::Newline(_) => break,
                 TokenType::EOF => break,
                 _ => {
                     multi_word_name.push(*self.consume_next());
@@ -151,7 +151,7 @@ impl<'a> Parser<'a> {
 
         while let Some(t) = self.iter.peek() {
             match t.token_type {
-                TokenType::Newline => {
+                TokenType::Newline(_) => {
                     if ignore_newline {
                         macro_body.push(*self.consume_next());
                     } else {
@@ -983,9 +983,18 @@ impl<'a> Parser<'a> {
                     });
                 }
 
-                TokenType::Newline => {
+                TokenType::Newline(_) => {
                     let t = self.consume_next();
-                    return self.create_expr_box_no_comment(Expr::Newline { token: *t });
+                    let mut newlines = vec![*t];
+                    while let Some(token) = self.iter.peek() {
+                        if let TokenType::Newline(_) = token.token_type {
+                            let token = self.consume_next();
+                            newlines.push(*token);
+                        } else {
+                            break;
+                        }
+                    }
+                    return self.create_expr_box_no_comment(Expr::Newline { newlines });
                 }
                 _ => {
                     let t = self.consume_next();
@@ -1025,7 +1034,7 @@ impl<'a> Parser<'a> {
         let mut vec = vec![];
         while let Some(token) = self.iter.peek() {
             match token.token_type {
-                TokenType::Newline => {
+                TokenType::Newline(_) => {
                     let token = self.iter.next().unwrap();
                     vec.push(*token);
                 }
@@ -1046,10 +1055,10 @@ impl<'a> Parser<'a> {
     }
 
     fn create_comment_expr_box(&mut self, expr: Expr<'a>) -> ExprBox<'a> {
-        Box::new((expr, self.get_newlines_and_comments()))
+        Box::new(expr)
     }
 
     fn create_expr_box_no_comment(&self, expr: Expr<'a>) -> ExprBox<'a> {
-        Box::new((expr, vec![]))
+        Box::new(expr)
     }
 }

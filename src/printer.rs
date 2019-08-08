@@ -22,6 +22,7 @@ pub struct Printer<'a> {
     do_not_print_newline_comments: bool,
     do_not_print_single_blankline_comments: bool,
     do_not_print_single_newline_statement: bool,
+    do_not_print_newline_after_block: bool,
 }
 
 impl<'a> Printer<'a> {
@@ -34,6 +35,7 @@ impl<'a> Printer<'a> {
             do_not_print_newline_comments: false,
             do_not_print_single_blankline_comments: false,
             do_not_print_single_newline_statement: false,
+            do_not_print_newline_after_block: false,
         }
     }
 
@@ -134,6 +136,7 @@ impl<'a> Printer<'a> {
                 statements,
                 comments_after_lbrace,
             } => {
+                self.ensure_space();
                 self.print(LBRACE, false);
 
                 // Back it an indented block if we have more than one statement...
@@ -172,7 +175,12 @@ impl<'a> Printer<'a> {
 
                 self.print(RBRACE, false);
                 self.print_semicolon(stmt.has_semicolon);
-                self.ensure_newline(IndentationMove::Stay);
+
+                if self.do_not_print_newline_after_block == false {
+                    self.ensure_newline(IndentationMove::Stay);
+                }
+
+                self.do_not_print_single_newline_statement = true;
             }
             Statement::If {
                 condition,
@@ -184,38 +192,31 @@ impl<'a> Printer<'a> {
                 self.print_statement(then_branch);
 
                 if let Some(else_branch) = else_branch {
+                    self.backspace_whitespace();
                     self.print(SPACE, false);
                     self.print("else", true);
-
                     self.print_statement(else_branch);
                 }
                 self.print_semicolon(stmt.has_semicolon);
             }
-            Statement::While {
-                condition,
-                body,
-            } => {
+            Statement::While { condition, body } => {
                 self.print("while", true);
                 self.print_expr(condition);
                 self.print_statement(body);
                 self.print_semicolon(stmt.has_semicolon);
             }
-            Statement::DoUntil {
-                condition,
-                body,
-            } => {
+            Statement::DoUntil { condition, body } => {
                 self.print("do", true);
+                self.do_not_print_newline_after_block = true;
                 self.print_statement(body);
+                self.do_not_print_newline_after_block = false;
                 self.ensure_space();
                 self.print("until", true);
                 self.print_expr(condition);
                 self.backspace();
                 self.print_semicolon(stmt.has_semicolon);
             }
-            Statement::Repeat {
-                condition,
-                body,
-            } => {
+            Statement::Repeat { condition, body } => {
                 self.print("repeat", true);
                 self.print_expr(condition);
                 self.print_statement(body);
@@ -373,7 +374,7 @@ impl<'a> Printer<'a> {
                 }
             }
             Statement::EOF => {
-                if self.prev_line_was_whitespace() {
+                if self.on_whitespace_line() {
                     return;
                 }
                 if self.output.len() == 0 {
@@ -388,7 +389,7 @@ impl<'a> Printer<'a> {
     }
 
     fn print_expr(&mut self, expr: &'a ExprBox<'a>) {
-        match &expr.0 {
+        match &**expr {
             Expr::Call {
                 procedure_name,
                 comments_and_newlines_after_lparen,
@@ -628,18 +629,23 @@ impl<'a> Printer<'a> {
                 }
             }
 
-            Expr::Newline { token: _ } => {
+            Expr::Newline { newlines } => {
+                let mut start = 0;
                 if self.do_not_print_single_newline_statement {
-                    self.do_not_print_single_newline_statement = false;
-                    return;
+                    
+                    start = 1;
                 }
-                self.print_newline(IndentationMove::Stay);
+                for _ in start..newlines.len() {
+                    self.print_newline(IndentationMove::Stay);
+                }
             }
             Expr::UnidentifiedAsLiteral { literal_token } => {
                 self.print_token(&literal_token, false);
             }
             Expr::UnexpectedEnd => {}
         }
+
+        self.do_not_print_single_newline_statement = false;
     }
 
     fn print_token(&mut self, token: &Token<'a>, space_after: bool) {
@@ -650,18 +656,6 @@ impl<'a> Printer<'a> {
         self.output.push(this_string);
         if space_after {
             self.output.push(SPACE);
-        }
-    }
-    
-    #[deprecated]
-    fn print_expr_parentheses(&mut self, expr: &'a ExprBox<'a>, has_surrounding_paren: (bool, bool)) {
-        if has_surrounding_paren.0 {
-            self.print(LPAREN, false);
-        }
-        self.print_expr(expr);
-        if has_surrounding_paren.1 {
-            self.backspace();
-            self.print(RPAREN, true);
         }
     }
 
@@ -824,7 +818,7 @@ impl<'a> Printer<'a> {
 
     fn only_newlines(&mut self, vec: &'a Vec<Token<'a>>) -> bool {
         for this_token in vec {
-            if this_token.token_type == TokenType::Newline {
+            if let TokenType::Newline(_) = this_token.token_type {
                 continue;
             }
             return false;
@@ -845,7 +839,7 @@ impl<'a> Printer<'a> {
 
         for this_one in vec {
             match this_one.token_type {
-                TokenType::Newline => {
+                TokenType::Newline(_) => {
                     if did_move {
                         self.print_newline(IndentationMove::Stay);
                     } else {

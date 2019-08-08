@@ -10,7 +10,6 @@ fn regions() {
     let format = "#region Test Test Test
 
 #endregion Okay
-
 ";
     assert_eq!(gml_fmt::run_test(input), format);
 }
@@ -98,7 +97,6 @@ for (var i;; i++) {
 for (var i;;) {
     show_debug_message(4);
 }
-
 ";
 
     assert_eq!(gml_fmt::run_test(input), format);

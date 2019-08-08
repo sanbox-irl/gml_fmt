@@ -1,5 +1,5 @@
 use super::lex_token::*;
-pub type ExprBox<'a> = Box<(Expr<'a>, CommentsAndNewlines<'a>)>;
+pub type ExprBox<'a> = Box<Expr<'a>>;
 pub type CommentsAndNewlines<'a> = Vec<Token<'a>>;
 pub type Arguments<'a> = Vec<(CommentsAndNewlines<'a>, ExprBox<'a>, CommentsAndNewlines<'a>)>;
 pub type DSAccess<'a> = Vec<(CommentsAndNewlines<'a>, ExprBox<'a>)>;
@@ -89,10 +89,12 @@ pub enum Expr<'a> {
     },
 
     Newline {
-        token: Token<'a>,
+        newlines: Vec<Token<'a>>,
     },
     UnidentifiedAsLiteral {
         literal_token: Token<'a>,
     },
     UnexpectedEnd,
 }
+
+
