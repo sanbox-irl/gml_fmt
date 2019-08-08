@@ -16,9 +16,9 @@ matrix:
     - env: TARGET=x86_64-apple-darwin
       os: osx
     
-    # Windows?
-    - env: x86_64-pc-windows-gnu
-      os: windows
+    # # Windows?
+    # - env: x86_64-pc-windows-gnu
+    #   os: windows
 
     # Testing other channels
     - env: TARGET=x86_64-unknown-linux-gnu
