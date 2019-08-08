@@ -44,7 +44,8 @@ before_deploy:
   - ps: ci\before_deploy.ps1
 
 deploy:
-  artifact: /.*\.zip/
+  artifacts:
+    - path: '**/*.zip'
   auth_token:
     secure: D/IVELa18SuLQTD/ZuWwM20q17p/bbaaniz8Bi/vifWiQjbxjTvdyYdn71KKOk3t
   description: "Appveyor auth token"
