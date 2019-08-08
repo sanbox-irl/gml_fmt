@@ -3,7 +3,7 @@ use super::lex_token::Token;
 
 pub type StmtBox<'a> = Box<StatementWrapper<'a>>;
 pub type ParenInfo = (bool, bool);
-pub type DeliminatedLines<'a> = Vec<DeliminatedLine<'a>>;
+pub type DelimitedLines<'a> = Vec<DelimitedLine<'a>>;
 
 #[derive(Debug)]
 pub struct StatementWrapper<'a> {
@@ -28,7 +28,7 @@ pub enum Statement<'a> {
     EnumDeclaration {
         name: ExprBox<'a>,
         comments_after_lbrace: CommentsAndNewlines<'a>,
-        members: DeliminatedLines<'a>,
+        members: DelimitedLines<'a>,
     },
     ExpresssionStatement {
         expression: ExprBox<'a>,
@@ -38,23 +38,19 @@ pub enum Statement<'a> {
         statements: Vec<StmtBox<'a>>,
     },
     If {
-        has_surrounding_paren: ParenInfo,
         condition: ExprBox<'a>,
         then_branch: StmtBox<'a>,
         else_branch: Option<StmtBox<'a>>,
     },
     While {
-        has_surrounding_paren: ParenInfo,
         condition: ExprBox<'a>,
         body: StmtBox<'a>,
     },
     DoUntil {
         body: StmtBox<'a>,
-        has_surrounding_paren: ParenInfo,
         condition: ExprBox<'a>,
     },
     Repeat {
-        has_surrounding_paren: ParenInfo,
         condition: ExprBox<'a>,
         body: StmtBox<'a>,
     },
@@ -118,7 +114,7 @@ pub struct VariableDecl<'a> {
 }
 
 #[derive(Debug)]
-pub struct DeliminatedLine<'a> {
+pub struct DelimitedLine<'a> {
     pub expr: ExprBox<'a>,
     pub trailing_comment: Option<CommentsAndNewlines<'a>>,
 }

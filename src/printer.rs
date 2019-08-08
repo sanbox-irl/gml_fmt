@@ -176,12 +176,11 @@ impl<'a> Printer<'a> {
             }
             Statement::If {
                 condition,
-                has_surrounding_paren,
                 then_branch,
                 else_branch,
             } => {
                 self.print("if", true);
-                self.print_expr_parentheses(condition, *has_surrounding_paren);
+                self.print_expr(condition);
                 self.print_statement(then_branch);
 
                 if let Some(else_branch) = else_branch {
@@ -195,33 +194,30 @@ impl<'a> Printer<'a> {
             Statement::While {
                 condition,
                 body,
-                has_surrounding_paren,
             } => {
                 self.print("while", true);
-                self.print_expr_parentheses(condition, *has_surrounding_paren);
+                self.print_expr(condition);
                 self.print_statement(body);
                 self.print_semicolon(stmt.has_semicolon);
             }
             Statement::DoUntil {
                 condition,
                 body,
-                has_surrounding_paren,
             } => {
                 self.print("do", true);
                 self.print_statement(body);
                 self.ensure_space();
                 self.print("until", true);
-                self.print_expr_parentheses(condition, *has_surrounding_paren);
+                self.print_expr(condition);
                 self.backspace();
                 self.print_semicolon(stmt.has_semicolon);
             }
             Statement::Repeat {
                 condition,
                 body,
-                has_surrounding_paren,
             } => {
                 self.print("repeat", true);
-                self.print_expr_parentheses(condition, *has_surrounding_paren);
+                self.print_expr(condition);
                 self.print_statement(body);
                 self.print_semicolon(stmt.has_semicolon);
             }
@@ -315,7 +311,6 @@ impl<'a> Printer<'a> {
                     }
 
                     // @jack do we handle blocks here in a special way?
-
                     for this_statement in &case.statements {
                         self.print_statement(this_statement);
                     }
@@ -657,7 +652,8 @@ impl<'a> Printer<'a> {
             self.output.push(SPACE);
         }
     }
-
+    
+    #[deprecated]
     fn print_expr_parentheses(&mut self, expr: &'a ExprBox<'a>, has_surrounding_paren: (bool, bool)) {
         if has_surrounding_paren.0 {
             self.print(LPAREN, false);

@@ -252,10 +252,7 @@ impl<'a> Parser<'a> {
     }
 
     fn if_statement(&mut self) -> StmtBox<'a> {
-        let mut has_surrounding_paren = (self.check_next_consume(TokenType::LeftParen), false);
-
         let condition = self.expression();
-        has_surrounding_paren.1 = self.check_next_consume(TokenType::RightParen);
 
         let then_branch = self.statement();
         let else_branch = if self.check_next_consume(TokenType::Else) {
@@ -267,7 +264,6 @@ impl<'a> Parser<'a> {
         StatementWrapper::new(
             Statement::If {
                 condition,
-                has_surrounding_paren,
                 then_branch,
                 else_branch,
             },
@@ -276,17 +272,13 @@ impl<'a> Parser<'a> {
     }
 
     fn while_statement(&mut self) -> StmtBox<'a> {
-        let mut has_surrounding_paren = (self.check_next_consume(TokenType::LeftParen), false);
         let condition = self.expression();
-        has_surrounding_paren.1 = self.check_next_consume(TokenType::RightParen);
-
         let body = self.statement();
 
         StatementWrapper::new(
             Statement::While {
                 condition,
                 body,
-                has_surrounding_paren,
             },
             false,
         )
@@ -294,17 +286,14 @@ impl<'a> Parser<'a> {
 
     fn do_until_statement(&mut self) -> StmtBox<'a> {
         let body = self.statement();
-
-        let mut has_surrounding_paren = (self.check_next_consume(TokenType::LeftParen), false);
+        
         self.check_next_consume(TokenType::Until);
         let condition = self.expression();
-        has_surrounding_paren.1 = self.check_next_consume(TokenType::RightParen);
 
         StatementWrapper::new(
             Statement::DoUntil {
                 condition,
                 body,
-                has_surrounding_paren,
             },
             false,
         )
@@ -396,17 +385,13 @@ impl<'a> Parser<'a> {
     }
 
     fn repeat_statement(&mut self) -> StmtBox<'a> {
-        let mut has_surrounding_paren = (self.check_next_consume(TokenType::LeftParen), false);
         let condition = self.expression();
-        has_surrounding_paren.1 = self.check_next_consume(TokenType::RightParen);
-
         let body = self.statement();
 
         StatementWrapper::new(
             Statement::Repeat {
                 condition,
                 body,
-                has_surrounding_paren,
             },
             false,
         )
@@ -899,7 +884,7 @@ impl<'a> Parser<'a> {
         &mut self,
         end_token_type: TokenType,
         delimiter_type: TokenType,
-    ) -> DeliminatedLines<'a> {
+    ) -> DelimitedLines<'a> {
         let mut arguments = Vec::new();
         if self.check_next(end_token_type) == false {
             loop {
@@ -916,7 +901,7 @@ impl<'a> Parser<'a> {
                     Some(self.get_newlines_and_comments())
                 };
 
-                arguments.push(DeliminatedLine { expr, trailing_comment });
+                arguments.push(DelimitedLine { expr, trailing_comment });
                 if do_break {
                     break;
                 }
