@@ -21,6 +21,7 @@ pub struct Printer<'a> {
     force_indentation: Option<IndentationMove>,
     do_not_print_newline_comments: bool,
     do_not_print_single_blankline_comments: bool,
+    do_not_print_single_newline_statement: bool,
 }
 
 impl<'a> Printer<'a> {
@@ -32,6 +33,7 @@ impl<'a> Printer<'a> {
             force_indentation: None,
             do_not_print_newline_comments: false,
             do_not_print_single_blankline_comments: false,
+            do_not_print_single_newline_statement: false,
         }
     }
 
@@ -128,19 +130,49 @@ impl<'a> Printer<'a> {
                 self.print_expr(expression);
                 self.print_semicolon(stmt.has_semicolon);
             }
-            Statement::Block { statements } => {
+            Statement::Block {
+                statements,
+                comments_after_lbrace,
+            } => {
                 self.print(LBRACE, false);
 
-                self.indentation += 1;
-                for this_stmt in statements {
-                    self.print_statement(this_stmt);
+                // Back it an indented block if we have more than one statement...
+                let must_indent = statements.len() > 1;
+                if must_indent {
+                    self.do_not_print_newline_comments = true;
+                };
+                let did_move = self.print_comments_and_newlines(comments_after_lbrace, IndentationMove::Right);
+                if did_move == false && must_indent {
+                    self.print_newline(IndentationMove::Right);
                 }
-                if self.on_whitespace_line() {
-                    self.backspace_till_newline();
-                    self.print_indentation(IndentationMove::Left);
+                self.do_not_print_newline_comments = false;
+                let did_newline = did_move || must_indent;
+
+                if did_newline == false {
+                    self.ensure_space();
                 }
+
+                let mut iter = statements.into_iter().peekable();
+                while let Some(stmt) = iter.next() {
+                    self.print_statement(stmt);
+                    if did_newline {
+                        if self.on_whitespace_line() == false {
+                            self.print_newline(IndentationMove::Stay);
+                            self.do_not_print_single_newline_statement = true;
+                        }
+                    }
+                }
+
+                if did_newline {
+                    self.backspace_whitespace();
+                    self.print_newline(IndentationMove::Left);
+                } else {
+                    self.ensure_space();
+                }
+
                 self.print(RBRACE, false);
                 self.print_semicolon(stmt.has_semicolon);
+                self.ensure_newline(IndentationMove::Stay);
             }
             Statement::If {
                 condition,
@@ -258,60 +290,61 @@ impl<'a> Printer<'a> {
                 self.ensure_space();
                 self.print(LBRACE, true);
                 let did_move = self.print_comments_and_newlines(comments_after_lbrace, IndentationMove::Right);
-
                 if did_move == false {
                     self.print_newline(IndentationMove::Right);
                 }
 
-                let iter = cases.into_iter().peekable();
-                for Case {
-                    case_type,
-                    comments_after_case,
-                    comments_after_colon,
-                    statements,
-                } in iter
-                {
-                    if let CaseType::Case(case_constant) = case_type {
+                let mut iter = cases.into_iter().peekable();
+                while let Some(case) = iter.next() {
+                    if let CaseType::Case(case_constant) = &case.case_type {
                         self.print("case", true);
-                        self.print_expr(&case_constant);
+                        self.print_expr(case_constant);
                     } else {
                         self.print("default", false);
                     }
 
-                    self.print_comments_and_newlines(comments_after_case, IndentationMove::Stay);
+                    self.print_comments_and_newlines(&case.comments_after_case, IndentationMove::Stay);
                     self.backspace();
                     self.print(":", true);
 
                     self.do_not_print_single_blankline_comments = true;
-                    let did_move = self.print_comments_and_newlines(comments_after_colon, IndentationMove::Right);
+                    let did_move = self.print_comments_and_newlines(&case.comments_after_colon, IndentationMove::Right);
                     self.do_not_print_single_blankline_comments = false;
-
                     if did_move == false {
                         self.print_newline(IndentationMove::Right);
                     }
 
-                    for this_statement in statements {
+                    // @jack do we handle blocks here in a special way?
+
+                    for this_statement in &case.statements {
                         self.print_statement(this_statement);
                     }
 
-                    if self.on_whitespace_line() == false {
-                        self.print_newline(IndentationMove::Left);
+                    // No blank lines on final iteration!
+                    if let Some(_) = iter.peek() {
+                        if self.on_whitespace_line() == false {
+                            self.print_newline(IndentationMove::Left);
+                        } else {
+                            self.backspace_till_newline();
+                            self.print_indentation(IndentationMove::Left);
+                        }
                     } else {
-                        self.backspace_till_newline();
-                        self.print_indentation(IndentationMove::Left);
+                        self.set_indentation(IndentationMove::Left);
                     }
                 }
 
                 if self.on_whitespace_line() {
                     self.backspace_till_newline();
                     self.print_indentation(IndentationMove::Left);
+                } else {
+                    self.print_newline(IndentationMove::Left);
                 }
 
                 self.print(RBRACE, false);
                 self.print_semicolon(stmt.has_semicolon);
             }
             Statement::Comment { comment } => self.print_token(comment, false),
-            Statement::MultilineComment { multiline_comment } => self.print_token(multiline_comment, false),
+            Statement::MultilineComment { multiline_comment } => self.print_token(multiline_comment, true),
             Statement::RegionBegin { multi_word_name } => {
                 self.print("#region", true);
 
@@ -600,7 +633,13 @@ impl<'a> Printer<'a> {
                 }
             }
 
-            Expr::Newline { token: _ } => self.print_newline(IndentationMove::Stay),
+            Expr::Newline { token: _ } => {
+                if self.do_not_print_single_newline_statement {
+                    self.do_not_print_single_newline_statement = false;
+                    return;
+                }
+                self.print_newline(IndentationMove::Stay);
+            }
             Expr::UnidentifiedAsLiteral { literal_token } => {
                 self.print_token(&literal_token, false);
             }
@@ -699,6 +738,25 @@ impl<'a> Printer<'a> {
         }
     }
 
+    fn backspace_whitespace(&mut self) {
+        let mut pos = self.output.len();
+        if pos == 0 {
+            return;
+        };
+
+        pos -= 1;
+
+        while pos != 0 {
+            match self.output[pos] {
+                NEWLINE | TAB | SPACE => {
+                    self.output.remove(pos);
+                    pos -= 1;
+                }
+                _ => break,
+            };
+        }
+    }
+
     fn backspace(&mut self) {
         let pos = self.output.len();
         if pos != 0 && self.output[pos - 1] == SPACE {
@@ -707,13 +765,29 @@ impl<'a> Printer<'a> {
     }
 
     fn ensure_space(&mut self) {
+        if let Some(last_entry) = self.last_entry() {
+            if last_entry == SPACE {
+                return;
+            }
+        }
+        self.print(SPACE, false);
+    }
+
+    fn ensure_newline(&mut self, indentation_move: IndentationMove) {
+        if let Some(last_entry) = self.last_entry() {
+            if last_entry == NEWLINE {
+                return;
+            }
+        }
+        self.print_newline(indentation_move);
+    }
+
+    fn last_entry(&mut self) -> Option<&'a str> {
         let pos = self.output.len();
         if pos != 0 {
-            if self.output[pos - 1] == SPACE {
-                return;
-            } else {
-                self.print(SPACE, false);
-            }
+            Some(self.output[pos - 1])
+        } else {
+            None
         }
     }
 
@@ -732,6 +806,14 @@ impl<'a> Printer<'a> {
     }
 
     fn print_indentation(&mut self, indentation_move: IndentationMove) {
+        self.set_indentation(indentation_move);
+
+        for _ in 0..self.indentation {
+            self.print(TAB, false);
+        }
+    }
+
+    fn set_indentation(&mut self, indentation_move: IndentationMove) {
         match indentation_move {
             IndentationMove::Right => self.indentation += 1,
             IndentationMove::Stay => {}
@@ -741,10 +823,6 @@ impl<'a> Printer<'a> {
                     self.indentation = 0;
                 }
             }
-        }
-
-        for _ in 0..self.indentation {
-            self.print(TAB, false);
         }
     }
 

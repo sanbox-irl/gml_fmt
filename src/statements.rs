@@ -34,6 +34,7 @@ pub enum Statement<'a> {
         expression: ExprBox<'a>,
     },
     Block {
+        comments_after_lbrace: CommentsAndNewlines<'a>,
         statements: Vec<StmtBox<'a>>,
     },
     If {

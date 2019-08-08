@@ -234,6 +234,8 @@ impl<'a> Parser<'a> {
     }
 
     fn block(&mut self) -> StmtBox<'a> {
+        let comments_after_lbrace = self.get_newlines_and_comments();
+
         let mut statements = Vec::new();
 
         while let Some(_) = self.iter.peek() {
@@ -246,7 +248,7 @@ impl<'a> Parser<'a> {
 
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
 
-        StatementWrapper::new(Statement::Block { statements }, has_semicolon)
+        StatementWrapper::new(Statement::Block { statements, comments_after_lbrace }, has_semicolon)
     }
 
     fn if_statement(&mut self) -> StmtBox<'a> {
@@ -316,7 +318,6 @@ impl<'a> Parser<'a> {
         let mut cases: Vec<Case<'a>> = vec![];
 
         while let Some(token) = self.iter.next() {
-            println!("Found token {}", token);
             match token.token_type {
                 TokenType::Case => {
                     // this is a copy of default below, with modification
@@ -1053,17 +1054,6 @@ impl<'a> Parser<'a> {
         }
 
         vec
-    }
-
-    #[deprecated]
-    fn eat_all_newlines(&mut self) {
-        while let Some(token) = self.iter.peek() {
-            if token.token_type == TokenType::Newline {
-                self.iter.next();
-            } else {
-                break;
-            }
-        }
     }
 
     fn consume_next(&mut self) -> &'a Token<'a> {
