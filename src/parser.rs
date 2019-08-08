@@ -7,6 +7,7 @@ use std::slice;
 
 pub struct Parser<'a> {
     pub ast: Vec<StmtBox<'a>>,
+    pub success: bool,
     iter: Peekable<slice::Iter<'a, Token<'a>>>,
 }
 
@@ -15,11 +16,15 @@ impl<'a> Parser<'a> {
         Parser {
             ast: Vec::new(),
             iter: tokens.iter().peekable(),
+            success: true,
         }
     }
 
     pub fn build_ast(&mut self) {
         while let Some(t) = self.iter.peek() {
+            if self.success == false {
+                break;
+            }
             match t.token_type {
                 TokenType::EOF => {
                     self.ast.push(StatementWrapper::new(Statement::EOF, false));
@@ -33,7 +38,6 @@ impl<'a> Parser<'a> {
         }
     }
 
-    // @jack support compiler directive...#region, #macro #endregion
     fn statement(&mut self) -> StmtBox<'a> {
         if let Some(token) = self.iter.peek() {
             match token.token_type {
@@ -248,7 +252,13 @@ impl<'a> Parser<'a> {
 
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
 
-        StatementWrapper::new(Statement::Block { statements, comments_after_lbrace }, has_semicolon)
+        StatementWrapper::new(
+            Statement::Block {
+                statements,
+                comments_after_lbrace,
+            },
+            has_semicolon,
+        )
     }
 
     fn if_statement(&mut self) -> StmtBox<'a> {
@@ -275,28 +285,16 @@ impl<'a> Parser<'a> {
         let condition = self.expression();
         let body = self.statement();
 
-        StatementWrapper::new(
-            Statement::While {
-                condition,
-                body,
-            },
-            false,
-        )
+        StatementWrapper::new(Statement::While { condition, body }, false)
     }
 
     fn do_until_statement(&mut self) -> StmtBox<'a> {
         let body = self.statement();
-        
+
         self.check_next_consume(TokenType::Until);
         let condition = self.expression();
 
-        StatementWrapper::new(
-            Statement::DoUntil {
-                condition,
-                body,
-            },
-            false,
-        )
+        StatementWrapper::new(Statement::DoUntil { condition, body }, false)
     }
 
     fn switch_statement(&mut self) -> StmtBox<'a> {
@@ -388,13 +386,7 @@ impl<'a> Parser<'a> {
         let condition = self.expression();
         let body = self.statement();
 
-        StatementWrapper::new(
-            Statement::Repeat {
-                condition,
-                body,
-            },
-            false,
-        )
+        StatementWrapper::new(Statement::Repeat { condition, body }, false)
     }
 
     fn for_statement(&mut self) -> StmtBox<'a> {
@@ -998,11 +990,13 @@ impl<'a> Parser<'a> {
                 }
                 _ => {
                     let t = self.consume_next();
+                    self.success = false;
                     return self.create_comment_expr_box(Expr::UnidentifiedAsLiteral { literal_token: *t });
                 }
             }
         }
 
+        self.success = false;
         self.create_expr_box_no_comment(Expr::UnexpectedEnd)
     }
 

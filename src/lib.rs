@@ -53,6 +53,11 @@ fn run(source: &str, print_ast: bool) -> (String, Option<String>) {
     let mut parser = Parser::new(our_tokens);
     parser.build_ast();
 
+    if parser.success == false {
+        eprintln!("Error on parse. Could not format.");
+        std::process::exit(1);
+    }
+
     let mut printer = Printer::new();
     printer.autoformat(&parser.ast[..]);
     (
