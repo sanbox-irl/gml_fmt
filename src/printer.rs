@@ -87,6 +87,7 @@ impl<'a> Printer<'a> {
                 comments_after_lbrace,
                 members,
             } => {
+                self.print("enum", true);
                 self.print_expr(name);
                 self.print(LBRACE, true);
 
