@@ -16,13 +16,14 @@ const SEMICOLON: &str = ";";
 
 pub struct Printer<'a> {
     pub output: Vec<&'a str>,
-    indentation: i32,
+    indentation: usize,
     can_replace_handler: bool,
     force_indentation: Option<IndentationMove>,
     do_not_print_newline_comments: bool,
     do_not_print_single_blankline_comments: bool,
     do_not_print_single_newline_statement: bool,
     do_not_print_newline_after_block: bool,
+    // accept_original_indentation: bool,
 }
 
 impl<'a> Printer<'a> {
@@ -36,6 +37,7 @@ impl<'a> Printer<'a> {
             do_not_print_single_blankline_comments: false,
             do_not_print_single_newline_statement: false,
             do_not_print_newline_after_block: false,
+            // accept_original_indentation: false,
         }
     }
 
@@ -632,7 +634,6 @@ impl<'a> Printer<'a> {
             Expr::Newline { newlines } => {
                 let mut start = 0;
                 if self.do_not_print_single_newline_statement {
-                    
                     start = 1;
                 }
                 for _ in start..newlines.len() {
@@ -809,9 +810,6 @@ impl<'a> Printer<'a> {
             IndentationMove::Stay => {}
             IndentationMove::Left => {
                 self.indentation -= 1;
-                if self.indentation < 0 {
-                    self.indentation = 0;
-                }
             }
         }
     }
@@ -847,6 +845,10 @@ impl<'a> Printer<'a> {
                         if let Some(indent) = self.force_indentation {
                             self.print_newline(indent);
                             self.force_indentation = None;
+                        // } 
+                        // else if self.accept_original_indentation {
+                        //     self.indentation = original_indentation;
+                        //     self.print_newline(IndentationMove::Stay);
                         } else {
                             self.print_newline(indentation_move);
                         }

@@ -496,15 +496,21 @@ impl<'a> Scanner<'a> {
 
                 // Newline
                 '\n' => {
-                    let start = self.next_char_boundary();
+                    let mut tally = 0;
                     while let Some((_, c)) = self.iter.peek() {
                         match c {
-                            ' ' | '\t' => self.iter.next(),
+                            ' ' => {
+                                self.iter.next();
+                                tally += 1;
+                            }
+                            '\t' => {
+                                self.iter.next();
+                                tally += 4;
+                            }
                             _ => break,
                         };
                     }
-                    let end = self.next_char_boundary();
-                    self.add_multiple_token(TokenType::Newline(&self.input[start..end]), (end - start) as u32);
+                    self.add_multiple_token(TokenType::Newline(tally), tally as u32);
                     self.next_line();
                 }
 
@@ -639,7 +645,7 @@ mod scanner_test {
                 Token::new(TokenType::LeftBracket, 0, 4),
                 Token::new(TokenType::RightBracket, 0, 5),
                 Token::new(TokenType::Comment("// grouping stuff"), 0, 7),
-                Token::new(TokenType::Newline(""), 0, 24),
+                Token::new(TokenType::Newline(0), 0, 24),
                 // line 1
                 Token::new(TokenType::Bang, 1, 0),
                 Token::new(TokenType::Star, 1, 2),
@@ -653,7 +659,7 @@ mod scanner_test {
                 Token::new(TokenType::Hashtag, 1, 18),
                 Token::new(TokenType::Hook, 1, 20),
                 Token::new(TokenType::Comment("// binary operators"), 1, 22),
-                Token::new(TokenType::Newline(""), 1, 41),
+                Token::new(TokenType::Newline(0), 1, 41),
                 // line 2
                 Token::new(TokenType::Equal, 2, 0),
                 Token::new(TokenType::EqualEqual, 2, 2),
@@ -663,20 +669,20 @@ mod scanner_test {
                 Token::new(TokenType::GreaterEqual, 2, 12),
                 Token::new(TokenType::LessEqual, 2, 15),
                 Token::new(TokenType::Comment("// equality operators"), 2, 18),
-                Token::new(TokenType::Newline(""), 2, 39),
+                Token::new(TokenType::Newline(0), 2, 39),
                 // line 3
                 Token::new(TokenType::Dot, 3, 0),
                 Token::new(TokenType::Colon, 3, 1),
                 Token::new(TokenType::Semicolon, 3, 2),
                 Token::new(TokenType::Comma, 3, 3),
                 Token::new(TokenType::Comment("// dots and commas"), 3, 5),
-                Token::new(TokenType::Newline(""), 3, 23),
+                Token::new(TokenType::Newline(0), 3, 23),
                 // line 4
                 Token::new(TokenType::LogicalAnd, 4, 0),
                 Token::new(TokenType::LogicalOr, 4, 3),
                 Token::new(TokenType::LogicalXor, 4, 6),
                 Token::new(TokenType::Comment("// logical operators"), 4, 9),
-                Token::new(TokenType::Newline(""), 4, 29),
+                Token::new(TokenType::Newline(0), 4, 29),
                 // line 5
                 Token::new(TokenType::PlusEquals, 5, 0),
                 Token::new(TokenType::MinusEquals, 5, 3),
@@ -708,13 +714,13 @@ multi-linestring. The demon's plaything!\"";
             scanner.lex_input(),
             &vec![
                 Token::new(TokenType::String("\"This is a good string.\""), 0, 0),
-                Token::new(TokenType::Newline(""), 0, 24),
+                Token::new(TokenType::Newline(0), 0, 24),
                 Token::new(TokenType::String("\"This is a bad string."), 1, 0),
-                Token::new(TokenType::Newline(""), 1, 22),
+                Token::new(TokenType::Newline(0), 1, 22),
                 Token::new(TokenType::String("\"\""), 2, 0),
-                Token::new(TokenType::Newline(""), 2, 2),
+                Token::new(TokenType::Newline(0), 2, 2),
                 Token::new(TokenType::String("\"This is another good string!\""), 3, 0),
-                Token::new(TokenType::Newline(""), 3, 30),
+                Token::new(TokenType::Newline(0), 3, 30),
                 Token::new(
                     TokenType::String("@\"This is a\nmulti-linestring. The demon's plaything!\""),
                     4,
@@ -743,19 +749,19 @@ multi-linestring. The demon's plaything!\"";
             scanner.lex_input(),
             &vec![
                 Token::new(TokenType::Number("314159"), 0, 0),
-                Token::new(TokenType::Newline(""), 0, 6),
+                Token::new(TokenType::Newline(0), 0, 6),
                 Token::new(TokenType::Number("3.14159"), 1, 0),
-                Token::new(TokenType::Newline(""), 1, 7),
+                Token::new(TokenType::Newline(0), 1, 7),
                 Token::new(TokenType::NumberEndDot("314159."), 2, 0),
-                Token::new(TokenType::Newline(""), 2, 7),
+                Token::new(TokenType::Newline(0), 2, 7),
                 Token::new(TokenType::NumberStartDot(".314159"), 3, 0),
-                Token::new(TokenType::Newline(""), 3, 7),
+                Token::new(TokenType::Newline(0), 3, 7),
                 Token::new(TokenType::Number("4"), 4, 0),
-                Token::new(TokenType::Newline(""), 4, 1),
+                Token::new(TokenType::Newline(0), 4, 1),
                 Token::new(TokenType::Number("9"), 5, 0),
-                Token::new(TokenType::Newline(""), 5, 1),
+                Token::new(TokenType::Newline(0), 5, 1),
                 Token::new(TokenType::Number("0"), 6, 0),
-                Token::new(TokenType::Newline(""), 6, 1),
+                Token::new(TokenType::Newline(0), 6, 1),
                 Token::new(TokenType::NumberStartDot(".3"), 7, 0),
                 Token::new(TokenType::EOF, 7, 2),
             ]
@@ -781,21 +787,21 @@ $";
             scanner.lex_input(),
             &vec![
                 Token::new(TokenType::Number("0123456789"), 0, 0),
-                Token::new(TokenType::Newline(""), 0, 10),
+                Token::new(TokenType::Newline(0), 0, 10),
                 Token::new(TokenType::Number("0x01234567"), 1, 0),
-                Token::new(TokenType::Newline(""), 1, 10),
+                Token::new(TokenType::Newline(0), 1, 10),
                 Token::new(TokenType::Number("0x0A1B2C3D4E5F6"), 2, 0),
-                Token::new(TokenType::Newline(""), 2, 15),
+                Token::new(TokenType::Newline(0), 2, 15),
                 Token::new(TokenType::Number("0xABCDEF"), 3, 0),
-                Token::new(TokenType::Newline(""), 3, 8),
+                Token::new(TokenType::Newline(0), 3, 8),
                 Token::new(TokenType::Number("0x"), 4, 0),
-                Token::new(TokenType::Newline(""), 4, 2),
+                Token::new(TokenType::Newline(0), 4, 2),
                 Token::new(TokenType::Number("$012345"), 5, 0),
-                Token::new(TokenType::Newline(""), 5, 7),
+                Token::new(TokenType::Newline(0), 5, 7),
                 Token::new(TokenType::Number("$0A1B2C3D4E5F6"), 6, 0),
-                Token::new(TokenType::Newline(""), 6, 14),
+                Token::new(TokenType::Newline(0), 6, 14),
                 Token::new(TokenType::Number("$ABCDEF"), 7, 0),
-                Token::new(TokenType::Newline(""), 7, 7),
+                Token::new(TokenType::Newline(0), 7, 7),
                 Token::new(TokenType::Number("$"), 8, 0),
                 Token::new(TokenType::EOF, 8, 1),
             ]
@@ -819,17 +825,17 @@ testCase";
             scanner.lex_input(),
             &vec![
                 Token::new(TokenType::Identifier("a"), 0, 0),
-                Token::new(TokenType::Newline(""), 0, 1),
+                Token::new(TokenType::Newline(0), 0, 1),
                 Token::new(TokenType::Identifier("Z"), 1, 0),
-                Token::new(TokenType::Newline(""), 1, 1),
+                Token::new(TokenType::Newline(0), 1, 1),
                 Token::new(TokenType::Identifier("AbCdE"), 2, 0),
-                Token::new(TokenType::Newline(""), 2, 5),
+                Token::new(TokenType::Newline(0), 2, 5),
                 Token::new(TokenType::Identifier("_test"), 3, 0),
-                Token::new(TokenType::Newline(""), 3, 5),
+                Token::new(TokenType::Newline(0), 3, 5),
                 Token::new(TokenType::Identifier("_test123"), 4, 0),
-                Token::new(TokenType::Newline(""), 4, 8),
+                Token::new(TokenType::Newline(0), 4, 8),
                 Token::new(TokenType::Identifier("test_123"), 5, 0),
-                Token::new(TokenType::Newline(""), 5, 8),
+                Token::new(TokenType::Newline(0), 5, 8),
                 Token::new(TokenType::Identifier("testCase"), 6, 0),
                 Token::new(TokenType::EOF, 6, 8),
             ]
@@ -929,18 +935,18 @@ is bad";
                 Token::new(TokenType::Identifier("Region"), 0, 8),
                 Token::new(TokenType::Identifier("Name"), 0, 15),
                 Token::new(TokenType::Identifier("Long"), 0, 20),
-                Token::new(TokenType::Newline(""), 0, 24),
+                Token::new(TokenType::Newline(0), 0, 24),
                 Token::new(TokenType::Macro, 1, 0),
                 Token::new(TokenType::Identifier("macroName"), 1, 7),
                 Token::new(TokenType::Number("0"), 1, 17),
-                Token::new(TokenType::Newline(""), 1, 18),
+                Token::new(TokenType::Newline(0), 1, 18),
                 Token::new(TokenType::RegionEnd, 2, 0),
-                Token::new(TokenType::Newline(""), 2, 10),
+                Token::new(TokenType::Newline(0), 2, 10),
                 Token::new(TokenType::Macro, 3, 0),
                 Token::new(TokenType::Identifier("doing"), 3, 7),
                 Token::new(TokenType::Identifier("this"), 3, 13),
                 Token::new(TokenType::Backslash, 3, 18),
-                Token::new(TokenType::Newline(""), 3, 19),
+                Token::new(TokenType::Newline(0), 3, 19),
                 Token::new(TokenType::Identifier("is"), 4, 0),
                 Token::new(TokenType::Identifier("bad"), 4, 3),
                 Token::new(TokenType::EOF, 4, 6),
@@ -963,7 +969,7 @@ liner comment
             &vec![
                 // line 0
                 Token::new(TokenType::Comment("// normal comment"), 0, 0),
-                Token::new(TokenType::Newline(""), 0, 17),
+                Token::new(TokenType::Newline(0), 0, 17),
                 // line 1
                 Token::new(TokenType::Var, 1, 0),
                 Token::new(TokenType::Identifier("x"), 1, 4),
@@ -971,10 +977,10 @@ liner comment
                 Token::new(TokenType::Identifier("a"), 1, 8),
                 Token::new(TokenType::Semicolon, 1, 9),
                 Token::new(TokenType::Comment("// end comment"), 1, 11),
-                Token::new(TokenType::Newline(""), 1, 25),
+                Token::new(TokenType::Newline(0), 1, 25),
                 // line 2
                 Token::new(TokenType::MultilineComment("/* one liner */"), 2, 0),
-                Token::new(TokenType::Newline(""), 2, 15),
+                Token::new(TokenType::Newline(0), 2, 15),
                 // line 3
                 Token::new(TokenType::MultilineComment("/* multi\nliner comment\n*/"), 3, 0),
                 Token::new(TokenType::EOF, 5, 2),
