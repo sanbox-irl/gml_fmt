@@ -5,7 +5,6 @@ sudo: required
 
 env:
   global:
-    # TODO Update this to match the name of your project.
     - CRATE_NAME=gml_fmt
 
 matrix:

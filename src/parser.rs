@@ -7,7 +7,8 @@ use std::slice;
 
 pub struct Parser<'a> {
     pub ast: Vec<StmtBox<'a>>,
-    pub success: bool,
+    pub success: Option<String>,
+    allow_unidentified: bool,
     iter: Peekable<slice::Iter<'a, Token<'a>>>,
 }
 
@@ -16,13 +17,14 @@ impl<'a> Parser<'a> {
         Parser {
             ast: Vec::new(),
             iter: tokens.iter().peekable(),
-            success: true,
+            success: None,
+            allow_unidentified: false,
         }
     }
 
     pub fn build_ast(&mut self) {
         while let Some(t) = self.iter.peek() {
-            if self.success == false {
+            if let Some(_) = self.success {
                 break;
             }
             match t.token_type {
@@ -220,7 +222,7 @@ impl<'a> Parser<'a> {
     fn var_declaration(&mut self) -> VariableDecl<'a> {
         let say_var = self.check_next_consume(TokenType::Var);
 
-        let var_expr = self.primary();
+        let var_expr = self.expression();
 
         let assignment = if self.check_next(TokenType::Equal) {
             self.iter.next();
@@ -270,6 +272,7 @@ impl<'a> Parser<'a> {
         } else {
             None
         };
+        let has_semicolon = self.check_next_consume(TokenType::Semicolon);
 
         StatementWrapper::new(
             Statement::If {
@@ -277,15 +280,16 @@ impl<'a> Parser<'a> {
                 then_branch,
                 else_branch,
             },
-            false,
+            has_semicolon,
         )
     }
 
     fn while_statement(&mut self) -> StmtBox<'a> {
         let condition = self.expression();
         let body = self.statement();
+        let has_semicolon = self.check_next_consume(TokenType::Semicolon);
 
-        StatementWrapper::new(Statement::While { condition, body }, false)
+        StatementWrapper::new(Statement::While { condition, body }, has_semicolon)
     }
 
     fn do_until_statement(&mut self) -> StmtBox<'a> {
@@ -293,8 +297,9 @@ impl<'a> Parser<'a> {
 
         self.check_next_consume(TokenType::Until);
         let condition = self.expression();
+        let has_semicolon = self.check_next_consume(TokenType::Semicolon);
 
-        StatementWrapper::new(Statement::DoUntil { condition, body }, false)
+        StatementWrapper::new(Statement::DoUntil { condition, body }, has_semicolon)
     }
 
     fn switch_statement(&mut self) -> StmtBox<'a> {
@@ -385,8 +390,9 @@ impl<'a> Parser<'a> {
     fn repeat_statement(&mut self) -> StmtBox<'a> {
         let condition = self.expression();
         let body = self.statement();
+        let has_semicolon = self.check_next_consume(TokenType::Semicolon);
 
-        StatementWrapper::new(Statement::Repeat { condition, body }, false)
+        StatementWrapper::new(Statement::Repeat { condition, body }, has_semicolon)
     }
 
     fn for_statement(&mut self) -> StmtBox<'a> {
@@ -417,6 +423,7 @@ impl<'a> Parser<'a> {
         self.check_next_consume(TokenType::RightParen);
 
         let body = self.statement();
+        let has_semicolon = self.check_next_consume(TokenType::Semicolon);
 
         StatementWrapper::new(
             Statement::For {
@@ -425,7 +432,7 @@ impl<'a> Parser<'a> {
                 increment,
                 body,
             },
-            false,
+            has_semicolon,
         )
     }
 
@@ -470,13 +477,15 @@ impl<'a> Parser<'a> {
 
     fn expression_statement(&mut self) -> StmtBox<'a> {
         let expr = self.expression();
-
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
         StatementWrapper::new(Statement::ExpresssionStatement { expression: expr }, has_semicolon)
     }
 
     fn expression(&mut self) -> ExprBox<'a> {
-        self.assignment()
+        self.allow_unidentified = true;
+        let ret = self.assignment();
+        self.allow_unidentified = false;
+        ret
     }
 
     fn assignment(&mut self) -> ExprBox<'a> {
@@ -990,13 +999,15 @@ impl<'a> Parser<'a> {
                 }
                 _ => {
                     let t = self.consume_next();
-                    self.success = false;
+                    if self.allow_unidentified == false {
+                        self.success = Some(format!("Error parsing {}", *t));
+                    }
                     return self.create_comment_expr_box(Expr::UnidentifiedAsLiteral { literal_token: *t });
                 }
             }
         }
 
-        self.success = false;
+        self.success = Some("Unexpected end.".to_owned());
         self.create_expr_box_no_comment(Expr::UnexpectedEnd)
     }
 

@@ -25,15 +25,21 @@ pub fn run_config(config: &Config) -> Result<(), Box<dyn Error>> {
         }
 
         let res = run(&contents, log);
-        if log {
-            println!("=========OUTPUT=========");
-            println!("{}", res.0);
-            println!("==========AST===========");
-            println!("{}", res.1.unwrap());
-        }
+        if let Some(err) = res.0 {
+            println!("Could not parse file {:?}", this_file);
+            println!("{}", err);
+        } else {
+            let output = res.1.unwrap();
+            if log {
+                println!("=========OUTPUT=========");
+                println!("{}", output);
+                println!("==========AST===========");
+                println!("{}", res.2.unwrap());
+            }
 
-        if overwrite {
-            fs::write(this_file, res.0)?;
+            if overwrite {
+                fs::write(this_file, output)?;
+            }
         }
     }
 
@@ -42,10 +48,14 @@ pub fn run_config(config: &Config) -> Result<(), Box<dyn Error>> {
 
 pub fn run_test(input: &str) -> String {
     let res = run(input, false);
-    return res.0;
+    if let Some(err) = res.0 {
+        println!("{}", err);
+        return input.to_owned();
+    }
+    return res.1.unwrap();
 }
 
-fn run(source: &str, print_ast: bool) -> (String, Option<String>) {
+fn run(source: &str, print_ast: bool) -> (Option<String>, Option<String>, Option<String>) {
     let mut tok = Vec::new();
     let mut scanner = Scanner::new(source, &mut tok);
 
@@ -53,15 +63,15 @@ fn run(source: &str, print_ast: bool) -> (String, Option<String>) {
     let mut parser = Parser::new(our_tokens);
     parser.build_ast();
 
-    if parser.success == false {
-        eprintln!("Error on parse. Could not format.");
-        std::process::exit(1);
+    if let Some(err) = parser.success {
+        return (Some(err), None, None);
     }
 
     let mut printer = Printer::new();
     printer.autoformat(&parser.ast[..]);
     (
-        Printer::get_output(&printer.output),
+        None,
+        Some(Printer::get_output(&printer.output)),
         if print_ast {
             Some(format!("{:#?}", parser.ast))
         } else {
