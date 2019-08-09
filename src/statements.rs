@@ -18,6 +18,14 @@ impl<'a> StatementWrapper<'a> {
             has_semicolon,
         })
     }
+
+    pub fn hold_expr(&self) -> bool {
+        if let Statement::ExpresssionStatement { .. } = &self.statement {
+            true
+        } else {
+            false
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -40,19 +48,18 @@ pub enum Statement<'a> {
     If {
         condition: ExprBox<'a>,
         then_branch: StmtBox<'a>,
+        comments_between: CommentsAndNewlines<'a>,
         else_branch: Option<StmtBox<'a>>,
     },
-    While {
+    WhileWithRepeat {
+        token: Token<'a>,
         condition: ExprBox<'a>,
         body: StmtBox<'a>,
     },
     DoUntil {
         body: StmtBox<'a>,
+        comments_between: CommentsAndNewlines<'a>,
         condition: ExprBox<'a>,
-    },
-    Repeat {
-        condition: ExprBox<'a>,
-        body: StmtBox<'a>,
     },
     For {
         initializer: Option<StmtBox<'a>>,

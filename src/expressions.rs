@@ -1,5 +1,5 @@
 use super::lex_token::*;
-pub type ExprBox<'a> = Box<Expr<'a>>;
+pub type ExprBox<'a> = Box<(Expr<'a>, CommentsAndNewlines<'a>)>;
 pub type CommentsAndNewlines<'a> = Vec<Token<'a>>;
 pub type Arguments<'a> = Vec<(CommentsAndNewlines<'a>, ExprBox<'a>, CommentsAndNewlines<'a>)>;
 pub type DSAccess<'a> = Vec<(CommentsAndNewlines<'a>, ExprBox<'a>)>;
@@ -13,9 +13,8 @@ pub enum Expr<'a> {
     },
     Binary {
         left: ExprBox<'a>,
-        comments_and_newlines_between_l_and_op: CommentsAndNewlines<'a>,
         operator: Token<'a>,
-        comments_and_newlines_between_r_and_op: CommentsAndNewlines<'a>,
+        comments_and_newlines_between_op_and_r: CommentsAndNewlines<'a>,
         right: ExprBox<'a>,
     },
     Grouping {
@@ -41,24 +40,13 @@ pub enum Expr<'a> {
     },
     Unary {
         operator: Token<'a>,
-        // comments_and_newlines_between: CommentsAndNewlines<'a>,
+        comments_and_newlines_between: CommentsAndNewlines<'a>,
         right: ExprBox<'a>,
-    },
-    Prefix {
-        operator: Token<'a>,
-        // comments_and_newlines_between: CommentsAndNewlines<'a>,
-        expr: ExprBox<'a>,
     },
     Postfix {
         operator: Token<'a>,
-        // comments_and_newlines_between: CommentsAndNewlines<'a>,
+        comments_and_newlines_between: CommentsAndNewlines<'a>,
         expr: ExprBox<'a>,
-    },
-    Logical {
-        left: ExprBox<'a>,
-        operator: Token<'a>,
-        comments_and_newlines_between_op_and_r: CommentsAndNewlines<'a>,
-        right: ExprBox<'a>,
     },
     Assign {
         left: ExprBox<'a>,
@@ -88,13 +76,9 @@ pub enum Expr<'a> {
         right: ExprBox<'a>,
     },
 
-    Newline {
-        newlines: Vec<Token<'a>>,
-    },
+    Newline,
     UnidentifiedAsLiteral {
         literal_token: Token<'a>,
     },
     UnexpectedEnd,
 }
-
-

@@ -27,7 +27,8 @@ fn multiline_string() {
 fn else_if() {
     let input = "if (xx < (1  2.75)) {
     return x;
-} else if (xx < (2 / 2.75)) {
+}
+else if (xx < (2 / 2.75)) {
    return z;
 }";
     let format = "if (xx < (1 2.75)) {
@@ -138,7 +139,7 @@ SCROLL_DOWN,
 SCROLL_UP,ANY,NONE
 }";
 
-    let format = "EInputConstants { //Starts at high negative number to not interfere with other input constants
+    let format = "enum EInputConstants { //Starts at high negative number to not interfere with other input constants
     //P - Positive axis (Axis is regular coordinates with 0;0 being bottom left)
     //N - Negative axis
     //Note that return is always positive
@@ -159,4 +160,138 @@ SCROLL_UP,ANY,NONE
 ";
 
     assert_eq!(gml_fmt::run_test(input), format);
+}
+
+#[test]
+fn do_until_double_loop() {
+    let input = "do {
+    
+    //If not already visited
+    if (_grid[# _x, _y] != _val){
+        
+        if (array_find_index(_immunes,_val) == -1){
+            _grid[# _x, _y] = _val;
+        
+            ++_carvedCells;
+        }
+    }
+    
+    //Wander cell
+    var _dir = irandom(3) * 90;
+    _x += lengthdir_x(1,_dir);
+    _y += lengthdir_y(1,_dir);
+    
+}
+until(_carvedCells / _cells > _carveRatio);
+";
+
+    let output = "do {
+    //If not already visited
+    if (_grid[# _x, _y] != _val) {
+        if (array_find_index(_immunes, _val) == -1) {
+            _grid[# _x, _y] = _val;
+        
+            ++_carvedCells;
+        }
+    }
+    
+    //Wander cell
+    var _dir = irandom(3) * 90;
+    _x += lengthdir_x(1, _dir);
+    _y += lengthdir_y(1, _dir);
+} until(_carvedCells / _cells > _carveRatio);
+";
+
+    assert_eq!(gml_fmt::run_test(input), output);
+}
+
+#[test]
+fn if_with_line() {
+    let input = "if (delay < 0)
+{
+    var exists = false;
+    with (target)
+    {
+        var dir = point_direction(other.x, other.y, mid_x(), mid_y());
+        with (other)
+        {
+            hspeed = hsp;
+            vspeed = vsp;
+            direction = angle_approach(direction, dir, rot);
+            if (collision_circle(x, y, 2, target, false, false))
+            {
+                event_user(0);
+                instance_destroy();
+            }
+            speed = approach(speed, max_spd, acc);
+            hsp = hspeed;
+            vsp = vspeed;
+            speed = 0;
+            rot += rot_add * global.delta;
+        }
+        exists = true;
+    }
+    life -= global.delta;
+    if (life < 0 || !exists)
+    {
+        instance_destroy();
+    }
+    perform_destroy_event = true;
+}
+// Movement
+x += hsp*global.delta;
+y += vsp*global.delta;
+";
+
+    let output = "if (delay < 0) {
+    var exists = false;
+    with (target) {
+        var dir = point_direction(other.x, other.y, mid_x(), mid_y());
+        with (other) {
+            hspeed = hsp;
+            vspeed = vsp;
+            direction = angle_approach(direction, dir, rot);
+            if (collision_circle(x, y, 2, target, false, false)) {
+                event_user(0);
+                instance_destroy();
+            }
+            speed = approach(speed, max_spd, acc);
+            hsp = hspeed;
+            vsp = vspeed;
+            speed = 0;
+            rot += rot_add * global.delta;
+        }
+        exists = true;
+    }
+    life -= global.delta;
+    if (life < 0 || !exists) {
+        instance_destroy();
+    }
+    perform_destroy_event = true;
+}
+// Movement
+x += hsp * global.delta;
+y += vsp * global.delta;
+";
+    assert_eq!(gml_fmt::run_test(input), output);
+}
+
+#[test]
+fn do_access_cascading() {
+    let input = "if (instance_exists(shields[i])&& shields[i] .charge < 0)
+{
+    var c = shields[i].laser_charge_max;
+    var l = shields[i].laser_max;
+    shields[i].laser_charge = c;
+    shields[i].delta_alarm[0] = 30;
+}
+";
+    let output = "if (instance_exists(shields[i]) && shields[i].charge < 0) {
+    var c = shields[i].laser_charge_max;
+    var l = shields[i].laser_max;
+    shields[i].laser_charge = c;
+    shields[i].delta_alarm[0] = 30;
+}
+";
+    assert_eq!(gml_fmt::run_test(input), output);
 }

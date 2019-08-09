@@ -34,7 +34,7 @@ impl<'a> Scanner<'a> {
                     if let Some((_, c)) = self.iter.peek() {
                         if let Some(token) = match c {
                             '=' => Some(TokenType::MinusEquals),
-                            '+' => Some(TokenType::Decrementer),
+                            '-' => Some(TokenType::Decrementer),
                             _ => None,
                         } {
                             self.add_multiple_token(token, 2);
@@ -595,6 +595,7 @@ impl<'a> Scanner<'a> {
             "break" => Some(TokenType::Break),
             "exit" => Some(TokenType::Exit),
             "enum" => Some(TokenType::Enum),
+            "with" => Some(TokenType::With),
             _ => None,
         }
     }
