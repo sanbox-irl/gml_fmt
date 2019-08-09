@@ -7,7 +7,7 @@ use std::{path::PathBuf, process};
 
 fn main() {
     let matches = App::new("gml_fmt")
-        .version("0.1.0")
+        .version("0.9.2")
         .author("Jonathan Spira <jjspira@gmail.com>")
         .about("Code Formatter for GML")
         .arg(Arg::with_name("file").short("f").help("Sets gml_fmt to format a file"))
