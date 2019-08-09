@@ -286,34 +286,37 @@ impl<'a> Printer<'a> {
 
                 self.ensure_space();
                 self.print(LBRACE, true);
-                let did_move = self.print_comments_and_newlines(
+                let did_newline = self.print_comments_and_newlines(
                     comments_after_lbrace,
                     IndentationMove::Right,
                     LeadingNewlines::One,
                     false,
                 );
-                if did_move == false {
+                if did_newline == false {
                     self.print_newline(IndentationMove::Right);
                 }
 
-                let mut iter = cases.into_iter().peekable();
-                while let Some(case) = iter.next() {
-                    if let CaseType::Case(case_constant) = &case.case_type {
-                        self.print("case", true);
-                        self.print_expr(case_constant);
-                    } else {
-                        self.print("default", false);
-                    }
+                for case in cases {
+                    match &case.control_word {
+                        CaseType::Case(case_constant) => {
+                            self.print("case", true);
+                            self.print_comments_and_newlines(
+                                &case.comments_after_control_word,
+                                IndentationMove::Stay,
+                                LeadingNewlines::One,
+                                false,
+                            );
 
-                    self.print_comments_and_newlines(
-                        &case.comments_after_case,
-                        IndentationMove::Stay,
-                        LeadingNewlines::All,
-                        false,
-                    );
+                            self.print_expr(case_constant);
+                        }
+
+                        CaseType::Default => {
+                            self.print("default", true);
+                        }
+                    }
                     self.backspace();
                     self.print(":", true);
-
+                    let saved_indentation = self.indentation;
                     let did_move = self.print_comments_and_newlines(
                         &case.comments_after_colon,
                         IndentationMove::Right,
@@ -323,31 +326,17 @@ impl<'a> Printer<'a> {
                     if did_move == false {
                         self.print_newline(IndentationMove::Right);
                     }
-
                     // @jack do we handle blocks here in a special way?
                     for this_statement in &case.statements {
                         self.print_statement(this_statement);
                     }
-
-                    // No blank lines on final iteration!
-                    if let Some(_) = iter.peek() {
-                        if self.on_whitespace_line() == false {
-                            self.print_newline(IndentationMove::Left);
-                        } else {
-                            self.backspace_till_newline();
-                            self.print_indentation(IndentationMove::Left);
-                        }
-                    } else {
-                        self.set_indentation(IndentationMove::Left);
-                    }
-                }
-
-                if self.on_whitespace_line() {
+                    
                     self.backspace_till_newline();
-                    self.print_indentation(IndentationMove::Left);
-                } else {
-                    self.print_newline(IndentationMove::Left);
+                    self.print_indentation_raw(saved_indentation);
                 }
+
+                self.backspace_whitespace();
+                self.print_newline(IndentationMove::Left);
 
                 self.print(RBRACE, false);
                 self.print_semicolon(stmt.has_semicolon);
@@ -455,12 +444,12 @@ impl<'a> Printer<'a> {
                     comments_and_newlines_after_lparen,
                     IndentationMove::Right,
                     LeadingNewlines::One,
-                    true
+                    true,
                 );
                 for expression in expressions {
                     self.print_expr(expression);
                 }
-                
+
                 self.backspace();
                 if did_move {
                     if self.on_whitespace_line() {
@@ -823,6 +812,14 @@ impl<'a> Printer<'a> {
 
     fn print_indentation(&mut self, indentation_move: IndentationMove) {
         self.set_indentation(indentation_move);
+
+        for _ in 0..self.indentation {
+            self.print(TAB, false);
+        }
+    }
+
+    fn print_indentation_raw(&mut self, indent_size: usize) {
+        self.indentation = indent_size;
 
         for _ in 0..self.indentation {
             self.print(TAB, false);

@@ -123,6 +123,23 @@ fn trailing_commas() {
 }
 
 #[test]
+fn not_trailing_commas() {
+    let input = "fun(
+    _e[Foo.bar],
+    _e[Foo.bar],
+    _e[Foo.bar]
+);";
+
+    let output = "fun(
+    _e[Foo.bar],
+    _e[Foo.bar],
+    _e[Foo.bar]
+);
+";
+    assert_eq!(gml_fmt::run_test(input), output);
+}
+
+#[test]
 fn enum_test() {
     let input = "enum EInputConstants{//Starts at high negative number to not interfere with other input constants
 //P - Positive axis (Axis is regular coordinates with 0;0 being bottom left)

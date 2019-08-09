@@ -101,8 +101,8 @@ pub enum Statement<'a> {
 
 #[derive(Debug)]
 pub struct Case<'a> {
-    pub comments_after_case: CommentsAndNewlines<'a>,
-    pub case_type: CaseType<'a>,
+    pub control_word: CaseType<'a>,
+    pub comments_after_control_word: CommentsAndNewlines<'a>,
     pub comments_after_colon: CommentsAndNewlines<'a>,
     pub statements: Vec<StmtBox<'a>>,
 }

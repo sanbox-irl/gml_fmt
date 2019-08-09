@@ -319,9 +319,8 @@ impl<'a> Parser<'a> {
         while let Some(token) = self.iter.next() {
             match token.token_type {
                 TokenType::Case => {
-                    // this is a copy of default below, with modification
+                    let comments_after_control_word = self.get_newlines_and_comments();
                     let constant = self.expression();
-                    let comments_after_case = self.get_newlines_and_comments();
                     self.check_next_consume(TokenType::Colon);
                     let comments_after_colon = self.get_newlines_and_comments();
 
@@ -341,8 +340,8 @@ impl<'a> Parser<'a> {
                     }
 
                     cases.push(Case {
-                        comments_after_case,
-                        case_type: CaseType::Case(constant),
+                        comments_after_control_word,
+                        control_word: CaseType::Case(constant),
                         comments_after_colon,
                         statements,
                     });
@@ -350,7 +349,7 @@ impl<'a> Parser<'a> {
 
                 TokenType::DefaultCase => {
                     // This is a copy of case above, with modification
-                    let comments_after_case = self.get_newlines_and_comments();
+                    let comments_after_control_word = self.get_newlines_and_comments();
                     self.check_next_consume(TokenType::Colon);
                     let comments_after_colon = self.get_newlines_and_comments();
 
@@ -370,8 +369,8 @@ impl<'a> Parser<'a> {
                     }
 
                     cases.push(Case {
-                        comments_after_case,
-                        case_type: CaseType::Default,
+                        comments_after_control_word,
+                        control_word: CaseType::Default,
                         comments_after_colon,
                         statements,
                     });
@@ -815,7 +814,7 @@ impl<'a> Parser<'a> {
             let comments_and_newlines_after_lparen = self.get_newlines_and_comments();
             let arguments = self.finish_call(TokenType::RightParen, TokenType::Comma);
 
-            expression = self.create_expr_box_no_comment(Expr::Call {
+            expression = self.create_comment_expr_box(Expr::Call {
                 procedure_name: expression,
                 arguments,
                 comments_and_newlines_after_lparen,
@@ -829,7 +828,7 @@ impl<'a> Parser<'a> {
                     if let Some(t) = self.iter.peek() {
                         if let TokenType::Identifier(_) = t.token_type {
                             let instance_variable = self.expression();
-                            expression = self.create_expr_box_no_comment(Expr::DotAccess {
+                            expression = self.create_comment_expr_box(Expr::DotAccess {
                                 object_name: expression,
                                 instance_variable,
                             });
@@ -858,7 +857,7 @@ impl<'a> Parser<'a> {
                     }
 
                     self.check_next_consume(TokenType::RightBracket);
-                    expression = self.create_expr_box_no_comment(Expr::DataStructureAccess {
+                    expression = self.create_comment_expr_box(Expr::DataStructureAccess {
                         ds_name: expression,
                         access_type: *access_type,
                         access_exprs,
@@ -962,11 +961,7 @@ impl<'a> Parser<'a> {
         self.create_expr_box_no_comment(Expr::UnexpectedEnd)
     }
 
-    fn finish_call(
-        &mut self,
-        end_token_type: TokenType,
-        delimiter_type: TokenType,
-    ) -> DelimitedLines<'a> {
+    fn finish_call(&mut self, end_token_type: TokenType, delimiter_type: TokenType) -> DelimitedLines<'a> {
         let mut arguments = Vec::new();
 
         let mut end_delimiter = true;
@@ -987,14 +982,16 @@ impl<'a> Parser<'a> {
                 };
 
                 arguments.push(DelimitedLine { expr, trailing_comment });
+                println!("Delimiter vec looks like {:?}", arguments);
+
                 if do_break {
                     end_delimiter = false;
                     break;
                 }
             }
         };
-
-        self.check_next_consume(end_token_type);
+    println!("Next token is {:?}", self.iter.peek());
+        println!("Ate last: {}", self.check_next_consume(end_token_type));
 
         (arguments, end_delimiter)
     }

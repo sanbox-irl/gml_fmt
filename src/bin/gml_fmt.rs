@@ -55,7 +55,9 @@ fn main() {
     });
 
     match gml_fmt::run_config(&config) {
-        Ok(()) => {}
+        Ok(()) => {
+            println!("Format complete.");
+        }
         Err(err) => {
             eprintln!("Error: {}", err);
             process::exit(1);
