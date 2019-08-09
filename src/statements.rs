@@ -3,7 +3,7 @@ use super::lex_token::Token;
 
 pub type StmtBox<'a> = Box<StatementWrapper<'a>>;
 pub type ParenInfo = (bool, bool);
-pub type DelimitedLines<'a> = Vec<DelimitedLine<'a>>;
+pub type DelimitedLines<'a> = (Vec<DelimitedLine<'a>>, bool);
 
 #[derive(Debug)]
 pub struct StatementWrapper<'a> {

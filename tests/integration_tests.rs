@@ -116,7 +116,7 @@ fn decimal_number() {
 #[test]
 fn trailing_commas() {
     let input = "func(a,b,c,);";
-    let format = "func(a, b, c);
+    let format = "func(a, b, c,);
 ";
 
     assert_eq!(gml_fmt::run_test(input), format);
@@ -166,40 +166,38 @@ SCROLL_UP,ANY,NONE
 fn do_until_double_loop() {
     let input = "do {
     
-    //If not already visited
-    if (_grid[# _x, _y] != _val){
+    //If foo
+    if (_a[# _x, _y] != _val){
         
-        if (array_find_index(_immunes,_val) == -1){
-            _grid[# _x, _y] = _val;
-        
-            ++_carvedCells;
+        if (array_find_index(_gah,_goo) == -1){
+            _a[# _x, _y] = _val;
+            ++sha;
         }
     }
     
-    //Wander cell
-    var _dir = irandom(3) * 90;
+    //bar
+    var _dir = irandom(3) * 200;
     _x += lengthdir_x(1,_dir);
     _y += lengthdir_y(1,_dir);
     
 }
-until(_carvedCells / _cells > _carveRatio);
+until(_gah / _boo > _bah);
 ";
 
     let output = "do {
-    //If not already visited
-    if (_grid[# _x, _y] != _val) {
-        if (array_find_index(_immunes, _val) == -1) {
-            _grid[# _x, _y] = _val;
-        
-            ++_carvedCells;
+    //If foo
+    if (_a[# _x, _y] != _val) {
+        if (array_find_index(_gah, _goo) == -1) {
+            _a[# _x, _y] = _val;
+            ++sha;
         }
     }
     
-    //Wander cell
-    var _dir = irandom(3) * 90;
+    //bar
+    var _dir = irandom(3) * 200;
     _x += lengthdir_x(1, _dir);
     _y += lengthdir_y(1, _dir);
-} until(_carvedCells / _cells > _carveRatio);
+} until (_gah / _boo > _bah);
 ";
 
     assert_eq!(gml_fmt::run_test(input), output);
@@ -207,91 +205,130 @@ until(_carvedCells / _cells > _carveRatio);
 
 #[test]
 fn if_with_line() {
-    let input = "if (delay < 0)
+    let input = "if (a < 0)
 {
-    var exists = false;
-    with (target)
+    var b = false;
+    with (ident)
     {
-        var dir = point_direction(other.x, other.y, mid_x(), mid_y());
+        var dir = point_direction(other.x, other.y, a(), b());
         with (other)
         {
             hspeed = hsp;
             vspeed = vsp;
             direction = angle_approach(direction, dir, rot);
-            if (collision_circle(x, y, 2, target, false, false))
+            if (a(x, y, 2, target, false, false))
             {
-                event_user(0);
-                instance_destroy();
+                z(0);
+                e();
             }
             speed = approach(speed, max_spd, acc);
             hsp = hspeed;
             vsp = vspeed;
             speed = 0;
-            rot += rot_add * global.delta;
+            a += t * global.delta;
         }
         exists = true;
     }
-    life -= global.delta;
-    if (life < 0 || !exists)
+    g -= global.delta;
+    if (g < 0 || !exists)
     {
-        instance_destroy();
+        a();
     }
-    perform_destroy_event = true;
+    val = true;
 }
-// Movement
-x += hsp*global.delta;
-y += vsp*global.delta;
-";
+// Foo
+x += hsp*ss;
+y += vsp*ss;";
 
-    let output = "if (delay < 0) {
-    var exists = false;
-    with (target) {
-        var dir = point_direction(other.x, other.y, mid_x(), mid_y());
+    let output = "if (a < 0) {
+    var b = false;
+    with (ident) {
+        var dir = point_direction(other.x, other.y, a(), b());
         with (other) {
             hspeed = hsp;
             vspeed = vsp;
             direction = angle_approach(direction, dir, rot);
-            if (collision_circle(x, y, 2, target, false, false)) {
-                event_user(0);
-                instance_destroy();
+            if (a(x, y, 2, target, false, false)) {
+                z(0);
+                e();
             }
             speed = approach(speed, max_spd, acc);
             hsp = hspeed;
             vsp = vspeed;
             speed = 0;
-            rot += rot_add * global.delta;
+            a += t * global.delta;
         }
         exists = true;
     }
-    life -= global.delta;
-    if (life < 0 || !exists) {
-        instance_destroy();
+    g -= global.delta;
+    if (g < 0 || !exists) {
+        a();
     }
-    perform_destroy_event = true;
+    val = true;
 }
-// Movement
-x += hsp * global.delta;
-y += vsp * global.delta;
+// Foo
+x += hsp * ss;
+y += vsp * ss;
 ";
     assert_eq!(gml_fmt::run_test(input), output);
 }
 
 #[test]
 fn do_access_cascading() {
-    let input = "if (instance_exists(shields[i])&& shields[i] .charge < 0)
+    let input = "if (a(b[i])&& b[i] .c < 0)
 {
-    var c = shields[i].laser_charge_max;
-    var l = shields[i].laser_max;
-    shields[i].laser_charge = c;
-    shields[i].delta_alarm[0] = 30;
+    var c = b[i].q;
+    var l = b[i].q;
+    b[i].q = c;
+    b[i].q[0] = 30;
 }
 ";
-    let output = "if (instance_exists(shields[i]) && shields[i].charge < 0) {
-    var c = shields[i].laser_charge_max;
-    var l = shields[i].laser_max;
-    shields[i].laser_charge = c;
-    shields[i].delta_alarm[0] = 30;
+    let output = "if (a(b[i]) && b[i].c < 0) {
+    var c = b[i].q;
+    var l = b[i].q;
+    b[i].q = c;
+    b[i].q[0] = 30;
 }
 ";
     assert_eq!(gml_fmt::run_test(input), output);
+}
+
+#[test]
+fn ending_delimiter_enum() {
+    let input = "colour = choose(
+4, // foo
+5, // foor
+6, // foo,
+7, // bar
+)";
+
+    let output = "colour = choose(
+    4, // foo
+    5, // foor
+    6, // foo,
+    7, // bar
+)
+";
+
+    assert_eq!(gml_fmt::run_test(input), output);
+}
+
+#[test]
+fn double_call() {
+    let input = "func(
+    a,
+    b,
+    c[a],
+    d[Y],
+    5,
+    4,
+    1,
+    global.q * 0.13,
+    between(a, c * 0.72, u * 0.76) ||
+    between(b, d * 0.82, u * 0.86) ||
+    between(c, c * 0.92, u * 0.96) ? c_white : c_red
+);
+";
+
+    assert_eq!(gml_fmt::run_test(input), input);
 }

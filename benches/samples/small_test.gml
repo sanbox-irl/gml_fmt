@@ -1,19 +1,18 @@
 do {
     
-    //If not already visited
-    if (_grid[# _x, _y] != _val){
+    //If foo
+    if (_a[# _x, _y] != _val){
         
-        if (array_find_index(_immunes,_val) == -1){
-            _grid[# _x, _y] = _val;
-        
-            ++_carvedCells;
+        if (array_find_index(_gah,_goo) == -1){
+            _a[# _x, _y] = _val;
+            ++sha;
         }
     }
     
-    //Wander cell
-    var _dir = irandom(3) * 90;
+    //bar
+    var _dir = irandom(3) * 200;
     _x += lengthdir_x(1,_dir);
     _y += lengthdir_y(1,_dir);
     
 }
-until(_carvedCells / _cells > _carveRatio);
+until(_gah / _boo > _bah);

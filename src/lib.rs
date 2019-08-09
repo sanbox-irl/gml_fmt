@@ -63,7 +63,7 @@ fn run(source: &str, print_ast: bool) -> (Option<String>, Option<String>, Option
     let mut parser = Parser::new(our_tokens);
     parser.build_ast();
 
-    if let Some(err) = parser.success {
+    if let Some(err) = parser.failure {
         return (Some(err), None, None);
     }
 

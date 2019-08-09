@@ -7,10 +7,10 @@ use std::slice;
 
 pub struct Parser<'a> {
     pub ast: Vec<StmtBox<'a>>,
-    pub success: Option<String>,
+    pub failure: Option<String>,
     allow_unidentified: bool,
     iter: Peekable<slice::Iter<'a, Token<'a>>>,
-    do_not_pair: bool,
+    can_pair: bool,
 }
 
 impl<'a> Parser<'a> {
@@ -18,18 +18,18 @@ impl<'a> Parser<'a> {
         Parser {
             ast: Vec::new(),
             iter: tokens.iter().peekable(),
-            success: None,
+            failure: None,
             allow_unidentified: false,
-            do_not_pair: false,
+            can_pair: true,
         }
     }
 
     pub fn build_ast(&mut self) {
         while let Some(t) = self.iter.peek() {
-            if let Some(_) = self.success {
+            if let Some(_) = self.failure {
                 break;
             }
-            self.do_not_pair = false;
+            self.can_pair = true;
             match t.token_type {
                 TokenType::EOF => {
                     self.ast.push(StatementWrapper::new(Statement::EOF, false));
@@ -412,13 +412,11 @@ impl<'a> Parser<'a> {
         };
 
         self.check_next_consume(TokenType::Semicolon);
-
         let increment = if self.check_next(TokenType::RightParen) {
             None
         } else {
             Some(self.expression())
         };
-
         self.check_next_consume(TokenType::RightParen);
 
         let body = self.statement();
@@ -461,7 +459,7 @@ impl<'a> Parser<'a> {
 
         self.check_next_consume(TokenType::LeftBrace);
         let comments_after_lbrace = self.get_newlines_and_comments();
-        let members = self.finish_call_delimited_expression(TokenType::RightBrace, TokenType::Comma);
+        let members = self.finish_call(TokenType::RightBrace, TokenType::Comma);
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
 
         StatementWrapper::new(
@@ -483,6 +481,7 @@ impl<'a> Parser<'a> {
     fn expression(&mut self) -> ExprBox<'a> {
         self.allow_unidentified = true;
         let ret = self.assignment();
+        self.can_pair = true;
         self.allow_unidentified = false;
         ret
     }
@@ -490,30 +489,32 @@ impl<'a> Parser<'a> {
     fn assignment(&mut self) -> ExprBox<'a> {
         let mut expr = self.ternary();
 
-        if let Some(token) = self.iter.peek() {
-            match token.token_type {
-                TokenType::Equal
-                | TokenType::PlusEquals
-                | TokenType::MinusEquals
-                | TokenType::StarEquals
-                | TokenType::SlashEquals
-                | TokenType::BitXorEquals
-                | TokenType::BitOrEquals
-                | TokenType::BitAndEquals
-                | TokenType::ModEquals => {
-                    let operator = self.iter.next().unwrap();
-                    let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
-                    let assignment_expr = self.assignment();
+        if self.can_pair {
+            if let Some(token) = self.iter.peek() {
+                match token.token_type {
+                    TokenType::Equal
+                    | TokenType::PlusEquals
+                    | TokenType::MinusEquals
+                    | TokenType::StarEquals
+                    | TokenType::SlashEquals
+                    | TokenType::BitXorEquals
+                    | TokenType::BitOrEquals
+                    | TokenType::BitAndEquals
+                    | TokenType::ModEquals => {
+                        let operator = self.iter.next().unwrap();
+                        let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
+                        let assignment_expr = self.assignment();
 
-                    expr = self.create_expr_box_no_comment(Expr::Assign {
-                        left: expr,
-                        operator: *operator,
-                        comments_and_newlines_between_op_and_r,
-                        right: assignment_expr,
-                    });
+                        expr = self.create_expr_box_no_comment(Expr::Assign {
+                            left: expr,
+                            operator: *operator,
+                            comments_and_newlines_between_op_and_r,
+                            right: assignment_expr,
+                        });
+                    }
+
+                    _ => {}
                 }
-
-                _ => {}
             }
         }
 
@@ -546,10 +547,10 @@ impl<'a> Parser<'a> {
     fn or(&mut self) -> ExprBox<'a> {
         let mut left = self.and();
 
-        if self.check_next(TokenType::LogicalOr) || self.check_next(TokenType::OrAlias) {
+        if self.check_next_either(TokenType::LogicalOr, TokenType::OrAlias) {
             let token = self.iter.next().unwrap();
             let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
-            let right = self.equality();
+            let right = self.or();
 
             left = self.create_expr_box_no_comment(Expr::Binary {
                 left,
@@ -568,7 +569,7 @@ impl<'a> Parser<'a> {
         if self.check_next_either(TokenType::LogicalAnd, TokenType::AndAlias) {
             let token = self.iter.next().unwrap();
             let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
-            let right = self.xor();
+            let right = self.and();
 
             left = self.create_expr_box_no_comment(Expr::Binary {
                 left,
@@ -586,7 +587,7 @@ impl<'a> Parser<'a> {
         if self.check_next_either(TokenType::LogicalXor, TokenType::XorAlias) {
             let token = self.iter.next().unwrap();
             let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
-            let right = self.equality();
+            let right = self.xor();
 
             left = self.create_expr_box_no_comment(Expr::Binary {
                 left,
@@ -602,20 +603,22 @@ impl<'a> Parser<'a> {
     fn equality(&mut self) -> ExprBox<'a> {
         let mut expr = self.comparison();
 
-        while let Some(t) = self.iter.peek() {
-            if t.token_type == TokenType::EqualEqual || t.token_type == TokenType::BangEqual {
-                let token = self.iter.next().unwrap();
-                let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
-                let right = self.comparison();
+        if self.can_pair {
+            while let Some(t) = self.iter.peek() {
+                if t.token_type == TokenType::EqualEqual || t.token_type == TokenType::BangEqual {
+                    let token = self.iter.next().unwrap();
+                    let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
+                    let right = self.comparison();
 
-                expr = self.create_expr_box_no_comment(Expr::Binary {
-                    left: expr,
-                    operator: *token,
-                    comments_and_newlines_between_op_and_r,
-                    right,
-                });
-            } else {
-                break;
+                    expr = self.create_expr_box_no_comment(Expr::Binary {
+                        left: expr,
+                        operator: *token,
+                        comments_and_newlines_between_op_and_r,
+                        right,
+                    });
+                } else {
+                    break;
+                }
             }
         }
 
@@ -625,22 +628,24 @@ impl<'a> Parser<'a> {
     fn comparison(&mut self) -> ExprBox<'a> {
         let mut expr = self.binary();
 
-        while let Some(t) = self.iter.peek() {
-            match t.token_type {
-                TokenType::Greater | TokenType::GreaterEqual | TokenType::Less | TokenType::LessEqual => {
-                    let t = self.iter.next().unwrap();
-                    let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
-                    let right = self.binary();
+        if self.can_pair {
+            while let Some(t) = self.iter.peek() {
+                match t.token_type {
+                    TokenType::Greater | TokenType::GreaterEqual | TokenType::Less | TokenType::LessEqual => {
+                        let t = self.iter.next().unwrap();
+                        let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
+                        let right = self.binary();
 
-                    expr = self.create_expr_box_no_comment(Expr::Binary {
-                        left: expr,
-                        operator: *t,
-                        comments_and_newlines_between_op_and_r,
-                        right,
-                    });
-                }
-                _ => break,
-            };
+                        expr = self.create_expr_box_no_comment(Expr::Binary {
+                            left: expr,
+                            operator: *t,
+                            comments_and_newlines_between_op_and_r,
+                            right,
+                        });
+                    }
+                    _ => break,
+                };
+            }
         }
 
         expr
@@ -649,21 +654,23 @@ impl<'a> Parser<'a> {
     fn binary(&mut self) -> ExprBox<'a> {
         let mut expr = self.bitshift();
 
-        while let Some(t) = self.iter.peek() {
-            match t.token_type {
-                TokenType::BitAnd | TokenType::BitOr | TokenType::BitXor => {
-                    let t = self.iter.next().unwrap();
-                    let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
-                    let right = self.bitshift();
+        if self.can_pair {
+            while let Some(t) = self.iter.peek() {
+                match t.token_type {
+                    TokenType::BitAnd | TokenType::BitOr | TokenType::BitXor => {
+                        let t = self.iter.next().unwrap();
+                        let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
+                        let right = self.bitshift();
 
-                    expr = self.create_expr_box_no_comment(Expr::Binary {
-                        left: expr,
-                        operator: *t,
-                        comments_and_newlines_between_op_and_r,
-                        right,
-                    });
+                        expr = self.create_expr_box_no_comment(Expr::Binary {
+                            left: expr,
+                            operator: *t,
+                            comments_and_newlines_between_op_and_r,
+                            right,
+                        });
+                    }
+                    _ => break,
                 }
-                _ => break,
             }
         }
 
@@ -673,21 +680,23 @@ impl<'a> Parser<'a> {
     fn bitshift(&mut self) -> ExprBox<'a> {
         let mut expr = self.addition();
 
-        while let Some(t) = self.iter.peek() {
-            match t.token_type {
-                TokenType::BitLeft | TokenType::BitRight => {
-                    let t = self.iter.next().unwrap();
-                    let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
-                    let right = self.addition();
+        if self.can_pair {
+            while let Some(t) = self.iter.peek() {
+                match t.token_type {
+                    TokenType::BitLeft | TokenType::BitRight => {
+                        let t = self.iter.next().unwrap();
+                        let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
+                        let right = self.addition();
 
-                    expr = self.create_expr_box_no_comment(Expr::Binary {
-                        left: expr,
-                        operator: *t,
-                        comments_and_newlines_between_op_and_r,
-                        right,
-                    });
+                        expr = self.create_expr_box_no_comment(Expr::Binary {
+                            left: expr,
+                            operator: *t,
+                            comments_and_newlines_between_op_and_r,
+                            right,
+                        });
+                    }
+                    _ => break,
                 }
-                _ => break,
             }
         }
 
@@ -697,22 +706,24 @@ impl<'a> Parser<'a> {
     fn addition(&mut self) -> ExprBox<'a> {
         let mut expr = self.multiplication();
 
-        while let Some(t) = self.iter.peek() {
-            match t.token_type {
-                TokenType::Minus | TokenType::Plus => {
-                    let token = self.iter.next().unwrap();
-                    let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
-                    let right = self.multiplication();
+        if self.can_pair {
+            while let Some(t) = self.iter.peek() {
+                match t.token_type {
+                    TokenType::Minus | TokenType::Plus => {
+                        let token = self.iter.next().unwrap();
+                        let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
+                        let right = self.multiplication();
 
-                    expr = self.create_expr_box_no_comment(Expr::Binary {
-                        left: expr,
-                        operator: *token,
-                        comments_and_newlines_between_op_and_r,
-                        right,
-                    });
-                }
-                _ => break,
-            };
+                        expr = self.create_expr_box_no_comment(Expr::Binary {
+                            left: expr,
+                            operator: *token,
+                            comments_and_newlines_between_op_and_r,
+                            right,
+                        });
+                    }
+                    _ => break,
+                };
+            }
         }
 
         expr
@@ -721,55 +732,59 @@ impl<'a> Parser<'a> {
     fn multiplication(&mut self) -> ExprBox<'a> {
         let mut expr = self.unary();
 
-        while let Some(t) = self.iter.peek() {
-            match t.token_type {
-                TokenType::Slash | TokenType::Star | TokenType::Mod | TokenType::ModAlias | TokenType::Div => {
-                    let token = self.iter.next().unwrap();
-                    let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
-                    let right = self.unary();
+        if self.can_pair {
+            while let Some(t) = self.iter.peek() {
+                match t.token_type {
+                    TokenType::Slash | TokenType::Star | TokenType::Mod | TokenType::ModAlias | TokenType::Div => {
+                        let token = self.iter.next().unwrap();
+                        let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
+                        let right = self.unary();
 
-                    expr = self.create_expr_box_no_comment(Expr::Binary {
-                        left: expr,
-                        operator: *token,
-                        comments_and_newlines_between_op_and_r,
-                        right,
-                    });
-                }
-                _ => break,
-            };
+                        expr = self.create_expr_box_no_comment(Expr::Binary {
+                            left: expr,
+                            operator: *token,
+                            comments_and_newlines_between_op_and_r,
+                            right,
+                        });
+                    }
+                    _ => break,
+                };
+            }
         }
 
         expr
     }
 
     fn unary(&mut self) -> ExprBox<'a> {
-        if let Some(t) = self.iter.peek() {
-            match t.token_type {
-                TokenType::Bang | TokenType::Minus | TokenType::Plus => {
-                    let t = self.iter.next().unwrap();
-                    let comments_and_newlines_between = self.get_newlines_and_comments();
-                    let right = self.unary();
+        if self.can_pair {
+            if let Some(t) = self.iter.peek() {
+                match t.token_type {
+                    TokenType::Bang | TokenType::Minus | TokenType::Plus => {
+                        let t = self.iter.next().unwrap();
+                        let comments_and_newlines_between = self.get_newlines_and_comments();
+                        let right = self.unary();
 
-                    return self.create_expr_box_no_comment(Expr::Unary {
-                        operator: *t,
-                        comments_and_newlines_between,
-                        right,
-                    });
+                        return self.create_expr_box_no_comment(Expr::Unary {
+                            operator: *t,
+                            comments_and_newlines_between,
+                            right,
+                        });
+                    }
+
+                    TokenType::Incrementer | TokenType::Decrementer => {
+                        let t = self.iter.next().unwrap();
+                        let comments_and_newlines_between = self.get_newlines_and_comments();
+                        let right = self.unary();
+
+                        return self.create_expr_box_no_comment(Expr::Unary {
+                            operator: *t,
+                            comments_and_newlines_between,
+                            right,
+                        });
+                    }
+
+                    _ => {}
                 }
-
-                TokenType::Incrementer | TokenType::Decrementer => {
-                    let t = self.iter.next().unwrap();
-                    let comments_and_newlines_between = self.get_newlines_and_comments();
-                    let right = self.unary();
-
-                    return self.create_expr_box_no_comment(Expr::Unary {
-                        operator: *t,
-                        comments_and_newlines_between,
-                        right,
-                    });
-                }
-
-                _ => {}
             }
         }
 
@@ -779,10 +794,15 @@ impl<'a> Parser<'a> {
     fn postfix(&mut self) -> ExprBox<'a> {
         let mut expr = self.call();
 
-        if self.do_not_pair == false && self.check_next_either(TokenType::Incrementer, TokenType::Decrementer) {
+        if self.check_next_either(TokenType::Incrementer, TokenType::Decrementer) {
             let t = self.iter.next().unwrap();
+
             let comments_and_newlines_between = self.get_newlines_and_comments();
-            expr = self.create_expr_box_no_comment(Expr::Postfix { operator: *t, comments_and_newlines_between, expr });
+            expr = self.create_expr_box_no_comment(Expr::Postfix {
+                operator: *t,
+                comments_and_newlines_between,
+                expr,
+            });
         }
 
         expr
@@ -850,64 +870,6 @@ impl<'a> Parser<'a> {
         }
 
         expression
-    }
-
-    fn finish_call(&mut self, end_token_type: TokenType, delimiter_type: TokenType) -> Arguments<'a> {
-        let mut arguments = Vec::new();
-        if self.check_next(end_token_type) == false {
-            loop {
-                if self.check_next(end_token_type) {
-                    break;
-                }
-
-                arguments.push((
-                    self.get_newlines_and_comments(),
-                    self.expression(),
-                    self.get_newlines_and_comments(),
-                ));
-
-                if self.check_next_consume(delimiter_type) == false {
-                    break;
-                }
-            }
-        };
-
-        self.check_next_consume(end_token_type);
-
-        arguments
-    }
-
-    fn finish_call_delimited_expression(
-        &mut self,
-        end_token_type: TokenType,
-        delimiter_type: TokenType,
-    ) -> DelimitedLines<'a> {
-        let mut arguments = Vec::new();
-        if self.check_next(end_token_type) == false {
-            loop {
-                if self.check_next(end_token_type) {
-                    break;
-                }
-
-                let expr = self.expression();
-                let do_break = self.check_next_consume(delimiter_type) == false;
-
-                let trailing_comment = if do_break {
-                    None
-                } else {
-                    Some(self.get_newlines_and_comments())
-                };
-
-                arguments.push(DelimitedLine { expr, trailing_comment });
-                if do_break {
-                    break;
-                }
-            }
-        };
-
-        self.check_next_consume(end_token_type);
-
-        arguments
     }
 
     fn primary(&mut self) -> ExprBox<'a> {
@@ -982,25 +944,66 @@ impl<'a> Parser<'a> {
 
                 TokenType::Newline(_) => {
                     self.consume_next();
-                    self.do_not_pair = true;
+                    self.can_pair = false;
                     return self.create_expr_box_no_comment(Expr::Newline);
                 }
                 _ => {
                     let t = self.consume_next();
                     if self.allow_unidentified == false {
-                        self.success = Some(format!("Error parsing {}", *t));
+                        self.failure = Some(format!("Error parsing {}", *t));
                     }
-                    
+
                     return self.create_comment_expr_box(Expr::UnidentifiedAsLiteral { literal_token: *t });
                 }
             }
         }
 
-        self.success = Some("Unexpected end.".to_owned());
+        self.failure = Some("Unexpected end.".to_owned());
         self.create_expr_box_no_comment(Expr::UnexpectedEnd)
     }
 
+    fn finish_call(
+        &mut self,
+        end_token_type: TokenType,
+        delimiter_type: TokenType,
+    ) -> DelimitedLines<'a> {
+        let mut arguments = Vec::new();
+
+        let mut end_delimiter = true;
+        if self.check_next(end_token_type) == false {
+            loop {
+                if self.check_next(end_token_type) {
+                    end_delimiter = true;
+                    break;
+                }
+
+                let expr = self.expression();
+                let do_break = self.check_next_consume(delimiter_type) == false;
+
+                let trailing_comment = if do_break {
+                    None
+                } else {
+                    Some(self.get_newlines_and_comments())
+                };
+
+                arguments.push(DelimitedLine { expr, trailing_comment });
+                if do_break {
+                    end_delimiter = false;
+                    break;
+                }
+            }
+        };
+
+        self.check_next_consume(end_token_type);
+
+        (arguments, end_delimiter)
+    }
+
     fn check_next(&mut self, token_type: TokenType) -> bool {
+        if self.can_pair == false {
+            return false;
+        }
+
         if let Some(t) = self.iter.peek() {
             return t.token_type == token_type;
         }
@@ -1009,6 +1012,10 @@ impl<'a> Parser<'a> {
     }
 
     fn check_next_either(&mut self, token_type1: TokenType, token_type2: TokenType) -> bool {
+        if self.can_pair == false {
+            return false;
+        }
+
         if let Some(t) = self.iter.peek() {
             return t.token_type == token_type1 || t.token_type == token_type2;
         }
@@ -1017,6 +1024,10 @@ impl<'a> Parser<'a> {
     }
 
     fn check_next_consume(&mut self, token_type: TokenType) -> bool {
+        if self.can_pair == false {
+            return false;
+        }
+
         if self.check_next(token_type) {
             self.consume_next();
             true

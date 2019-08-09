@@ -1,7 +1,8 @@
 use super::lex_token::*;
+use super::statements::DelimitedLines;
 pub type ExprBox<'a> = Box<(Expr<'a>, CommentsAndNewlines<'a>)>;
 pub type CommentsAndNewlines<'a> = Vec<Token<'a>>;
-pub type Arguments<'a> = Vec<(CommentsAndNewlines<'a>, ExprBox<'a>, CommentsAndNewlines<'a>)>;
+
 pub type DSAccess<'a> = Vec<(CommentsAndNewlines<'a>, ExprBox<'a>)>;
 
 #[derive(Debug)]
@@ -9,7 +10,7 @@ pub enum Expr<'a> {
     Call {
         procedure_name: ExprBox<'a>,
         comments_and_newlines_after_lparen: CommentsAndNewlines<'a>,
-        arguments: Arguments<'a>,
+        arguments: DelimitedLines<'a>,
     },
     Binary {
         left: ExprBox<'a>,
@@ -24,7 +25,7 @@ pub enum Expr<'a> {
     },
     ArrayLiteral {
         comments_and_newlines_after_lbracket: CommentsAndNewlines<'a>,
-        arguments: Arguments<'a>,
+        arguments: DelimitedLines<'a>,
     },
     Literal {
         literal_token: Token<'a>,
