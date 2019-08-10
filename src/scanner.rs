@@ -588,8 +588,6 @@ impl<'a> Scanner<'a> {
             "switch" => Some(TokenType::Switch),
             "case" => Some(TokenType::Case),
             "default" => Some(TokenType::DefaultCase),
-            "true" => Some(TokenType::True),
-            "false" => Some(TokenType::False),
             "mod" => Some(TokenType::ModAlias),
             "div" => Some(TokenType::Div),
             "break" => Some(TokenType::Break),
@@ -846,7 +844,7 @@ testCase";
     #[test]
     fn lex_reserved_keywords() {
         let input_string =
-            "var and or if else return for repeat while do until switch case default true false div break enum";
+"var and or if else return for repeat while do until switch case default div break enum";
 
         let vec = &mut Vec::new();
         let mut scanner = Scanner::new(input_string, vec);
@@ -868,12 +866,10 @@ testCase";
                 Token::new(TokenType::Switch, 0, 52),
                 Token::new(TokenType::Case, 0, 59),
                 Token::new(TokenType::DefaultCase, 0, 64),
-                Token::new(TokenType::True, 0, 72),
-                Token::new(TokenType::False, 0, 77),
-                Token::new(TokenType::Div, 0, 83),
-                Token::new(TokenType::Break, 0, 87),
-                Token::new(TokenType::Enum, 0, 93),
-                Token::new(TokenType::EOF, 0, 97),
+                Token::new(TokenType::Div, 0, 72),
+                Token::new(TokenType::Break, 0, 76),
+                Token::new(TokenType::Enum, 0, 82),
+                Token::new(TokenType::EOF, 0, 86),
             ]
         )
     }

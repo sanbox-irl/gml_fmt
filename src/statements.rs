@@ -123,5 +123,5 @@ pub struct VariableDecl<'a> {
 #[derive(Debug)]
 pub struct DelimitedLine<'a> {
     pub expr: ExprBox<'a>,
-    pub trailing_comment: Option<CommentsAndNewlines<'a>>,
+    pub trailing_comment: CommentsAndNewlines<'a>,
 }

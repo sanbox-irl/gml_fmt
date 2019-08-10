@@ -283,7 +283,6 @@ y += vsp*ss;";
     }
     val = true;
 }
-
 // Foo
 x += hsp * ss;
 y += vsp * ss;

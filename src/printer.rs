@@ -972,29 +972,25 @@ impl<'a> Printer<'a> {
                 true
             };
 
-            match &delimited_line.trailing_comment {
-                Some(comment) => {
-                    let did_newlines =
-                        self.print_comments_and_newlines(&comment, IndentationMove::Stay, LeadingNewlines::All, true);
 
-                    if did_newlines == false && force_newline_between {
+            if delimited_line.trailing_comment.len() != 0 {
+                let did_newlines =
+                    self.print_comments_and_newlines(&delimited_line.trailing_comment, IndentationMove::Stay, LeadingNewlines::All, true);
+
+                if did_newlines == false && force_newline_between {
+                    self.print_newline(IndentationMove::Stay);
+                }
+            } else {
+                if at_end {
+                    if force_newline_at_end {
+                        self.print_newline(IndentationMove::Stay);
+                    }
+                } else {
+                    if force_newline_between {
                         self.print_newline(IndentationMove::Stay);
                     }
                 }
-                None => {
-                    self.backspace();
-
-                    if at_end {
-                        if force_newline_at_end {
-                            self.print_newline(IndentationMove::Stay);
-                        }
-                    } else {
-                        if force_newline_between {
-                            self.print_newline(IndentationMove::Stay);
-                        }
-                    }
-                }
-            };
+            }
         }
     }
 

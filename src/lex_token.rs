@@ -75,8 +75,6 @@ pub enum TokenType<'a> {
     DefaultCase,
     Break,
     Exit,
-    True,
-    False,
     Enum,
 
     AndAlias,
@@ -202,8 +200,6 @@ impl<'a> Token<'a> {
             TokenType::DefaultCase => "default",
             TokenType::Break => "break",
             TokenType::Exit => "exit",
-            TokenType::True => "true",
-            TokenType::False => "false",
             TokenType::Enum => "enum",
 
             TokenType::AndAlias => "and",

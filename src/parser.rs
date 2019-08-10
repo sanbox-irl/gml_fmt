@@ -874,42 +874,34 @@ impl<'a> Parser<'a> {
     fn primary(&mut self) -> ExprBox<'a> {
         if let Some(t) = self.iter.peek() {
             match t.token_type {
-                TokenType::False | TokenType::True => {
-                    let t = self.consume_next();
-                    let comments = self.get_newlines_and_comments();
-                    return self.create_comment_expr_box(Expr::Literal {
-                        literal_token: *t,
-                        comments,
-                    });
-                }
                 TokenType::Number(_) | TokenType::String(_) => {
                     let t = self.consume_next();
-                    let comments = self.get_newlines_and_comments();
-                    return self.create_comment_expr_box(Expr::Literal {
+                    let comments = self.get_comments_until_newline();
+                    return self.create_expr_box_no_comment(Expr::Literal {
                         literal_token: *t,
                         comments,
                     });
                 }
                 TokenType::NumberStartDot(_) => {
                     let t = self.consume_next();
-                    let comments = self.get_newlines_and_comments();
-                    return self.create_comment_expr_box(Expr::NumberStartDot {
+                    let comments = self.get_comments_until_newline();
+                    return self.create_expr_box_no_comment(Expr::NumberStartDot {
                         literal_token: *t,
                         comments,
                     });
                 }
                 TokenType::NumberEndDot(_) => {
                     let t = self.consume_next();
-                    let comments = self.get_newlines_and_comments();
-                    return self.create_comment_expr_box(Expr::NumberEndDot {
+                    let comments = self.get_comments_until_newline();
+                    return self.create_expr_box_no_comment(Expr::NumberEndDot {
                         literal_token: *t,
                         comments,
                     });
                 }
                 TokenType::Identifier(_) => {
                     let t = self.consume_next();
-                    let comments = self.get_newlines_and_comments();
-                    return self.create_comment_expr_box(Expr::Identifier { name: *t, comments });
+                    let comments = self.get_comments_until_newline();
+                    return self.create_expr_box_no_comment(Expr::Identifier { name: *t, comments });
                 }
                 TokenType::LeftParen => {
                     self.consume_next();
@@ -923,7 +915,7 @@ impl<'a> Parser<'a> {
 
                     let comments_and_newlines_after_rparen = self.get_newlines_and_comments();
 
-                    return self.create_comment_expr_box(Expr::Grouping {
+                    return self.create_expr_box_no_comment(Expr::Grouping {
                         expressions,
                         comments_and_newlines_after_lparen,
                         comments_and_newlines_after_rparen,
@@ -975,11 +967,7 @@ impl<'a> Parser<'a> {
                 let expr = self.expression();
                 let do_break = self.check_next_consume(delimiter_type) == false;
 
-                let trailing_comment = if do_break {
-                    None
-                } else {
-                    Some(self.get_newlines_and_comments())
-                };
+                let trailing_comment = self.get_newlines_and_comments();
 
                 arguments.push(DelimitedLine { expr, trailing_comment });
 
@@ -1038,6 +1026,22 @@ impl<'a> Parser<'a> {
                     let token = self.iter.next().unwrap();
                     vec.push(*token);
                 }
+                TokenType::Comment(_) | TokenType::MultilineComment(_) => {
+                    let token = self.iter.next().unwrap();
+                    vec.push(*token);
+                }
+
+                _ => break,
+            }
+        }
+
+        vec
+    }
+
+    fn get_comments_until_newline(&mut self) -> Vec<Token<'a>> {
+        let mut vec = vec![];
+        while let Some(token) = self.iter.peek() {
+            match token.token_type {
                 TokenType::Comment(_) | TokenType::MultilineComment(_) => {
                     let token = self.iter.next().unwrap();
                     vec.push(*token);
