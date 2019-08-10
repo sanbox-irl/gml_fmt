@@ -57,14 +57,17 @@ pub enum Statement<'a> {
         body: StmtBox<'a>,
     },
     DoUntil {
+        leading_comments: CommentsAndNewlines<'a>,
         body: StmtBox<'a>,
         comments_between: CommentsAndNewlines<'a>,
         condition: ExprBox<'a>,
     },
     For {
+        leading_comments: CommentsAndNewlines<'a>,
         initializer: Option<StmtBox<'a>>,
         condition: Option<ExprBox<'a>>,
         increment: Option<ExprBox<'a>>,
+        trailing_comments: CommentsAndNewlines<'a>,
         body: StmtBox<'a>,
     },
     Return {

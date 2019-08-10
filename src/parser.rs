@@ -293,6 +293,7 @@ impl<'a> Parser<'a> {
     }
 
     fn do_until_statement(&mut self) -> StmtBox<'a> {
+        let leading_comments = self.get_newlines_and_comments();
         let body = self.statement();
         let comments_between = self.get_newlines_and_comments();
         self.check_next_consume(TokenType::Until);
@@ -301,6 +302,7 @@ impl<'a> Parser<'a> {
 
         StatementWrapper::new(
             Statement::DoUntil {
+                leading_comments,
                 comments_between,
                 condition,
                 body,
@@ -395,6 +397,7 @@ impl<'a> Parser<'a> {
 
     fn for_statement(&mut self) -> StmtBox<'a> {
         self.check_next_consume(TokenType::LeftParen);
+        let leading_comments = self.get_newlines_and_comments();
 
         let initializer = if self.check_next_consume(TokenType::Semicolon) {
             None
@@ -417,16 +420,19 @@ impl<'a> Parser<'a> {
             Some(self.expression())
         };
         self.check_next_consume(TokenType::RightParen);
+        let trailing_comments = self.get_newlines_and_comments();
 
         let body = self.statement();
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
 
         StatementWrapper::new(
             Statement::For {
+                leading_comments,
                 initializer,
                 condition,
                 increment,
                 body,
+                trailing_comments,
             },
             has_semicolon,
         )
@@ -937,6 +943,18 @@ impl<'a> Parser<'a> {
                     self.consume_next();
                     self.can_pair = false;
                     return self.create_expr_box_no_comment(Expr::Newline);
+                }
+                TokenType::Comment(_) => {
+                    let comment = self.consume_next();
+                    self.can_pair = false;
+                    return self.create_expr_box_no_comment(Expr::Comment { comment: *comment });
+                }
+                TokenType::MultilineComment(_) => {
+                    let multiline_comment = self.consume_next();
+                    self.can_pair = false;
+                    return self.create_expr_box_no_comment(Expr::MultilineComment {
+                        multiline_comment: *multiline_comment,
+                    });
                 }
                 _ => {
                     let t = self.consume_next();

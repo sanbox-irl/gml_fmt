@@ -57,12 +57,23 @@ fn do_until() {
     let input = "do {
 // whatever
 show_debug_message(x);
-} until (test);";
+} until (test);
+
+do
+{
+    // gah
+}
+until (true);
+";
 
     let format = "do {
     // whatever
     show_debug_message(x);
 } until (test);
+
+do {
+    // gah
+} until (true);
 ";
 
     assert_eq!(gml_fmt::run_test(input), format);

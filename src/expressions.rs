@@ -77,6 +77,12 @@ pub enum Expr<'a> {
         right: ExprBox<'a>,
     },
     Newline,
+    Comment {
+        comment: Token<'a>,
+    },
+    MultilineComment {
+        multiline_comment: Token<'a>,
+    },
     UnidentifiedAsLiteral {
         literal_token: Token<'a>,
     },

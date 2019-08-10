@@ -238,11 +238,14 @@ impl<'a> Printer<'a> {
                 self.print_semicolon(stmt.has_semicolon);
             }
             Statement::DoUntil {
+                leading_comments,
                 condition,
                 comments_between,
                 body,
             } => {
                 self.print("do", true);
+                self.print_comments_and_newlines(leading_comments, IndentationMove::Stay, LeadingNewlines::One, false);
+
                 self.block_instructions.push(BlockInstructions::NO_NEWLINE_AFTER_BLOCK);
                 self.print_statement(body);
                 self.print_comments_and_newlines(comments_between, IndentationMove::Stay, LeadingNewlines::None, false);
@@ -254,12 +257,16 @@ impl<'a> Printer<'a> {
                 self.print_semicolon(stmt.has_semicolon);
             }
             Statement::For {
+                leading_comments,
                 initializer,
                 condition,
                 increment,
+                trailing_comments,
                 body,
             } => {
                 self.print("for", true);
+                self.print_comments_and_newlines(leading_comments, IndentationMove::Stay, LeadingNewlines::One, false);
+
                 self.print(LPAREN, false);
 
                 if let Some(initializer) = initializer {
@@ -284,6 +291,12 @@ impl<'a> Printer<'a> {
 
                 self.backspace();
                 self.print(RPAREN, true);
+                let did_move = self.print_comments_and_newlines(
+                    trailing_comments,
+                    IndentationMove::Stay,
+                    LeadingNewlines::One,
+                    false,
+                );
 
                 self.print_statement(body);
                 self.print_semicolon(stmt.has_semicolon);
@@ -370,7 +383,7 @@ impl<'a> Printer<'a> {
                 self.print(RBRACE, false);
                 self.print_semicolon(stmt.has_semicolon);
             }
-            Statement::Comment { comment } => self.print_token(comment, false),
+            Statement::Comment { comment } => self.print_token(comment, true),
             Statement::MultilineComment { multiline_comment } => self.print_token(multiline_comment, true),
             Statement::RegionBegin { multi_word_name } => {
                 self.print("#region", true);
@@ -480,6 +493,7 @@ impl<'a> Printer<'a> {
                     self.print_expr(expression);
                 }
                 self.backspace();
+
                 if did_move {
                     if self.on_whitespace_line() {
                         self.backspace_till_newline();
@@ -690,6 +704,10 @@ impl<'a> Printer<'a> {
                     self.print_newline(IndentationMove::Stay);
                 }
             }
+
+            Expr::Comment { comment } => self.print_token(comment, false),
+            Expr::MultilineComment { multiline_comment } => self.print_token(multiline_comment, false),
+
             Expr::UnidentifiedAsLiteral { literal_token } => {
                 self.print_token(&literal_token, true);
             }
@@ -972,10 +990,13 @@ impl<'a> Printer<'a> {
                 true
             };
 
-
             if delimited_line.trailing_comment.len() != 0 {
-                let did_newlines =
-                    self.print_comments_and_newlines(&delimited_line.trailing_comment, IndentationMove::Stay, LeadingNewlines::All, true);
+                let did_newlines = self.print_comments_and_newlines(
+                    &delimited_line.trailing_comment,
+                    IndentationMove::Stay,
+                    LeadingNewlines::All,
+                    true,
+                );
 
                 if did_newlines == false && force_newline_between {
                     self.print_newline(IndentationMove::Stay);
