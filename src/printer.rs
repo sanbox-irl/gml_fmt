@@ -127,6 +127,7 @@ impl<'a> Printer<'a> {
                 };
 
                 self.print(LBRACE, false);
+
                 // if we have more than one statement, or if our statement isn't an expression statement, then we indent.
                 let must_indent = statements.len() > 1 || (statements.len() == 1 && statements[0].hold_expr() == false);
                 let did_move = self.print_comments_and_newlines(
