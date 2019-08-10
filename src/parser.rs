@@ -201,40 +201,51 @@ impl<'a> Parser<'a> {
 
     fn series_var_declaration(&mut self) -> StmtBox<'a> {
         self.check_next_consume(TokenType::Var);
-
-        let mut var_decl = Vec::new();
-        var_decl.push(self.var_declaration());
-
-        while let Some(_) = self.iter.peek() {
-            if self.check_next_consume(TokenType::Comma) {
-                var_decl.push(self.var_declaration());
-            } else {
-                break;
-            }
-        }
-
+        let var_decl = self.var_declaration();
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
-
         StatementWrapper::new(Statement::VariableDeclList { var_decl }, has_semicolon)
     }
 
-    fn var_declaration(&mut self) -> VariableDecl<'a> {
-        let say_var = self.check_next_consume(TokenType::Var);
+    fn var_declaration(&mut self) -> DelimitedLines<'a, VariableDecl<'a>> {
+        let mut arguments: Vec<DelimitedLine<'a, VariableDecl<'a>>> = Vec::new();
 
-        let var_expr = self.expression();
+        let end_delimiter;
+        loop {
+            if self.check_next(TokenType::Semicolon) {
+                end_delimiter = true;
+                break;
+            }
 
-        let assignment = if self.check_next(TokenType::Equal) {
-            self.iter.next();
-            let comments = self.get_newlines_and_comments();
-            Some((comments, self.expression()))
-        } else {
-            None
-        };
+            let say_var = self.check_next_consume(TokenType::Var);
+            let say_var_comments = if say_var {
+                Some(self.get_newlines_and_comments())
+            } else {
+                None
+            };
 
-        VariableDecl {
-            var_expr,
-            assignment,
-            say_var,
+            let var_decl = VariableDecl {
+                say_var,
+                say_var_comments,
+                var_expr: self.expression(),
+            };
+            let do_break = self.check_next_consume(TokenType::Comma) == false;
+            let trailing_comment = self.get_newlines_and_comments();
+
+            arguments.push(DelimitedLine {
+                expr: var_decl,
+                trailing_comment,
+            });
+
+            if do_break {
+                end_delimiter = false;
+                break;
+            }
+        }
+        self.check_next_consume(TokenType::Semicolon);
+
+        DelimitedLines {
+            lines: arguments,
+            has_end_delimiter: end_delimiter,
         }
     }
 
@@ -971,7 +982,7 @@ impl<'a> Parser<'a> {
         self.create_expr_box_no_comment(Expr::UnexpectedEnd)
     }
 
-    fn finish_call(&mut self, end_token_type: TokenType, delimiter_type: TokenType) -> DelimitedLines<'a> {
+    fn finish_call(&mut self, end_token_type: TokenType, delimiter_type: TokenType) -> DelimitedLines<'a, ExprBox<'a>> {
         let mut arguments = Vec::new();
 
         let mut end_delimiter = true;
@@ -997,7 +1008,10 @@ impl<'a> Parser<'a> {
         };
         self.check_next_consume(end_token_type);
 
-        (arguments, end_delimiter)
+        DelimitedLines {
+            lines: arguments,
+            has_end_delimiter: end_delimiter,
+        }
     }
 
     fn check_next(&mut self, token_type: TokenType) -> bool {

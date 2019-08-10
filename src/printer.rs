@@ -58,28 +58,73 @@ impl<'a> Printer<'a> {
 
     fn print_statement(&mut self, stmt: &'a StatementWrapper<'a>) {
         match &stmt.statement {
-            Statement::VariableDeclList { var_decl } => {
+            Statement::VariableDeclList {
+                var_decl: var_decl_list,
+            } => {
                 self.print("var", true);
 
-                let mut iter = var_decl.into_iter().peekable();
-                while let Some(this_decl) = iter.next() {
-                    if this_decl.say_var {
+                let mut indented_vars = false;
+                let mut iter = var_decl_list.lines.iter().peekable();
+                while let Some(delimited_var) = iter.next() {
+                    if delimited_var.expr.say_var {
                         self.print("var", true);
-                    }
-                    self.print_expr(&this_decl.var_expr);
 
-                    if let Some((comments, expr_box)) = &this_decl.assignment {
-                        self.print("=", true);
-                        self.print_comments_and_newlines(comments, IndentationMove::Stay, LeadingNewlines::All, false);
-                        self.print_expr(expr_box);
-                    }
+                        if let Some(comments) = &delimited_var.expr.say_var_comments {
+                            let did_move = self.print_comments_and_newlines(
+                                comments,
+                                if indented_vars {
+                                    IndentationMove::Stay
+                                } else {
+                                    IndentationMove::Right
+                                },
+                                LeadingNewlines::One,
+                                false,
+                            );
+
+                            if did_move {
+                                indented_vars = true;
+                            }
+                        }
+                    };
+                    self.print_expr(&delimited_var.expr.var_expr);
                     self.backspace();
 
                     if let Some(_) = iter.peek() {
                         self.print(COMMA, true);
+                        false
+                    } else {
+                        if var_decl_list.has_end_delimiter {
+                            self.print(COMMA, true);
+                        }
+                        true
+                    };
+
+                    if delimited_var.trailing_comment.len() != 0 {
+                        let did_newlines = self.print_comments_and_newlines(
+                            &delimited_var.trailing_comment,
+                            if indented_vars {
+                                IndentationMove::Stay
+                            } else {
+                                IndentationMove::Right
+                            },
+                            LeadingNewlines::One,
+                            true,
+                        );
+
+                        if did_newlines {
+                            indented_vars = true;
+                        }
                     }
                 }
-                self.print_semicolon(stmt.has_semicolon);
+
+                self.print_semicolon_and_newline(
+                    stmt.has_semicolon,
+                    if indented_vars {
+                        IndentationMove::Left
+                    } else {
+                        IndentationMove::Stay
+                    },
+                );
             }
             Statement::EnumDeclaration {
                 name,
@@ -292,7 +337,7 @@ impl<'a> Printer<'a> {
 
                 self.backspace();
                 self.print(RPAREN, true);
-                let did_move = self.print_comments_and_newlines(
+                self.print_comments_and_newlines(
                     trailing_comments,
                     IndentationMove::Stay,
                     LeadingNewlines::One,
@@ -309,15 +354,16 @@ impl<'a> Printer<'a> {
                     self.print(SPACE, false);
                     self.print_expr(expression);
                 }
-                self.print_semicolon(stmt.has_semicolon);
+                self.print_semicolon_and_newline(stmt.has_semicolon, IndentationMove::Stay);
             }
             Statement::Break => {
                 self.print("break", false);
-                self.print_semicolon(stmt.has_semicolon);
+                self.print_semicolon_and_newline(stmt.has_semicolon, IndentationMove::Stay);
             }
+
             Statement::Exit => {
                 self.print("exit", false);
-                self.print_semicolon(stmt.has_semicolon);
+                self.print_semicolon_and_newline(stmt.has_semicolon, IndentationMove::Stay);
             }
             Statement::Switch {
                 condition,
@@ -971,12 +1017,12 @@ impl<'a> Printer<'a> {
 
     fn print_delimited_lines(
         &mut self,
-        delimited_lines: &'a DelimitedLines<'a>,
+        delimited_lines: &'a DelimitedLines<'a, ExprBox<'a>>,
         delimiter: &'static str,
         force_newline_between: bool,
         force_newline_at_end: bool,
     ) {
-        let mut iter = delimited_lines.0.iter().peekable();
+        let mut iter = delimited_lines.lines.iter().peekable();
         while let Some(delimited_line) = iter.next() {
             self.print_expr(&delimited_line.expr);
             self.backspace();
@@ -985,7 +1031,7 @@ impl<'a> Printer<'a> {
                 self.print(delimiter, true);
                 false
             } else {
-                if delimited_lines.1 {
+                if delimited_lines.has_end_delimiter {
                     self.print(delimiter, true);
                 }
                 true
@@ -1020,6 +1066,15 @@ impl<'a> Printer<'a> {
         if do_it {
             self.backspace();
             self.print(SEMICOLON, true);
+        }
+    }
+
+    fn print_semicolon_and_newline(&mut self, do_it: bool, indentation_move: IndentationMove) {
+        if do_it {
+            self.print_semicolon(true);
+        } else {
+            self.print_semicolon(true);
+            self.print_newline(indentation_move);
         }
     }
 }

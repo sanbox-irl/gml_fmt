@@ -364,18 +364,18 @@ fn double_call() {
 #[test]
 fn non_block_if_else() {
     let input = "if (true)
-    return false
+    return false;
 else if (true)
-    return false
+    return false;
 if (true)
-    return false
+    return false;
 else if (true)
-    return false
+    return false;
 
 if (true)
-    return false
+    return false;
 
-if (true) return false
+if (true) return false;
 ";
 
     assert_eq!(gml_fmt::run_test(input), input);

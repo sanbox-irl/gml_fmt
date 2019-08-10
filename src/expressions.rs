@@ -10,7 +10,7 @@ pub enum Expr<'a> {
     Call {
         procedure_name: ExprBox<'a>,
         comments_and_newlines_after_lparen: CommentsAndNewlines<'a>,
-        arguments: DelimitedLines<'a>,
+        arguments: DelimitedLines<'a, ExprBox<'a>>,
     },
     Binary {
         left: ExprBox<'a>,
@@ -25,7 +25,7 @@ pub enum Expr<'a> {
     },
     ArrayLiteral {
         comments_and_newlines_after_lbracket: CommentsAndNewlines<'a>,
-        arguments: DelimitedLines<'a>,
+        arguments: DelimitedLines<'a, ExprBox<'a>>,
     },
     Literal {
         literal_token: Token<'a>,

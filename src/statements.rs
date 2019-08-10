@@ -3,7 +3,11 @@ use super::lex_token::Token;
 
 pub type StmtBox<'a> = Box<StatementWrapper<'a>>;
 pub type ParenInfo = (bool, bool);
-pub type DelimitedLines<'a> = (Vec<DelimitedLine<'a>>, bool);
+#[derive(Debug)]
+pub struct DelimitedLines<'a, T> {
+    pub lines: Vec<DelimitedLine<'a, T>>,
+    pub has_end_delimiter: bool,
+}
 
 #[derive(Debug)]
 pub struct StatementWrapper<'a> {
@@ -31,12 +35,12 @@ impl<'a> StatementWrapper<'a> {
 #[derive(Debug)]
 pub enum Statement<'a> {
     VariableDeclList {
-        var_decl: Vec<VariableDecl<'a>>,
+        var_decl: DelimitedLines<'a, VariableDecl<'a>>,
     },
     EnumDeclaration {
         name: ExprBox<'a>,
         comments_after_lbrace: CommentsAndNewlines<'a>,
-        members: DelimitedLines<'a>,
+        members: DelimitedLines<'a, ExprBox<'a>>,
     },
     ExpresssionStatement {
         expression: ExprBox<'a>,
@@ -120,11 +124,11 @@ pub enum CaseType<'a> {
 pub struct VariableDecl<'a> {
     pub var_expr: ExprBox<'a>,
     pub say_var: bool,
-    pub assignment: Option<(CommentsAndNewlines<'a>, ExprBox<'a>)>,
+    pub say_var_comments: Option<CommentsAndNewlines<'a>>,
 }
 
 #[derive(Debug)]
-pub struct DelimitedLine<'a> {
-    pub expr: ExprBox<'a>,
+pub struct DelimitedLine<'a, T> {
+    pub expr: T,
     pub trailing_comment: CommentsAndNewlines<'a>,
 }
