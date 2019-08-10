@@ -76,7 +76,6 @@ pub enum Expr<'a> {
         comments_and_newlines_after_colon: CommentsAndNewlines<'a>,
         right: ExprBox<'a>,
     },
-
     Newline,
     UnidentifiedAsLiteral {
         literal_token: Token<'a>,

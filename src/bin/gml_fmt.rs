@@ -5,9 +5,11 @@ use gml_fmt::config::Config;
 use gml_fmt::config::PrintFlags;
 use std::{path::PathBuf, process};
 
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
 fn main() {
     let matches = App::new("gml_fmt")
-        .version("0.9.2")
+        .version(VERSION)
         .author("Jonathan Spira <jjspira@gmail.com>")
         .about("Code Formatter for GML")
         .arg(Arg::with_name("file").short("f").help("Sets gml_fmt to format a file"))

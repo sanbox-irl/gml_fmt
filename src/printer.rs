@@ -22,6 +22,7 @@ pub struct Printer<'a> {
     force_indentation: Option<IndentationMove>,
     do_not_print_single_newline_statement: bool,
     block_instructions: Vec<BlockInstructions>,
+    group_instructions: Vec<GroupInstructions>,
     // accept_original_indentation: bool,
 }
 
@@ -34,6 +35,7 @@ impl<'a> Printer<'a> {
             force_indentation: None,
             do_not_print_single_newline_statement: false,
             block_instructions: Vec::new(),
+            group_instructions: Vec::new()
             // accept_original_indentation: false,
         }
     }
@@ -169,7 +171,6 @@ impl<'a> Printer<'a> {
                     self.ensure_newline(IndentationMove::Stay);
                 }
 
-                // @jack why is this here?
                 self.do_not_print_single_newline_statement = true;
             }
             Statement::If {
@@ -179,23 +180,51 @@ impl<'a> Printer<'a> {
                 else_branch,
             } => {
                 self.print("if", true);
+
+                let has_block = if let Statement::Block { .. } = &then_branch.statement {
+                    self.block_instructions.push(BlockInstructions::NO_NEWLINE_AFTER_BLOCK);
+                    true
+                } else {
+                    false
+                };
+
+                let current_indentation = self.indentation;
+                if has_block == false {
+                    if let Expr::Grouping { .. } = &condition.0 {
+                        self.group_instructions.push(GroupInstructions {
+                            force_respect: Some(true),
+                            force_indentation: Some(IndentationMove::Right),
+                            ..Default::default()
+                        });
+                    }
+                }
                 self.print_expr(condition);
-                self.block_instructions.push(BlockInstructions::NO_NEWLINE_AFTER_BLOCK);
+                let forcible_indent = self.indentation != current_indentation && has_block == false;
                 self.print_statement(then_branch);
 
                 let did_move = self.print_comments_and_newlines(
                     comments_between,
-                    IndentationMove::Stay,
+                    if forcible_indent {
+                        IndentationMove::Left
+                    } else {
+                        IndentationMove::Stay
+                    },
                     LeadingNewlines::All,
-                    false,
+                    true,
                 );
                 if did_move == false {
-                    self.print_newline(IndentationMove::Stay);
+                    self.print_newline(if forcible_indent {
+                        IndentationMove::Left
+                    } else {
+                        IndentationMove::Stay
+                    });
                 }
 
                 if let Some(else_branch) = else_branch {
-                    self.backspace_whitespace();
-                    self.print(SPACE, false);
+                    if forcible_indent == false {
+                        self.backspace_whitespace();
+                    }
+                    self.ensure_space();
                     self.print("else", true);
                     self.print_statement(else_branch);
                 }
@@ -330,7 +359,7 @@ impl<'a> Printer<'a> {
                     for this_statement in &case.statements {
                         self.print_statement(this_statement);
                     }
-                    
+
                     self.backspace_till_newline();
                     self.print_indentation_raw(saved_indentation);
                 }
@@ -446,10 +475,10 @@ impl<'a> Printer<'a> {
                     LeadingNewlines::One,
                     true,
                 );
+
                 for expression in expressions {
                     self.print_expr(expression);
                 }
-
                 self.backspace();
                 if did_move {
                     if self.on_whitespace_line() {
@@ -460,12 +489,19 @@ impl<'a> Printer<'a> {
                     }
                 }
                 self.print(RPAREN, true);
+                let instructions = match self.group_instructions.pop() {
+                    Some(instruction) => instruction,
+                    None => Default::default(),
+                };
+
                 self.print_comments_and_newlines(
                     comments_and_newlines_after_rparen,
-                    IndentationMove::Stay,
-                    LeadingNewlines::All,
-                    false,
+                    instructions.force_indentation(),
+                    instructions.force_leading_newlines(),
+                    instructions.force_respect(),
                 );
+
+                // if let Some(instruction) =
             }
 
             Expr::ArrayLiteral {
@@ -988,5 +1024,38 @@ bitflags::bitflags! {
     pub struct BlockInstructions: u8 {
         const NONE                      = 0b00000000;
         const NO_NEWLINE_AFTER_BLOCK    = 0b00000001;
+    }
+}
+
+#[derive(Default)]
+struct GroupInstructions {
+    force_indentation: Option<IndentationMove>,
+    force_leading_newlines: Option<LeadingNewlines>,
+    force_respect: Option<bool>,
+}
+
+impl GroupInstructions {
+    fn force_indentation(&self) -> IndentationMove {
+        if let Some(ret) = self.force_indentation {
+            ret
+        } else {
+            IndentationMove::Stay
+        }
+    }
+
+    fn force_leading_newlines(&self) -> LeadingNewlines {
+        if let Some(ret) = self.force_leading_newlines {
+            ret
+        } else {
+            LeadingNewlines::All
+        }
+    }
+
+    fn force_respect(&self) -> bool {
+        if let Some(ret) = self.force_respect {
+            ret
+        } else {
+            false
+        }
     }
 }

@@ -982,7 +982,6 @@ impl<'a> Parser<'a> {
                 };
 
                 arguments.push(DelimitedLine { expr, trailing_comment });
-                println!("Delimiter vec looks like {:?}", arguments);
 
                 if do_break {
                     end_delimiter = false;
@@ -990,8 +989,7 @@ impl<'a> Parser<'a> {
                 }
             }
         };
-    println!("Next token is {:?}", self.iter.peek());
-        println!("Ate last: {}", self.check_next_consume(end_token_type));
+        self.check_next_consume(end_token_type);
 
         (arguments, end_delimiter)
     }

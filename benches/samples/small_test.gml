@@ -1,5 +1,5 @@
-fun(
-    _e[Foo.bar],
-    _e[Foo.bar],
-    _e[Foo.bar]
-);
+if (true)
+    return false;
+
+if (true)
+    return false

@@ -283,6 +283,7 @@ y += vsp*ss;";
     }
     val = true;
 }
+
 // Foo
 x += hsp * ss;
 y += vsp * ss;
@@ -345,6 +346,26 @@ fn double_call() {
     between(b, d * 0.82, u * 0.86) ||
     between(c, c * 0.92, u * 0.96) ? c_white : c_red
 );
+";
+
+    assert_eq!(gml_fmt::run_test(input), input);
+}
+
+#[test]
+fn non_block_if_else() {
+    let input = "if (true)
+    return false
+else if (true)
+    return false
+if (true)
+    return false
+else if (true)
+    return false
+
+if (true)
+    return false
+
+if (true) return false
 ";
 
     assert_eq!(gml_fmt::run_test(input), input);
