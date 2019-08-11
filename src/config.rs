@@ -65,8 +65,9 @@ impl Config {
 
 bitflags::bitflags! {
     pub struct PrintFlags: u8 {
-        const NO_OUTPUT =           0b00000000;
+        const NO_OUTPUT =    0b00000000;
         const OVERWRITE =    0b00000001;
-        const LOGS =          0b00000010;
+        const LOGS =         0b00000010;
+        const SCANNER_LOGS = 0b00000100;
     }
 }

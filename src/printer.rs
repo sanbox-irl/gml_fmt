@@ -337,12 +337,7 @@ impl<'a> Printer<'a> {
 
                 self.backspace();
                 self.print(RPAREN, true);
-                self.print_comments_and_newlines(
-                    trailing_comments,
-                    IndentationMove::Stay,
-                    LeadingNewlines::One,
-                    false,
-                );
+                self.print_comments_and_newlines(trailing_comments, IndentationMove::Stay, LeadingNewlines::One, false);
 
                 self.print_statement(body);
                 self.print_semicolon(stmt.has_semicolon);
@@ -1002,9 +997,25 @@ impl<'a> Printer<'a> {
                     ignore_newline = false;
                 }
 
+                TokenType::RegionEnd | TokenType::RegionBegin => {
+                    self.ensure_space();
+                    self.print_token(this_one, true);
+                    ignore_newline = false;
+
+                    while let Some(this_one) = iter.peek() {
+                        match this_one.token_type {
+                            TokenType::Newline(_) => break,
+                            _ => {
+                                let token = iter.next().unwrap();
+                                self.print_token(token, true);
+                            }
+                        }
+                    }
+                }
+
                 _ => {
                     println!(
-                        "Printing {} which isn't a newline or comment in a comment_newline section...",
+                        "Printing {} which isn't newline, comment, or region in a comment_newline section...",
                         this_one
                     );
                     self.print_token(this_one, true);

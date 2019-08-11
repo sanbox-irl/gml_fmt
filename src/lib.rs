@@ -14,6 +14,7 @@ use std::{error::Error, fs};
 
 pub fn run_config(config: &Config) -> Result<(), Box<dyn Error>> {
     let log = config.print_flags.contains(PrintFlags::LOGS);
+    let log_scan = config.print_flags.contains(PrintFlags::SCANNER_LOGS);
     let overwrite = config.print_flags.contains(PrintFlags::OVERWRITE);
 
     for this_file in &config.files {
@@ -36,6 +37,10 @@ pub fn run_config(config: &Config) -> Result<(), Box<dyn Error>> {
                 println!("==========AST===========");
                 println!("{}", res.2.unwrap());
             }
+            if log_scan {
+                println!("=========SCANLINE=========");
+                println!("{}", res.3.unwrap());
+            }
 
             if overwrite {
                 fs::write(this_file, output)?;
@@ -55,7 +60,7 @@ pub fn run_test(input: &str) -> String {
     return res.1.unwrap();
 }
 
-fn run(source: &str, print_ast: bool) -> (Option<String>, Option<String>, Option<String>) {
+fn run(source: &str, print_ast: bool) -> (Option<String>, Option<String>, Option<String>, Option<String>) {
     let mut tok = Vec::new();
     let mut scanner = Scanner::new(source, &mut tok);
 
@@ -64,11 +69,12 @@ fn run(source: &str, print_ast: bool) -> (Option<String>, Option<String>, Option
     parser.build_ast();
 
     if let Some(err) = parser.failure {
-        return (Some(err), None, None);
+        return (Some(err), None, None, Some(format!("{:#?}", our_tokens))); // @jack we're right here, passing out the lex stream to the debug output
     }
 
     let mut printer = Printer::new();
     printer.autoformat(&parser.ast[..]);
+
     (
         None,
         Some(Printer::get_output(&printer.output)),
@@ -77,5 +83,6 @@ fn run(source: &str, print_ast: bool) -> (Option<String>, Option<String>, Option
         } else {
             None
         },
+        Some(format!("{:#?}", our_tokens)),
     )
 }

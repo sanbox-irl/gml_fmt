@@ -329,9 +329,10 @@ impl<'a> Parser<'a> {
 
         let mut cases: Vec<Case<'a>> = vec![];
 
-        while let Some(token) = self.iter.next() {
+        while let Some(token) = self.iter.peek() {
             match token.token_type {
                 TokenType::Case => {
+                    self.consume_next();
                     let comments_after_control_word = self.get_newlines_and_comments();
                     let constant = self.expression();
                     self.check_next_consume(TokenType::Colon);
@@ -361,7 +362,7 @@ impl<'a> Parser<'a> {
                 }
 
                 TokenType::DefaultCase => {
-                    // This is a copy of case above, with modification
+                    self.consume_next();
                     let comments_after_control_word = self.get_newlines_and_comments();
                     self.check_next_consume(TokenType::Colon);
                     let comments_after_colon = self.get_newlines_and_comments();
@@ -369,10 +370,7 @@ impl<'a> Parser<'a> {
                     let mut statements = Vec::new();
                     while let Some(token) = self.iter.peek() {
                         match token.token_type {
-                            TokenType::DefaultCase | TokenType::Case => {
-                                break;
-                            }
-                            TokenType::RightBrace => {
+                            TokenType::DefaultCase | TokenType::Case | TokenType::RightBrace => {
                                 break;
                             }
                             _ => {
@@ -388,7 +386,13 @@ impl<'a> Parser<'a> {
                         statements,
                     });
                 }
-                _ => break,
+
+                TokenType::RightBrace => break,
+
+                _ => {
+                    self.failure = Some(format!("Unknown token {} in Switch statement", token));
+                    break;
+                }
             }
         }
 
@@ -1063,6 +1067,10 @@ impl<'a> Parser<'a> {
                     vec.push(*token);
                 }
 
+                TokenType::RegionBegin | TokenType::RegionEnd => {
+                    vec.push(*self.iter.next().unwrap());
+                    vec.append(&mut self.get_remaining_tokens_on_line());
+                }
                 _ => break,
             }
         }
@@ -1079,6 +1087,10 @@ impl<'a> Parser<'a> {
                     vec.push(*token);
                 }
 
+                TokenType::RegionBegin | TokenType::RegionEnd => {
+                    vec.push(*self.iter.next().unwrap());
+                    vec.append(&mut self.get_remaining_tokens_on_line());
+                }
                 _ => break,
             }
         }

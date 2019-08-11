@@ -24,6 +24,11 @@ fn main() {
                 .help("Prints out logging information along with formatting"),
         )
         .arg(
+            Arg::with_name("log-scanner")
+                .short("s")
+                .help("Prints out logging information on the scanner."),
+        )
+        .arg(
             Arg::with_name("no-overwrite")
                 .short("n")
                 .help("Do not overwrite the original file. Mostly used in conjungtion with -l to log output."),
@@ -49,6 +54,10 @@ fn main() {
 
     if matches.is_present("log") {
         print_flags |= PrintFlags::LOGS;
+    }
+
+    if matches.is_present("log-scanner") {
+        print_flags |= PrintFlags::SCANNER_LOGS;
     }
 
     let config = Config::new(input_path, print_flags, do_file).unwrap_or_else(|e| {
