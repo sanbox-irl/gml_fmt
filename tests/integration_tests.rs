@@ -7,7 +7,7 @@ fn regions() {
 
 #endregion Okay
 ";
-    let format = "#region Test Test Test
+    let format = "#region Test Test  Test
 
 #endregion Okay
 ";
@@ -399,7 +399,8 @@ fn horrible_multiline_string() {
 #[test]
 fn nice_macro() {
     let input = "#macro give_me_five x =5+5;";
-    let output = "#macro give_me_five x =5+5;";
+    let output = "#macro give_me_five x =5+5;
+";
 
     assert_eq!(gml_fmt::run_test(input), output);
 }

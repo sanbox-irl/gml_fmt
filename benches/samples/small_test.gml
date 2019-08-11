@@ -1,6 +1,1 @@
-while
-(
-    test
-) {
-    // okay
-}
+#macro give_me_five x =5+5

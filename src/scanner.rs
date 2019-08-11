@@ -208,19 +208,84 @@ impl<'a> Scanner<'a> {
                 // Compiler Directives
                 '#' => {
                     let start = i;
-                    let mut current = start;
 
-                    if let None = self.peek_and_check_while(|i, this_char| {
+                    // Multiline macro stuff
+                    let start_line = self.line_number;
+                    let start_column = self.column_number;
+                    let mut current = start;
+                    let mut is_multiline = false;
+                    let mut last_column_break = start;
+
+                    let token_returned = if let Some(_) = self.peek_and_check_while(|i, this_char| {
                         current = i;
                         this_char.is_ascii_alphanumeric() || this_char == '_'
                     }) {
-                        current = self.next_char_boundary();
+                        match &self.input[start..current] {
+                            "#macro" => {
+                                while let Some((_, peek_char)) = self.iter.peek() {
+                                    match peek_char {
+                                        '\n' => break,
+
+                                        '\\' => {
+                                            self.iter.next();
+                                            if self.peek_and_check_consume('\n') {
+                                                last_column_break = self.next_char_boundary();
+                                                is_multiline = true;
+                                                self.next_line();
+                                            }
+                                        }
+
+                                        _ => {
+                                            self.iter.next().unwrap();
+                                        }
+                                    }
+                                }
+                                let current = self.next_char_boundary();
+                                Some(TokenType::Macro(&self.input[start..current]))
+                            }
+                            "#region" => {
+                                while let Some((_, peek_char)) = self.iter.peek() {
+                                    match peek_char {
+                                        '\n' => break,
+                                        _ => {
+                                            self.iter.next().unwrap();
+                                        }
+                                    }
+                                }
+                                Some(TokenType::RegionBegin(&self.input[start..self.next_char_boundary()]))
+                            }
+                            "#endregion" => {
+                                while let Some((_, peek_char)) = self.iter.peek() {
+                                    match peek_char {
+                                        '\n' => break,
+                                        _ => {
+                                            self.iter.next().unwrap();
+                                        }
+                                    }
+                                }
+                                Some(TokenType::RegionEnd(&self.input[start..self.next_char_boundary()]))
+                            }
+                            "#define" => Some(TokenType::Define),
+                            _ => None,
+                        }
+                    } else {
+                        None
                     };
 
-                    let token_returned = self.check_for_compiler_directive(start, current);
-
+                    let current = self.next_char_boundary();
                     match token_returned {
-                        Some(macro_directive) => self.add_multiple_token(macro_directive, (current - start) as u32),
+                        Some(macro_directive) => {
+                            if is_multiline {
+                                self.tokens.push(Token::new(
+                                    TokenType::Macro(&self.input[start..current]),
+                                    start_line,
+                                    start_column,
+                                ));
+                                self.column_number += (current - last_column_break) as u32;
+                            } else {
+                                self.add_multiple_token(macro_directive, (current - start) as u32);
+                            }
+                        }
 
                         None => {
                             // we're adding a hashtag token, which doesn't really mean anything,
@@ -653,16 +718,6 @@ impl<'a> Scanner<'a> {
         (self.next_char_boundary(), last_column_break)
     }
 
-    fn check_for_compiler_directive(&self, start: usize, current: usize) -> Option<TokenType<'a>> {
-        match &self.input[start..current] {
-            "#macro" => Some(TokenType::Macro),
-            "#region" => Some(TokenType::RegionBegin),
-            "#endregion" => Some(TokenType::RegionEnd),
-            "#define" => Some(TokenType::Define),
-            _ => None,
-        }
-    }
-
     fn next_char_boundary(&mut self) -> usize {
         match self.iter.peek() {
             Some(_) => self.iter.peek().unwrap().0,
@@ -982,24 +1037,13 @@ is bad";
         assert_eq!(
             scanner.lex_input(),
             &vec![
-                Token::new(TokenType::RegionBegin, 0, 0),
-                Token::new(TokenType::Identifier("Region"), 0, 8),
-                Token::new(TokenType::Identifier("Name"), 0, 15),
-                Token::new(TokenType::Identifier("Long"), 0, 20),
+                Token::new(TokenType::RegionBegin("#region Region Name Long"), 0, 0),
                 Token::new(TokenType::Newline(0), 0, 24),
-                Token::new(TokenType::Macro, 1, 0),
-                Token::new(TokenType::Identifier("macroName"), 1, 7),
-                Token::new(TokenType::Number("0"), 1, 17),
+                Token::new(TokenType::Macro("#macro macroName 0"), 1, 0),
                 Token::new(TokenType::Newline(0), 1, 18),
-                Token::new(TokenType::RegionEnd, 2, 0),
+                Token::new(TokenType::RegionEnd("#endregion"), 2, 0),
                 Token::new(TokenType::Newline(0), 2, 10),
-                Token::new(TokenType::Macro, 3, 0),
-                Token::new(TokenType::Identifier("doing"), 3, 7),
-                Token::new(TokenType::Identifier("this"), 3, 13),
-                Token::new(TokenType::Backslash, 3, 18),
-                Token::new(TokenType::Newline(0), 3, 19),
-                Token::new(TokenType::Identifier("is"), 4, 0),
-                Token::new(TokenType::Identifier("bad"), 4, 3),
+                Token::new(TokenType::Macro("#macro doing this \\\nis bad"), 3, 0),
                 Token::new(TokenType::EOF, 4, 6),
             ]
         )

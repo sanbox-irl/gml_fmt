@@ -96,15 +96,9 @@ pub enum Statement<'a> {
     MultilineComment {
         multiline_comment: Token<'a>,
     },
-    RegionBegin {
-        multi_word_name: Vec<Token<'a>>,
-    },
-    RegionEnd {
-        multi_word_name: Vec<Token<'a>>,
-    },
-    Macro {
-        macro_body: Vec<Token<'a>>,
-    },
+    RegionBegin(Token<'a>),
+    RegionEnd(Token<'a>),
+    Macro(Token<'a>),
     Define {
         comments_after_control_word: CommentsAndNewlines<'a>,
         script_name: ExprBox<'a>,

@@ -489,27 +489,8 @@ impl<'a> Printer<'a> {
             }
             Statement::Comment { comment } => self.print_token(comment, true),
             Statement::MultilineComment { multiline_comment } => self.print_token(multiline_comment, true),
-            Statement::RegionBegin { multi_word_name } => {
-                self.print("#region", true);
-
-                for this_word in multi_word_name {
-                    self.print_token(this_word, true);
-                }
-                self.backspace();
-            }
-            Statement::RegionEnd { multi_word_name } => {
-                self.print("#endregion", true);
-                for this_word in multi_word_name {
-                    self.print_token(this_word, true);
-                }
-                self.backspace();
-            }
-            Statement::Macro { macro_body } => {
-                self.print("#macro", true);
-
-                for this_word in macro_body {
-                    self.print_token(this_word, true);
-                }
+            Statement::RegionBegin(comment) | Statement::RegionEnd(comment) | Statement::Macro(comment) => {
+                self.print_token(comment, false);
                 self.backspace();
             }
             Statement::Define {
@@ -1070,20 +1051,10 @@ impl<'a> Printer<'a> {
                     ignore_newline = false;
                 }
 
-                TokenType::RegionEnd | TokenType::RegionBegin => {
+                TokenType::RegionEnd(_) | TokenType::RegionBegin(_) => {
                     self.ensure_space();
                     self.print_token(this_one, true);
                     ignore_newline = false;
-
-                    while let Some(this_one) = iter.peek() {
-                        match this_one.token_type {
-                            TokenType::Newline(_) => break,
-                            _ => {
-                                let token = iter.next().unwrap();
-                                self.print_token(token, true);
-                            }
-                        }
-                    }
                 }
 
                 _ => {
@@ -1156,9 +1127,6 @@ impl<'a> Printer<'a> {
             TokenType::Less => "<",
             TokenType::LessEqual => "<=",
 
-            TokenType::Macro => "#macro",
-            TokenType::RegionBegin => "#region",
-            TokenType::RegionEnd => "#endregion",
             TokenType::Define => "#define",
 
             TokenType::Var => "var",
@@ -1186,7 +1154,10 @@ impl<'a> Printer<'a> {
             TokenType::Div => "div",
             TokenType::Newline(_) => "\n",
 
-            TokenType::Identifier(literal)
+            TokenType::Macro(literal)
+            | TokenType::RegionBegin(literal)
+            | TokenType::RegionEnd(literal)
+            | TokenType::Identifier(literal)
             | TokenType::String(literal)
             | TokenType::Number(literal)
             | TokenType::NumberStartDot(literal)

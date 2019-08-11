@@ -59,27 +59,17 @@ impl<'a> Parser<'a> {
                         false,
                     );
                 }
-                TokenType::RegionBegin => {
-                    self.consume_next();
-                    return StatementWrapper::new(
-                        Statement::RegionBegin {
-                            multi_word_name: self.get_remaining_tokens_on_line(),
-                        },
-                        false,
-                    );
+                TokenType::RegionBegin(_) => {
+                    let token = self.consume_next();
+                    return StatementWrapper::new(Statement::RegionBegin(*token), false);
                 }
-                TokenType::RegionEnd => {
-                    self.consume_next();
-                    return StatementWrapper::new(
-                        Statement::RegionEnd {
-                            multi_word_name: self.get_remaining_tokens_on_line(),
-                        },
-                        false,
-                    );
+                TokenType::RegionEnd(_) => {
+                    let token = self.consume_next();
+                    return StatementWrapper::new(Statement::RegionEnd(*token), false);
                 }
-                TokenType::Macro => {
-                    self.consume_next();
-                    return self.macro_statement();
+                TokenType::Macro(_) => {
+                    let token = self.consume_next();
+                    return StatementWrapper::new(Statement::Macro(*token), false);
                 }
                 TokenType::Define => {
                     self.consume_next();
@@ -132,52 +122,6 @@ impl<'a> Parser<'a> {
             }
         };
         self.expression_statement()
-    }
-
-    fn get_remaining_tokens_on_line(&mut self) -> Vec<Token<'a>> {
-        let mut multi_word_name = vec![];
-
-        while let Some(t) = self.iter.peek() {
-            match t.token_type {
-                TokenType::Newline(_) => break,
-                TokenType::EOF => break,
-                _ => {
-                    multi_word_name.push(*self.consume_next());
-                }
-            }
-        }
-
-        multi_word_name
-    }
-
-    fn macro_statement(&mut self) -> StmtBox<'a> {
-        let mut macro_body = vec![];
-        let mut ignore_newline = false;
-
-        while let Some(t) = self.iter.peek() {
-            match t.token_type {
-                TokenType::Newline(_) => {
-                    if ignore_newline {
-                        macro_body.push(*self.consume_next());
-                    } else {
-                        break;
-                    }
-                }
-
-                TokenType::Backslash => {
-                    macro_body.push(*self.consume_next());
-                    ignore_newline = true;
-                }
-
-                TokenType::EOF => break,
-                _ => {
-                    ignore_newline = false;
-                    macro_body.push(*self.consume_next());
-                }
-            }
-        }
-
-        StatementWrapper::new(Statement::Macro { macro_body }, false)
     }
 
     fn define_statement(&mut self) -> StmtBox<'a> {
@@ -1093,14 +1037,12 @@ impl<'a> Parser<'a> {
                     let token = self.iter.next().unwrap();
                     vec.push(*token);
                 }
-                TokenType::Comment(_) | TokenType::MultilineComment(_) => {
+                TokenType::Comment(_)
+                | TokenType::MultilineComment(_)
+                | TokenType::RegionBegin(_)
+                | TokenType::RegionEnd(_) => {
                     let token = self.iter.next().unwrap();
                     vec.push(*token);
-                }
-
-                TokenType::RegionBegin | TokenType::RegionEnd => {
-                    vec.push(*self.iter.next().unwrap());
-                    vec.append(&mut self.get_remaining_tokens_on_line());
                 }
                 _ => break,
             }
@@ -1113,14 +1055,12 @@ impl<'a> Parser<'a> {
         let mut vec = vec![];
         while let Some(token) = self.iter.peek() {
             match token.token_type {
-                TokenType::Comment(_) | TokenType::MultilineComment(_) => {
+                TokenType::Comment(_)
+                | TokenType::MultilineComment(_)
+                | TokenType::RegionBegin(_)
+                | TokenType::RegionEnd(_) => {
                     let token = self.iter.next().unwrap();
                     vec.push(*token);
-                }
-
-                TokenType::RegionBegin | TokenType::RegionEnd => {
-                    vec.push(*self.iter.next().unwrap());
-                    vec.append(&mut self.get_remaining_tokens_on_line());
                 }
                 _ => break,
             }
