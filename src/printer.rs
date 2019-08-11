@@ -27,9 +27,9 @@ pub struct Printer<'a> {
 }
 
 impl<'a> Printer<'a> {
-    pub fn new() -> Printer<'a> {
+    pub fn new(size: usize) -> Printer<'a> {
         Printer {
-            output: Vec::new(),
+            output: Vec::with_capacity(size),
             indentation: 0,
             can_replace_handler: true,
             force_indentation: None,
@@ -40,8 +40,8 @@ impl<'a> Printer<'a> {
         }
     }
 
-    pub fn get_output(vec_output: &Vec<&'a str>) -> String {
-        let mut output = String::new();
+    pub fn get_output(vec_output: &Vec<&'a str>, size: usize) -> String {
+        let mut output = String::with_capacity(size);
 
         for this_one in vec_output {
             output.push_str(this_one);

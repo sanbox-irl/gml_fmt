@@ -61,23 +61,22 @@ pub fn run_test(input: &str) -> String {
 }
 
 fn run(source: &str, print_ast: bool) -> (Option<String>, Option<String>, Option<String>, Option<String>) {
-    let mut tok = Vec::new();
+    let source_size = source.len();
+    let mut tok = Vec::with_capacity(source_size * 2);
     let mut scanner = Scanner::new(source, &mut tok);
-
     let our_tokens = scanner.lex_input();
     let mut parser = Parser::new(our_tokens);
     parser.build_ast();
-
     if let Some(err) = parser.failure {
         return (Some(err), None, None, Some(format!("{:#?}", our_tokens)));
     }
 
-    let mut printer = Printer::new();
+    let mut printer = Printer::new(source_size / 2);
     printer.autoformat(&parser.ast[..]);
 
     (
         None,
-        Some(Printer::get_output(&printer.output)),
+        Some(Printer::get_output(&printer.output, source_size)),
         if print_ast {
             Some(format!("{:#?}", parser.ast))
         } else {

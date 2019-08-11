@@ -82,8 +82,6 @@ impl<'a> Scanner<'a> {
                 ']' => self.add_simple_token(TokenType::RightBracket),
                 '?' => self.add_simple_token(TokenType::Hook),
                 '\\' => self.add_simple_token(TokenType::Backslash),
-
-                // Branching multichar symbols
                 '!' => {
                     if self.peek_and_check_consume('=') {
                         self.add_multiple_token(TokenType::BangEqual, 2);
@@ -212,67 +210,68 @@ impl<'a> Scanner<'a> {
                     // Multiline macro stuff
                     let start_line = self.line_number;
                     let start_column = self.column_number;
-                    let mut current = start;
                     let mut is_multiline = false;
                     let mut last_column_break = start;
 
-                    let token_returned = if let Some(_) = self.peek_and_check_while(|i, this_char| {
-                        current = i;
-                        this_char.is_ascii_alphanumeric() || this_char == '_'
-                    }) {
-                        match &self.input[start..current] {
-                            "#macro" => {
-                                while let Some((_, peek_char)) = self.iter.peek() {
-                                    match peek_char {
-                                        '\n' => break,
+                    // Get our first word, with the hashtag
+                    while let Some((_, next_char)) = self.iter.peek() {
+                        if (next_char.is_ascii_alphanumeric() || *next_char == '_') == false {
+                            break;
+                        };
+                        self.iter.next();
+                    }
 
-                                        '\\' => {
-                                            self.iter.next();
-                                            if self.peek_and_check_consume('\n') {
-                                                last_column_break = self.next_char_boundary();
-                                                is_multiline = true;
-                                                self.next_line();
-                                            }
-                                        }
+                    let mut current = self.next_char_boundary();
+                    let token_returned = match &self.input[start..current] {
+                        "#macro" => {
+                            while let Some((_, peek_char)) = self.iter.peek() {
+                                match peek_char {
+                                    '\n' => break,
 
-                                        _ => {
-                                            self.iter.next().unwrap();
+                                    '\\' => {
+                                        self.iter.next();
+                                        if self.peek_and_check_consume('\n') {
+                                            last_column_break = self.next_char_boundary();
+                                            is_multiline = true;
+                                            self.next_line();
                                         }
                                     }
-                                }
-                                let current = self.next_char_boundary();
-                                Some(TokenType::Macro(&self.input[start..current]))
-                            }
-                            "#region" => {
-                                while let Some((_, peek_char)) = self.iter.peek() {
-                                    match peek_char {
-                                        '\n' => break,
-                                        _ => {
-                                            self.iter.next().unwrap();
-                                        }
+
+                                    _ => {
+                                        self.iter.next().unwrap();
                                     }
                                 }
-                                Some(TokenType::RegionBegin(&self.input[start..self.next_char_boundary()]))
                             }
-                            "#endregion" => {
-                                while let Some((_, peek_char)) = self.iter.peek() {
-                                    match peek_char {
-                                        '\n' => break,
-                                        _ => {
-                                            self.iter.next().unwrap();
-                                        }
-                                    }
-                                }
-                                Some(TokenType::RegionEnd(&self.input[start..self.next_char_boundary()]))
-                            }
-                            "#define" => Some(TokenType::Define),
-                            _ => None,
+                            current = self.next_char_boundary();
+                            Some(TokenType::Macro(&self.input[start..current]))
                         }
-                    } else {
-                        None
+                        "#region" => {
+                            while let Some((_, peek_char)) = self.iter.peek() {
+                                match peek_char {
+                                    '\n' => break,
+                                    _ => {
+                                        self.iter.next().unwrap();
+                                    }
+                                }
+                            }
+                            Some(TokenType::RegionBegin(&self.input[start..self.next_char_boundary()]))
+                        }
+                        "#endregion" => {
+                            while let Some((_, peek_char)) = self.iter.peek() {
+                                match peek_char {
+                                    '\n' => break,
+                                    _ => {
+                                        self.iter.next().unwrap();
+                                    }
+                                }
+                            }
+                            Some(TokenType::RegionEnd(&self.input[start..self.next_char_boundary()]))
+                        }
+                        "#define" => Some(TokenType::Define),
+                        _ => None,
                     };
 
-                    let current = self.next_char_boundary();
+                    current = self.next_char_boundary();
                     match token_returned {
                         Some(macro_directive) => {
                             if is_multiline {
@@ -520,14 +519,20 @@ impl<'a> Scanner<'a> {
                     // Normal Comment
                     if self.peek_and_check_consume('/') {
                         let start = i;
-                        let mut current = start;
-
-                        if let None = self.peek_and_check_while(|i, this_char| {
-                            current = i;
-                            this_char != '\n'
-                        }) {
-                            current = self.next_char_boundary();
+                        while let Some((_, peek_char)) = self.iter.peek() {
+                            if *peek_char == '\n' {
+                                break;
+                            }
+                            self.iter.next();
                         }
+                        let current = self.next_char_boundary();
+
+                        // if let None = self.peek_and_check_while(|i, this_char| {
+                        //     current = i;
+                        //     this_char != '\n'
+                        // }) {
+                        //     current = self.next_char_boundary();
+                        // }
 
                         self.add_multiple_token(
                             TokenType::Comment(&self.input[start..current]),
@@ -579,14 +584,14 @@ impl<'a> Scanner<'a> {
                 // Identifiers and keywords
                 'A'..='Z' | 'a'..='z' | '_' => {
                     let start = i;
-                    let mut current = start + 1;
+                    while let Some((_, next_char)) = self.iter.peek() {
+                        if (next_char.is_ascii_alphanumeric() || *next_char == '_') == false {
+                            break;
+                        };
+                        self.iter.next();
+                    }
 
-                    if let None = self.peek_and_check_while(|i, this_char| {
-                        current = i;
-                        this_char.is_ascii_alphanumeric() || this_char == '_'
-                    }) {
-                        current = self.next_char_boundary();
-                    };
+                    let current = self.next_char_boundary();
 
                     let keyword_token_type: Option<TokenType> = self.check_for_keyword(start, current);
 
@@ -659,19 +664,6 @@ impl<'a> Scanner<'a> {
         } else {
             false
         }
-    }
-
-    fn peek_and_check_while<F>(&mut self, mut f: F) -> Option<(usize, char)>
-    where
-        F: FnMut(usize, char) -> bool,
-    {
-        while let Some((i, next_char)) = self.iter.peek() {
-            if f(*i, *next_char) == false {
-                return Some((*i, *next_char));
-            };
-            self.iter.next();
-        }
-        None
     }
 
     fn next_line(&mut self) {
