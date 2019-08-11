@@ -1,4 +1,5 @@
 use super::lex_token::*;
+use fnv::FnvHashMap;
 use std::iter::Peekable;
 use std::str::CharIndices;
 
@@ -8,6 +9,7 @@ pub struct Scanner<'a> {
     line_number: u32,
     column_number: u32,
     iter: Peekable<CharIndices<'a>>,
+    keyword_map: FnvHashMap<&'a str, TokenType<'a>>,
 }
 
 impl<'a> Scanner<'a> {
@@ -18,7 +20,34 @@ impl<'a> Scanner<'a> {
             column_number: 0,
             iter: input.char_indices().peekable(),
             tokens,
+            keyword_map: Scanner::create_hasher(),
         }
+    }
+
+    fn create_hasher() -> FnvHashMap<&'a str, TokenType<'a>> {
+        let mut map = FnvHashMap::default();
+        map.insert("var", TokenType::Var);
+        map.insert("and", TokenType::AndAlias);
+        map.insert("or", TokenType::OrAlias);
+        map.insert("not", TokenType::NotAlias);
+        map.insert("if", TokenType::If);
+        map.insert("else", TokenType::Else);
+        map.insert("return", TokenType::Return);
+        map.insert("for", TokenType::For);
+        map.insert("repeat", TokenType::Repeat);
+        map.insert("while", TokenType::While);
+        map.insert("do", TokenType::Do);
+        map.insert("until", TokenType::Until);
+        map.insert("switch", TokenType::Switch);
+        map.insert("case", TokenType::Case);
+        map.insert("default", TokenType::DefaultCase);
+        map.insert("mod", TokenType::ModAlias);
+        map.insert("div", TokenType::Div);
+        map.insert("break", TokenType::Break);
+        map.insert("exit", TokenType::Exit);
+        map.insert("enum", TokenType::Enum);
+        map.insert("with", TokenType::With);
+        map
     }
 
     pub fn lex_input(&mut self) -> &mut std::vec::Vec<Token<'a>> {
@@ -593,10 +622,10 @@ impl<'a> Scanner<'a> {
 
                     let current = self.next_char_boundary();
 
-                    let keyword_token_type: Option<TokenType> = self.check_for_keyword(start, current);
+                    let keyword_token_type = self.check_for_keyword(start, current);
 
                     match keyword_token_type {
-                        Some(token_type) => self.add_multiple_token(token_type, (current - start) as u32),
+                        Some(token) => self.add_multiple_token(*token, (current - start) as u32),
                         None => self.add_multiple_token(
                             TokenType::Identifier(&self.input[start..current]),
                             (current - start) as u32,
@@ -671,31 +700,8 @@ impl<'a> Scanner<'a> {
         self.column_number = 0;
     }
 
-    fn check_for_keyword(&self, start: usize, current: usize) -> Option<TokenType<'a>> {
-        match &self.input[start..current] {
-            "var" => Some(TokenType::Var),
-            "and" => Some(TokenType::AndAlias),
-            "or" => Some(TokenType::OrAlias),
-            "not" => Some(TokenType::NotAlias),
-            "if" => Some(TokenType::If),
-            "else" => Some(TokenType::Else),
-            "return" => Some(TokenType::Return),
-            "for" => Some(TokenType::For),
-            "repeat" => Some(TokenType::Repeat),
-            "while" => Some(TokenType::While),
-            "do" => Some(TokenType::Do),
-            "until" => Some(TokenType::Until),
-            "switch" => Some(TokenType::Switch),
-            "case" => Some(TokenType::Case),
-            "default" => Some(TokenType::DefaultCase),
-            "mod" => Some(TokenType::ModAlias),
-            "div" => Some(TokenType::Div),
-            "break" => Some(TokenType::Break),
-            "exit" => Some(TokenType::Exit),
-            "enum" => Some(TokenType::Enum),
-            "with" => Some(TokenType::With),
-            _ => None,
-        }
+    fn check_for_keyword(&self, start: usize, current: usize) -> Option<&TokenType<'a>> {
+        self.keyword_map.get(&self.input[start..current])
     }
 
     fn scan_multiline_string(&mut self, mut last_column_break: usize, break_char: char) -> (usize, usize) {
