@@ -69,7 +69,7 @@ fn run(source: &str, print_ast: bool) -> (Option<String>, Option<String>, Option
     parser.build_ast();
 
     if let Some(err) = parser.failure {
-        return (Some(err), None, None, Some(format!("{:#?}", our_tokens))); // @jack we're right here, passing out the lex stream to the debug output
+        return (Some(err), None, None, Some(format!("{:#?}", our_tokens)));
     }
 
     let mut printer = Printer::new();

@@ -55,9 +55,9 @@ pub enum TokenType<'a> {
     Less,
     LessEqual,
 
-    Macro,
-    RegionBegin,
-    RegionEnd,
+    Macro(&'a str),
+    RegionBegin(&'a str),
+    RegionEnd(&'a str),
     Define,
 
     Var,
