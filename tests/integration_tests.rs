@@ -46,7 +46,7 @@ fn series_of_declarations() {
     let input = "var function, xx, xx2, xxm1;
 var x = 2, y, var q";
     let format = "var function, xx, xx2, xxm1;
-var x = 2, y, var q
+var x = 2, y, var q;
 ";
 
     assert_eq!(gml_fmt::run_test(input), format);
@@ -378,5 +378,20 @@ if (true)
 if (true) return false;
 ";
 
+    assert_eq!(gml_fmt::run_test(input), input);
+}
+
+#[test]
+fn horrible_multiline_string() {
+    let input = "var _bulletNormal = string_join(@\'{
+    \"type\": \"normal\",
+    \"object\": \', Obj_Bullet, @\',
+    \"speed\": 260,
+    \"count\": 1,
+    \"damage\": 1,
+    \"knockback\": 0.1,
+    \"lifetime\": 8000
+}\');
+";
     assert_eq!(gml_fmt::run_test(input), input);
 }

@@ -241,8 +241,6 @@ impl<'a> Parser<'a> {
                 break;
             }
         }
-        self.check_next_consume(TokenType::Semicolon);
-
         DelimitedLines {
             lines: arguments,
             has_end_delimiter: end_delimiter,

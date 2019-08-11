@@ -244,38 +244,35 @@ impl<'a> Scanner<'a> {
                     let start_line = self.line_number;
                     let start_column = self.column_number;
 
-                    if self.peek_and_check_consume('"') {
-                        let mut last_column_break = start;
+                    if let Some((_, this_char)) = self.iter.peek() {
+                        match this_char {
+                            '\'' | '\"' => {
+                                let (_, this_char) = self.iter.next().unwrap();
+                                let (current, last_column_break) = self.scan_multiline_string(start, this_char);
 
-                        while let Some((_, break_char)) = self.iter.next() {
-                            match break_char {
-                                '\n' => {
-                                    last_column_break = self.next_char_boundary();
-                                    self.next_line();
-                                }
+                                self.tokens.push(Token::new(
+                                    TokenType::String(&self.input[start..current]),
+                                    start_line,
+                                    start_column,
+                                ));
+                                self.column_number += (current - last_column_break) as u32;
+                            }
 
-                                '"' => {
-                                    self.iter.next();
-                                    break;
-                                }
-                                _ => {}
+                            _ => {
+                                let end_byte = self.next_char_boundary();
+                                self.add_multiple_token(
+                                    TokenType::UnidentifiedInput(&self.input[i..end_byte]),
+                                    (end_byte - i) as u32,
+                                );
                             }
                         }
-                        let current = self.next_char_boundary();
-
-                        self.tokens.push(Token::new(
-                            TokenType::String(&self.input[start..current]),
-                            start_line,
-                            start_column,
-                        ));
-                        self.column_number += (current - last_column_break) as u32;
                     } else {
                         let end_byte = self.next_char_boundary();
                         self.add_multiple_token(
                             TokenType::UnidentifiedInput(&self.input[i..end_byte]),
                             (end_byte - i) as u32,
                         );
-                    };
+                    }
                 }
                 '"' => {
                     let start = i;
@@ -288,7 +285,53 @@ impl<'a> Scanner<'a> {
                                 break;
                             }
 
+                            '\\' => {
+                                self.iter.next();
+                                if let Some((_, break_char)) = self.iter.peek() {
+                                    if *break_char == '"' {
+                                        self.iter.next();
+                                        current = self.next_char_boundary();
+                                    }
+                                }
+                            }
+
                             '"' => {
+                                self.iter.next();
+                                current = self.next_char_boundary();
+                                break;
+                            }
+                            _ => {
+                                self.iter.next();
+                                current = self.next_char_boundary();
+                            }
+                        }
+                    }
+
+                    self.add_multiple_token(TokenType::String(&self.input[start..current]), (current - start) as u32);
+                }
+
+                '\'' => {
+                    let start = i;
+                    let mut current = start;
+
+                    while let Some((_, break_char)) = self.iter.peek() {
+                        match *break_char {
+                            '\n' => {
+                                current = self.next_char_boundary();
+                                break;
+                            }
+
+                            '\\' => {
+                                self.iter.next();
+                                if let Some((_, break_char)) = self.iter.peek() {
+                                    if *break_char == '\'' {
+                                        self.iter.next();
+                                        current = self.next_char_boundary();
+                                    }
+                                }
+                            }
+
+                            '\'' => {
                                 self.iter.next();
                                 current = self.next_char_boundary();
                                 break;
@@ -598,6 +641,18 @@ impl<'a> Scanner<'a> {
         }
     }
 
+    fn scan_multiline_string(&mut self, mut last_column_break: usize, break_char: char) -> (usize, usize) {
+        while let Some((_, this_char)) = self.iter.next() {
+            if this_char == break_char {
+                break;
+            } else if this_char == '\n' {
+                last_column_break = self.next_char_boundary();
+                self.next_line();
+            }
+        }
+        (self.next_char_boundary(), last_column_break)
+    }
+
     fn check_for_compiler_directive(&self, start: usize, current: usize) -> Option<TokenType<'a>> {
         match &self.input[start..current] {
             "#macro" => Some(TokenType::Macro),
@@ -843,8 +898,7 @@ testCase";
 
     #[test]
     fn lex_reserved_keywords() {
-        let input_string =
-"var and or if else return for repeat while do until switch case default div break enum";
+        let input_string = "var and or if else return for repeat while do until switch case default div break enum";
 
         let vec = &mut Vec::new();
         let mut scanner = Scanner::new(input_string, vec);
