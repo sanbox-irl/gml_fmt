@@ -59,9 +59,16 @@ impl<'a> Printer<'a> {
     fn print_statement(&mut self, stmt: &'a StatementWrapper<'a>) {
         match &stmt.statement {
             Statement::VariableDeclList {
+                comments_after_control_word,
                 var_decl: var_decl_list,
             } => {
                 self.print("var", true);
+                self.print_comments_and_newlines(
+                    comments_after_control_word,
+                    IndentationMove::Stay,
+                    LeadingNewlines::One,
+                    false,
+                );
 
                 let mut indented_vars = false;
                 let mut iter = var_decl_list.lines.iter().peekable();
@@ -127,11 +134,19 @@ impl<'a> Printer<'a> {
                 );
             }
             Statement::EnumDeclaration {
+                comments_after_control_word,
                 name,
                 comments_after_lbrace,
                 members,
             } => {
                 self.print("enum", true);
+                self.print_comments_and_newlines(
+                    comments_after_control_word,
+                    IndentationMove::Stay,
+                    LeadingNewlines::One,
+                    false,
+                );
+
                 self.print_expr(name);
                 self.print(LBRACE, true);
 
@@ -220,12 +235,19 @@ impl<'a> Printer<'a> {
                 self.do_not_print_single_newline_statement = true;
             }
             Statement::If {
+                comments_after_control_word,
                 condition,
                 then_branch,
                 comments_between,
                 else_branch,
             } => {
                 self.print("if", true);
+                self.print_comments_and_newlines(
+                    comments_after_control_word,
+                    IndentationMove::Stay,
+                    LeadingNewlines::One,
+                    false,
+                );
 
                 let has_block = if let Statement::Block { .. } = &then_branch.statement {
                     self.block_instructions.push(BlockInstructions::NO_NEWLINE_AFTER_BLOCK);
@@ -276,21 +298,38 @@ impl<'a> Printer<'a> {
                 }
                 self.print_semicolon(stmt.has_semicolon);
             }
-            Statement::WhileWithRepeat { token, condition, body } => {
+            Statement::WhileWithRepeat {
+                token,
+                condition,
+                body,
+                comments_after_control_word,
+            } => {
                 self.print_token(token, true);
+                self.print_comments_and_newlines(
+                    comments_after_control_word,
+                    IndentationMove::Stay,
+                    LeadingNewlines::One,
+                    false,
+                );
+
                 self.print_expr(condition);
 
                 self.print_statement(body);
                 self.print_semicolon(stmt.has_semicolon);
             }
             Statement::DoUntil {
-                leading_comments,
+                comments_after_control_word,
                 condition,
                 comments_between,
                 body,
             } => {
                 self.print("do", true);
-                self.print_comments_and_newlines(leading_comments, IndentationMove::Stay, LeadingNewlines::One, false);
+                self.print_comments_and_newlines(
+                    comments_after_control_word,
+                    IndentationMove::Stay,
+                    LeadingNewlines::One,
+                    false,
+                );
 
                 self.block_instructions.push(BlockInstructions::NO_NEWLINE_AFTER_BLOCK);
                 self.print_statement(body);
@@ -303,7 +342,8 @@ impl<'a> Printer<'a> {
                 self.print_semicolon(stmt.has_semicolon);
             }
             Statement::For {
-                leading_comments,
+                comments_after_control_word,
+                comments_after_lparen,
                 initializer,
                 condition,
                 increment,
@@ -311,9 +351,20 @@ impl<'a> Printer<'a> {
                 body,
             } => {
                 self.print("for", true);
-                self.print_comments_and_newlines(leading_comments, IndentationMove::Stay, LeadingNewlines::One, false);
-
+                self.print_comments_and_newlines(
+                    comments_after_control_word,
+                    IndentationMove::Stay,
+                    LeadingNewlines::One,
+                    false,
+                );
                 self.print(LPAREN, false);
+
+                let did_move = self.print_comments_and_newlines(
+                    comments_after_lparen,
+                    IndentationMove::Right,
+                    LeadingNewlines::One,
+                    true,
+                );
 
                 if let Some(initializer) = initializer {
                     self.print_statement(initializer);
@@ -336,6 +387,9 @@ impl<'a> Printer<'a> {
                 }
 
                 self.backspace();
+                if did_move {
+                    self.print_newline(IndentationMove::Left);
+                }
                 self.print(RPAREN, true);
                 self.print_comments_and_newlines(trailing_comments, IndentationMove::Stay, LeadingNewlines::One, false);
 
@@ -361,11 +415,19 @@ impl<'a> Printer<'a> {
                 self.print_semicolon_and_newline(stmt.has_semicolon, IndentationMove::Stay);
             }
             Statement::Switch {
+                comments_after_control_word,
                 condition,
                 comments_after_lbrace,
                 cases,
             } => {
                 self.print("switch", true);
+                self.print_comments_and_newlines(
+                    comments_after_control_word,
+                    IndentationMove::Stay,
+                    LeadingNewlines::One,
+                    false,
+                );
+
                 self.print_expr(condition);
 
                 self.ensure_space();
@@ -450,8 +512,19 @@ impl<'a> Printer<'a> {
                 }
                 self.backspace();
             }
-            Statement::Define { script_name, body } => {
+            Statement::Define {
+                comments_after_control_word,
+                script_name,
+                body,
+            } => {
                 self.print("#define", true);
+                self.print_comments_and_newlines(
+                    comments_after_control_word,
+                    IndentationMove::Stay,
+                    LeadingNewlines::One,
+                    false,
+                );
+
                 self.print_expr(script_name);
                 self.backspace();
 

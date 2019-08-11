@@ -1,4 +1,6 @@
-enum // oh no
-Okay {
-    One
+while
+(
+    test
+) {
+    // okay
 }

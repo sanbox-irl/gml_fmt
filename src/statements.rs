@@ -35,12 +35,48 @@ impl<'a> StatementWrapper<'a> {
 #[derive(Debug)]
 pub enum Statement<'a> {
     VariableDeclList {
+        comments_after_control_word: CommentsAndNewlines<'a>,
         var_decl: DelimitedLines<'a, VariableDecl<'a>>,
     },
     EnumDeclaration {
+        comments_after_control_word: CommentsAndNewlines<'a>,
         name: ExprBox<'a>,
         comments_after_lbrace: CommentsAndNewlines<'a>,
         members: DelimitedLines<'a, ExprBox<'a>>,
+    },
+    If {
+        comments_after_control_word: CommentsAndNewlines<'a>,
+        condition: ExprBox<'a>,
+        then_branch: StmtBox<'a>,
+        comments_between: CommentsAndNewlines<'a>,
+        else_branch: Option<StmtBox<'a>>,
+    },
+    WhileWithRepeat {
+        comments_after_control_word: CommentsAndNewlines<'a>,
+        token: Token<'a>,
+        condition: ExprBox<'a>,
+        body: StmtBox<'a>,
+    },
+    DoUntil {
+        comments_after_control_word: CommentsAndNewlines<'a>,
+        body: StmtBox<'a>,
+        comments_between: CommentsAndNewlines<'a>,
+        condition: ExprBox<'a>,
+    },
+    For {
+        comments_after_control_word: CommentsAndNewlines<'a>,
+        comments_after_lparen: CommentsAndNewlines<'a>,
+        initializer: Option<StmtBox<'a>>,
+        condition: Option<ExprBox<'a>>,
+        increment: Option<ExprBox<'a>>,
+        trailing_comments: CommentsAndNewlines<'a>,
+        body: StmtBox<'a>,
+    },
+    Switch {
+        comments_after_control_word: CommentsAndNewlines<'a>,
+        condition: ExprBox<'a>,
+        comments_after_lbrace: CommentsAndNewlines<'a>,
+        cases: Vec<Case<'a>>,
     },
     ExpresssionStatement {
         expression: ExprBox<'a>,
@@ -49,41 +85,11 @@ pub enum Statement<'a> {
         comments_after_lbrace: CommentsAndNewlines<'a>,
         statements: Vec<StmtBox<'a>>,
     },
-    If {
-        condition: ExprBox<'a>,
-        then_branch: StmtBox<'a>,
-        comments_between: CommentsAndNewlines<'a>,
-        else_branch: Option<StmtBox<'a>>,
-    },
-    WhileWithRepeat {
-        token: Token<'a>,
-        condition: ExprBox<'a>,
-        body: StmtBox<'a>,
-    },
-    DoUntil {
-        leading_comments: CommentsAndNewlines<'a>,
-        body: StmtBox<'a>,
-        comments_between: CommentsAndNewlines<'a>,
-        condition: ExprBox<'a>,
-    },
-    For {
-        leading_comments: CommentsAndNewlines<'a>,
-        initializer: Option<StmtBox<'a>>,
-        condition: Option<ExprBox<'a>>,
-        increment: Option<ExprBox<'a>>,
-        trailing_comments: CommentsAndNewlines<'a>,
-        body: StmtBox<'a>,
-    },
     Return {
         expression: Option<ExprBox<'a>>,
     },
     Break,
     Exit,
-    Switch {
-        condition: ExprBox<'a>,
-        comments_after_lbrace: CommentsAndNewlines<'a>,
-        cases: Vec<Case<'a>>,
-    },
     Comment {
         comment: Token<'a>,
     },
@@ -100,6 +106,7 @@ pub enum Statement<'a> {
         macro_body: Vec<Token<'a>>,
     },
     Define {
+        comments_after_control_word: CommentsAndNewlines<'a>,
         script_name: ExprBox<'a>,
         body: Vec<StmtBox<'a>>,
     },

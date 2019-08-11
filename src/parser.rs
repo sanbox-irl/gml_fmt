@@ -181,6 +181,7 @@ impl<'a> Parser<'a> {
     }
 
     fn define_statement(&mut self) -> StmtBox<'a> {
+        let comments_after_control_word = self.get_newlines_and_comments();
         let script_name = self.expression();
         let mut body = vec![];
 
@@ -196,14 +197,28 @@ impl<'a> Parser<'a> {
             }
         }
 
-        StatementWrapper::new(Statement::Define { script_name, body }, false)
+        StatementWrapper::new(
+            Statement::Define {
+                comments_after_control_word,
+                script_name,
+                body,
+            },
+            false,
+        )
     }
 
     fn series_var_declaration(&mut self) -> StmtBox<'a> {
         self.check_next_consume(TokenType::Var);
+        let comments_after_control_word = self.get_newlines_and_comments();
         let var_decl = self.var_declaration();
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
-        StatementWrapper::new(Statement::VariableDeclList { var_decl }, has_semicolon)
+        StatementWrapper::new(
+            Statement::VariableDeclList {
+                var_decl,
+                comments_after_control_word,
+            },
+            has_semicolon,
+        )
     }
 
     fn var_declaration(&mut self) -> DelimitedLines<'a, VariableDecl<'a>> {
@@ -272,6 +287,7 @@ impl<'a> Parser<'a> {
     }
 
     fn if_statement(&mut self) -> StmtBox<'a> {
+        let comments_after_control_word = self.get_newlines_and_comments();
         let condition = self.expression();
         let then_branch = self.statement();
         let comments_between = self.get_newlines_and_comments();
@@ -284,6 +300,7 @@ impl<'a> Parser<'a> {
 
         StatementWrapper::new(
             Statement::If {
+                comments_after_control_word,
                 condition,
                 then_branch,
                 comments_between,
@@ -294,15 +311,24 @@ impl<'a> Parser<'a> {
     }
 
     fn while_with_repeat(&mut self, token: Token<'a>) -> StmtBox<'a> {
+        let comments_after_control_word = self.get_newlines_and_comments();
         let condition = self.expression();
         let body = self.statement();
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
 
-        StatementWrapper::new(Statement::WhileWithRepeat { token, condition, body }, has_semicolon)
+        StatementWrapper::new(
+            Statement::WhileWithRepeat {
+                token,
+                condition,
+                body,
+                comments_after_control_word,
+            },
+            has_semicolon,
+        )
     }
 
     fn do_until_statement(&mut self) -> StmtBox<'a> {
-        let leading_comments = self.get_newlines_and_comments();
+        let comments_after_control_word = self.get_newlines_and_comments();
         let body = self.statement();
         let comments_between = self.get_newlines_and_comments();
         self.check_next_consume(TokenType::Until);
@@ -311,7 +337,7 @@ impl<'a> Parser<'a> {
 
         StatementWrapper::new(
             Statement::DoUntil {
-                leading_comments,
+                comments_after_control_word,
                 comments_between,
                 condition,
                 body,
@@ -321,6 +347,7 @@ impl<'a> Parser<'a> {
     }
 
     fn switch_statement(&mut self) -> StmtBox<'a> {
+        let comments_after_control_word = self.get_newlines_and_comments();
         let condition = self.expression();
         self.check_next_consume(TokenType::LeftBrace);
         let comments_after_lbrace = self.get_newlines_and_comments();
@@ -400,6 +427,7 @@ impl<'a> Parser<'a> {
 
         StatementWrapper::new(
             Statement::Switch {
+                comments_after_control_word,
                 comments_after_lbrace,
                 cases,
                 condition,
@@ -409,8 +437,10 @@ impl<'a> Parser<'a> {
     }
 
     fn for_statement(&mut self) -> StmtBox<'a> {
+        let comments_after_control_word = self.get_newlines_and_comments();
+
         self.check_next_consume(TokenType::LeftParen);
-        let leading_comments = self.get_newlines_and_comments();
+        let comments_after_lparen = self.get_newlines_and_comments();
 
         let initializer = if self.check_next_consume(TokenType::Semicolon) {
             None
@@ -440,7 +470,8 @@ impl<'a> Parser<'a> {
 
         StatementWrapper::new(
             Statement::For {
-                leading_comments,
+                comments_after_control_word,
+                comments_after_lparen,
                 initializer,
                 condition,
                 increment,
@@ -473,6 +504,7 @@ impl<'a> Parser<'a> {
     }
 
     fn enum_declaration(&mut self) -> StmtBox<'a> {
+        let comments_after_control_word = self.get_newlines_and_comments();
         let name = self.expression();
 
         self.check_next_consume(TokenType::LeftBrace);
@@ -482,6 +514,7 @@ impl<'a> Parser<'a> {
 
         StatementWrapper::new(
             Statement::EnumDeclaration {
+                comments_after_control_word,
                 name,
                 comments_after_lbrace,
                 members,
