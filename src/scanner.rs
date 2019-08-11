@@ -9,7 +9,7 @@ pub struct Scanner<'a> {
     line_number: u32,
     column_number: u32,
     iter: Peekable<CharIndices<'a>>,
-    keyword_map: FnvHashMap<&'a str, TokenType<'a>>,
+    keyword_map: FnvHashMap<&'a str, TokenType<'a>>
 }
 
 impl<'a> Scanner<'a> {
@@ -20,12 +20,12 @@ impl<'a> Scanner<'a> {
             column_number: 0,
             iter: input.char_indices().peekable(),
             tokens,
-            keyword_map: Scanner::create_hasher(),
+            keyword_map: Scanner::create_keyword_hashmap(),
         }
     }
 
-    fn create_hasher() -> FnvHashMap<&'a str, TokenType<'a>> {
-        let mut map = FnvHashMap::default();
+    fn create_keyword_hashmap() -> FnvHashMap<&'a str, TokenType<'a>> {
+        let mut map = FnvHashMap::with_capacity_and_hasher(21, Default::default());;
         map.insert("var", TokenType::Var);
         map.insert("and", TokenType::AndAlias);
         map.insert("or", TokenType::OrAlias);
