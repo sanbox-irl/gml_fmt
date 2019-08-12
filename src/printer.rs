@@ -50,10 +50,19 @@ impl<'a> Printer<'a> {
         output
     }
 
-    pub fn autoformat(&mut self, ast: &'a [StmtBox<'a>]) {
+    pub fn autoformat(mut self, ast: &'a [StmtBox<'a>]) -> Printer {
         for this_statement in ast {
             self.print_statement(this_statement);
         }
+
+        // Print Ending Newline
+        if self.on_whitespace_line() || self.output.len() == 0 {
+            return self;
+        }
+        self.backspace();
+        self.print(NEWLINE, false);
+
+        self
     }
 
     fn print_statement(&mut self, stmt: &'a StatementWrapper<'a>) {
@@ -512,18 +521,6 @@ impl<'a> Printer<'a> {
                 for this_stmt in body {
                     self.print_statement(this_stmt);
                 }
-            }
-            Statement::EOF => {
-                if self.on_whitespace_line() {
-                    return;
-                }
-                if self.output.len() == 0 {
-                    return;
-                }
-
-                self.backspace();
-
-                self.print(NEWLINE, false);
             }
         }
     }
@@ -1165,8 +1162,6 @@ impl<'a> Printer<'a> {
             | TokenType::Comment(literal)
             | TokenType::MultilineComment(literal)
             | TokenType::UnidentifiedInput(literal) => literal,
-
-            TokenType::EOF => "\n",
         }
     }
 

@@ -1,3 +1,3 @@
 #!/bin/bash
-cargo run -- benches/samples/osg_lex_speed.gml -f -l -n -s > ignored/output.yaml; 
+cargo run -- benches/samples/small_test.gml -f -l -n > ignored/output.yaml; 
 code ignored/output.yaml;

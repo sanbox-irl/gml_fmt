@@ -104,7 +104,6 @@ pub enum Statement<'a> {
         script_name: ExprBox<'a>,
         body: Vec<StmtBox<'a>>,
     },
-    EOF,
 }
 
 #[derive(Debug)]

@@ -4,22 +4,20 @@ use std::iter::Peekable;
 use std::str::CharIndices;
 
 pub struct Scanner<'a> {
-    pub tokens: &'a mut Vec<Token<'a>>,
     input: &'a str,
     line_number: u32,
     column_number: u32,
     iter: Peekable<CharIndices<'a>>,
-    keyword_map: FnvHashMap<&'a str, TokenType<'a>>
+    keyword_map: FnvHashMap<&'a str, TokenType<'a>>,
 }
 
 impl<'a> Scanner<'a> {
-    pub fn new(input: &'a str, tokens: &'a mut Vec<Token<'a>>) -> Scanner<'a> {
+    pub fn new(input: &'a str) -> Scanner<'a> {
         Scanner {
             input,
             line_number: 0,
             column_number: 0,
             iter: input.char_indices().peekable(),
-            tokens,
             keyword_map: Scanner::create_keyword_hashmap(),
         }
     }
@@ -50,10 +48,9 @@ impl<'a> Scanner<'a> {
         map
     }
 
-    pub fn lex_input(&mut self) -> &mut std::vec::Vec<Token<'a>> {
+    pub fn lex_input(&mut self) -> Option<Token<'a>> {
         while let Some((i, c)) = self.iter.next() {
-            match c {
-                // Single Char
+            let found_token = match c {
                 '(' => self.add_simple_token(TokenType::LeftParen),
                 ')' => self.add_simple_token(TokenType::RightParen),
                 '{' => self.add_simple_token(TokenType::LeftBrace),
@@ -66,13 +63,13 @@ impl<'a> Scanner<'a> {
                             '-' => Some(TokenType::Decrementer),
                             _ => None,
                         } {
-                            self.add_multiple_token(token, 2);
                             self.iter.next();
+                            self.add_multiple_token(token, 2)
                         } else {
-                            self.add_simple_token(TokenType::Minus);
+                            self.add_simple_token(TokenType::Minus)
                         }
                     } else {
-                        self.add_simple_token(TokenType::Minus);
+                        self.add_simple_token(TokenType::Minus)
                     }
                 }
                 '+' => {
@@ -82,30 +79,30 @@ impl<'a> Scanner<'a> {
                             '+' => Some(TokenType::Incrementer),
                             _ => None,
                         } {
-                            self.add_multiple_token(token, 2);
                             self.iter.next();
+                            self.add_multiple_token(token, 2)
                         } else {
-                            self.add_simple_token(TokenType::Plus);
+                            self.add_simple_token(TokenType::Plus)
                         }
                     } else {
-                        self.add_simple_token(TokenType::Plus);
+                        self.add_simple_token(TokenType::Plus)
                     }
                 }
 
                 ';' => self.add_simple_token(TokenType::Semicolon),
                 '*' => {
                     if self.peek_and_check_consume('=') {
-                        self.add_multiple_token(TokenType::StarEquals, 2);
+                        self.add_multiple_token(TokenType::StarEquals, 2)
                     } else {
-                        self.add_simple_token(TokenType::Star);
+                        self.add_simple_token(TokenType::Star)
                     }
                 }
                 ':' => self.add_simple_token(TokenType::Colon),
                 '%' => {
                     if self.peek_and_check_consume('=') {
-                        self.add_multiple_token(TokenType::ModEquals, 2);
+                        self.add_multiple_token(TokenType::ModEquals, 2)
                     } else {
-                        self.add_simple_token(TokenType::Mod);
+                        self.add_simple_token(TokenType::Mod)
                     }
                 }
                 ']' => self.add_simple_token(TokenType::RightBracket),
@@ -113,14 +110,14 @@ impl<'a> Scanner<'a> {
                 '\\' => self.add_simple_token(TokenType::Backslash),
                 '!' => {
                     if self.peek_and_check_consume('=') {
-                        self.add_multiple_token(TokenType::BangEqual, 2);
+                        self.add_multiple_token(TokenType::BangEqual, 2)
                     } else {
                         self.add_simple_token(TokenType::Bang)
                     }
                 }
                 '=' => {
                     if self.peek_and_check_consume('=') {
-                        self.add_multiple_token(TokenType::EqualEqual, 2);
+                        self.add_multiple_token(TokenType::EqualEqual, 2)
                     } else {
                         self.add_simple_token(TokenType::Equal)
                     }
@@ -129,26 +126,28 @@ impl<'a> Scanner<'a> {
                     if let Some((_, c)) = self.iter.peek() {
                         match c {
                             '=' => {
-                                self.add_multiple_token(TokenType::LessEqual, 2);
                                 self.iter.next();
+                                self.add_multiple_token(TokenType::LessEqual, 2)
                             }
                             '>' => {
-                                self.add_multiple_token(TokenType::LessThanGreaterThan, 2);
                                 self.iter.next();
+                                self.add_multiple_token(TokenType::LessThanGreaterThan, 2)
                             }
                             '<' => {
-                                self.add_multiple_token(TokenType::BitLeft, 2);
                                 self.iter.next();
+                                self.add_multiple_token(TokenType::BitLeft, 2)
                             }
                             _ => self.add_simple_token(TokenType::Less),
                         }
+                    } else {
+                        self.add_simple_token(TokenType::Less)
                     }
                 }
                 '>' => {
                     if self.peek_and_check_consume('=') {
-                        self.add_multiple_token(TokenType::GreaterEqual, 2);
+                        self.add_multiple_token(TokenType::GreaterEqual, 2)
                     } else if self.peek_and_check_consume('>') {
-                        self.add_multiple_token(TokenType::BitRight, 2);
+                        self.add_multiple_token(TokenType::BitRight, 2)
                     } else {
                         self.add_simple_token(TokenType::Greater)
                     }
@@ -161,13 +160,13 @@ impl<'a> Scanner<'a> {
                             '=' => Some(TokenType::BitAndEquals),
                             _ => None,
                         } {
-                            self.add_multiple_token(token, 2);
                             self.iter.next();
+                            self.add_multiple_token(token, 2)
                         } else {
-                            self.add_simple_token(TokenType::BitAnd);
+                            self.add_simple_token(TokenType::BitAnd)
                         }
                     } else {
-                        self.add_simple_token(TokenType::BitAnd);
+                        self.add_simple_token(TokenType::BitAnd)
                     }
                 }
 
@@ -178,10 +177,10 @@ impl<'a> Scanner<'a> {
                             '=' => Some(TokenType::BitOrEquals),
                             _ => None,
                         } {
-                            self.add_multiple_token(token, 2);
                             self.iter.next();
+                            self.add_multiple_token(token, 2)
                         } else {
-                            self.add_simple_token(TokenType::BitOr);
+                            self.add_simple_token(TokenType::BitOr)
                         }
                     } else {
                         self.add_simple_token(TokenType::BitOr)
@@ -195,10 +194,10 @@ impl<'a> Scanner<'a> {
                             '=' => Some(TokenType::BitXorEquals),
                             _ => None,
                         } {
-                            self.add_multiple_token(token, 2);
                             self.iter.next();
+                            self.add_multiple_token(token, 2)
                         } else {
-                            self.add_simple_token(TokenType::BitXor);
+                            self.add_simple_token(TokenType::BitXor)
                         }
                     } else {
                         self.add_simple_token(TokenType::BitXor)
@@ -207,29 +206,33 @@ impl<'a> Scanner<'a> {
 
                 // Indexing
                 '[' => {
-                    match self.iter.peek() {
-                        Some((_i, next_char)) if *next_char == '@' => {
-                            self.add_multiple_token(TokenType::ArrayIndexer, 2);
-                            self.iter.next();
-                        }
+                    if let Some((_, next_char)) = self.iter.peek() {
+                        match next_char {
+                            '@' => {
+                                self.iter.next();
+                                self.add_multiple_token(TokenType::ArrayIndexer, 2)
+                            }
 
-                        Some((_i, next_char)) if *next_char == '?' => {
-                            self.add_multiple_token(TokenType::MapIndexer, 2);
-                            self.iter.next();
-                        }
+                            '?' => {
+                                self.iter.next();
+                                self.add_multiple_token(TokenType::MapIndexer, 2)
+                            }
 
-                        Some((_i, next_char)) if *next_char == '|' => {
-                            self.add_multiple_token(TokenType::ListIndexer, 2);
-                            self.iter.next();
-                        }
+                            '|' => {
+                                self.iter.next();
+                                self.add_multiple_token(TokenType::ListIndexer, 2)
+                            }
 
-                        Some((_i, next_char)) if *next_char == '#' => {
-                            self.add_multiple_token(TokenType::GridIndexer, 2);
-                            self.iter.next();
-                        }
+                            '#' => {
+                                self.iter.next();
+                                self.add_multiple_token(TokenType::GridIndexer, 2)
+                            }
 
-                        _ => self.add_simple_token(TokenType::LeftBracket),
-                    };
+                            _ => self.add_simple_token(TokenType::LeftBracket),
+                        }
+                    } else {
+                        self.add_simple_token(TokenType::LeftBracket)
+                    }
                 }
 
                 // Compiler Directives
@@ -304,29 +307,25 @@ impl<'a> Scanner<'a> {
                     match token_returned {
                         Some(macro_directive) => {
                             if is_multiline {
-                                self.tokens.push(Token::new(
-                                    TokenType::Macro(&self.input[start..current]),
-                                    start_line,
-                                    start_column,
-                                ));
                                 self.column_number += (current - last_column_break) as u32;
+                                Token::new(TokenType::Macro(&self.input[start..current]), start_line, start_column)
                             } else {
-                                self.add_multiple_token(macro_directive, (current - start) as u32);
+                                self.add_multiple_token(macro_directive, (current - start) as u32)
                             }
                         }
 
                         None => {
                             // we're adding a hashtag token, which doesn't really mean anything,
                             // but just want to keep the sizes right.
-                            self.add_simple_token(TokenType::Hashtag);
+                            self.add_simple_token(TokenType::Hashtag)
 
                             // for a weird # floating in space
-                            if current - start - 1 != 0 {
-                                self.add_multiple_token(
-                                    TokenType::Identifier(&self.input[start..current]),
-                                    (current - start - 1) as u32,
-                                );
-                            }
+                            // if current - start - 1 != 0 {
+                            //     self.add_multiple_token(
+                            //         TokenType::Identifier(&self.input[start..current]),
+                            //         (current - start - 1) as u32,
+                            //     )
+                            // }
                         }
                     }
                 }
@@ -343,12 +342,8 @@ impl<'a> Scanner<'a> {
                                 let (_, this_char) = self.iter.next().unwrap();
                                 let (current, last_column_break) = self.scan_multiline_string(start, this_char);
 
-                                self.tokens.push(Token::new(
-                                    TokenType::String(&self.input[start..current]),
-                                    start_line,
-                                    start_column,
-                                ));
                                 self.column_number += (current - last_column_break) as u32;
+                                Token::new(TokenType::String(&self.input[start..current]), start_line, start_column)
                             }
 
                             _ => {
@@ -356,7 +351,7 @@ impl<'a> Scanner<'a> {
                                 self.add_multiple_token(
                                     TokenType::UnidentifiedInput(&self.input[i..end_byte]),
                                     (end_byte - i) as u32,
-                                );
+                                )
                             }
                         }
                     } else {
@@ -364,7 +359,7 @@ impl<'a> Scanner<'a> {
                         self.add_multiple_token(
                             TokenType::UnidentifiedInput(&self.input[i..end_byte]),
                             (end_byte - i) as u32,
-                        );
+                        )
                     }
                 }
                 '"' => {
@@ -400,7 +395,7 @@ impl<'a> Scanner<'a> {
                         }
                     }
 
-                    self.add_multiple_token(TokenType::String(&self.input[start..current]), (current - start) as u32);
+                    self.add_multiple_token(TokenType::String(&self.input[start..current]), (current - start) as u32)
                 }
 
                 '\'' => {
@@ -436,7 +431,7 @@ impl<'a> Scanner<'a> {
                         }
                     }
 
-                    self.add_multiple_token(TokenType::String(&self.input[start..current]), (current - start) as u32);
+                    self.add_multiple_token(TokenType::String(&self.input[start..current]), (current - start) as u32)
                 }
 
                 '.' => match self.iter.peek() {
@@ -456,7 +451,7 @@ impl<'a> Scanner<'a> {
                         self.add_multiple_token(
                             TokenType::NumberStartDot(&self.input[start..current]),
                             (current - start) as u32,
-                        );
+                        )
                     }
                     _ => self.add_simple_token(TokenType::Dot),
                 },
@@ -480,11 +475,10 @@ impl<'a> Scanner<'a> {
 
                                 let current = self.next_char_boundary();
 
-                                self.add_multiple_token(
+                                return Some(self.add_multiple_token(
                                     TokenType::Number(&self.input[start..current]),
                                     (current - start) as u32,
-                                );
-                                continue;
+                                ));
                             }
                         }
                     }
@@ -514,11 +508,10 @@ impl<'a> Scanner<'a> {
                             }
                         }
                         if is_end_dot {
-                            self.add_multiple_token(
+                            return Some(self.add_multiple_token(
                                 TokenType::NumberEndDot(&self.input[start..current]),
                                 (current - start) as u32,
-                            );
-                            continue;
+                            ));
                         }
                     }
 
@@ -540,7 +533,7 @@ impl<'a> Scanner<'a> {
                         }
                     }
 
-                    self.add_multiple_token(TokenType::Number(&self.input[start..current]), (current - start) as u32);
+                    self.add_multiple_token(TokenType::Number(&self.input[start..current]), (current - start) as u32)
                 }
 
                 // Comments
@@ -556,17 +549,10 @@ impl<'a> Scanner<'a> {
                         }
                         let current = self.next_char_boundary();
 
-                        // if let None = self.peek_and_check_while(|i, this_char| {
-                        //     current = i;
-                        //     this_char != '\n'
-                        // }) {
-                        //     current = self.next_char_boundary();
-                        // }
-
                         self.add_multiple_token(
                             TokenType::Comment(&self.input[start..current]),
                             (current - start) as u32,
-                        );
+                        )
                     } else if self.peek_and_check_consume('*') {
                         // Multiline Comment
                         let start = i;
@@ -597,16 +583,16 @@ impl<'a> Scanner<'a> {
                             };
                         }
 
-                        self.tokens.push(Token::new(
+                        self.column_number += (current - last_column_break) as u32;
+                        Token::new(
                             TokenType::MultilineComment(&self.input[start..current]),
                             start_line,
                             start_column,
-                        ));
-                        self.column_number += (current - last_column_break) as u32;
+                        )
                     } else if self.peek_and_check_consume('=') {
-                        self.add_multiple_token(TokenType::SlashEquals, 2);
+                        self.add_multiple_token(TokenType::SlashEquals, 2)
                     } else {
-                        self.add_simple_token(TokenType::Slash);
+                        self.add_simple_token(TokenType::Slash)
                     }
                 }
 
@@ -622,10 +608,11 @@ impl<'a> Scanner<'a> {
 
                     let current = self.next_char_boundary();
 
-                    let keyword_token_type = self.check_for_keyword(start, current);
-
-                    match keyword_token_type {
-                        Some(token) => self.add_multiple_token(*token, (current - start) as u32),
+                    match self.keyword_map.get(&self.input[start..current]) {
+                        Some(token) => {
+                            let token = *token;
+                            self.add_multiple_token(token, (current - start) as u32)
+                        }
                         None => self.add_multiple_token(
                             TokenType::Identifier(&self.input[start..current]),
                             (current - start) as u32,
@@ -634,7 +621,10 @@ impl<'a> Scanner<'a> {
                 }
 
                 // Whitespace we care about...
-                ' ' | '\t' => self.column_number += 1,
+                ' ' | '\t' => {
+                    self.column_number += 1;
+                    continue;
+                }
 
                 // Newline
                 '\n' => {
@@ -652,35 +642,39 @@ impl<'a> Scanner<'a> {
                             _ => break,
                         };
                     }
-                    self.add_multiple_token(TokenType::Newline(tally), tally as u32);
+                    let ret = self.add_multiple_token(TokenType::Newline(tally), tally as u32);
                     self.next_line();
+                    ret
                 }
 
                 // Whitespace we don't care about
                 '\r' => continue,
 
-                _ => {
-                    let end_byte = self.next_char_boundary();
-                    self.add_multiple_token(
-                        TokenType::UnidentifiedInput(&self.input[i..end_byte]),
-                        (end_byte - i) as u32,
-                    );
-                }
+                _ => self.return_unidentified_input(i),
             };
+
+            return Some(found_token);
         }
 
-        self.add_simple_token(TokenType::EOF);
-        self.tokens
+        None
     }
 
-    fn add_simple_token(&mut self, token_type: TokenType<'a>) {
-        self.add_multiple_token(token_type, 1);
+    fn return_unidentified_input(&mut self, start: usize) -> Token<'a> {
+        let end_byte = self.next_char_boundary();
+        self.add_multiple_token(
+            TokenType::UnidentifiedInput(&self.input[start..end_byte]),
+            (end_byte - start) as u32,
+        )
     }
 
-    fn add_multiple_token(&mut self, token_type: TokenType<'a>, size: u32) {
-        self.tokens
-            .push(Token::new(token_type, self.line_number, self.column_number));
+    fn add_simple_token(&mut self, token_type: TokenType<'a>) -> Token<'a> {
+        self.add_multiple_token(token_type, 1)
+    }
+
+    fn add_multiple_token(&mut self, token_type: TokenType<'a>, size: u32) -> Token<'a> {
+        let ret = Token::new(token_type, self.line_number, self.column_number);
         self.column_number += size;
+        ret
     }
 
     fn peek_and_check_consume(&mut self, char_to_check: char) -> bool {
@@ -698,10 +692,6 @@ impl<'a> Scanner<'a> {
     fn next_line(&mut self) {
         self.line_number += 1;
         self.column_number = 0;
-    }
-
-    fn check_for_keyword(&self, start: usize, current: usize) -> Option<&TokenType<'a>> {
-        self.keyword_map.get(&self.input[start..current])
     }
 
     fn scan_multiline_string(&mut self, mut last_column_break: usize, break_char: char) -> (usize, usize) {
@@ -724,13 +714,21 @@ impl<'a> Scanner<'a> {
     }
 }
 
+impl<'a> Iterator for Scanner<'a> {
+    type Item = Token<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.lex_input()
+    }
+}
+
 #[cfg(test)]
 mod scanner_test {
     use super::Scanner;
     use super::*;
 
     #[test]
-    fn lex_symbols() {
+    fn lex_symbols<'a>() {
         let input_string = "(){}[] // grouping stuff
 ! * + - / % & | ^ # ? // binary operators
 = == <> > < >= <= // equality operators
@@ -738,12 +736,11 @@ mod scanner_test {
 && || ^^ // logical operators
 += -= *= /= ^= |= &= %= // set operators";
 
-        let vec = &mut Vec::new();
-        let mut scanner = Scanner::new(input_string, vec);
-
+        let scanner = Scanner::new(input_string);
+        let vec: Vec<Token<'a>> = scanner.collect();
         assert_eq!(
-            scanner.lex_input(),
-            &vec![
+            vec,
+            vec![
                 // line 0
                 Token::new(TokenType::LeftParen, 0, 0),
                 Token::new(TokenType::RightParen, 0, 1),
@@ -800,25 +797,22 @@ mod scanner_test {
                 Token::new(TokenType::BitAndEquals, 5, 18),
                 Token::new(TokenType::ModEquals, 5, 21),
                 Token::new(TokenType::Comment("// set operators"), 5, 24),
-                // EOF
-                Token::new(TokenType::EOF, 5, 40)
             ]
         );
     }
 
     #[test]
-    fn lex_strings() {
+    fn lex_strings<'a>() {
         let input_string = "\"This is a good string.\"
 \"This is a bad string.
 \"\"
 \"This is another good string!\"
 @\"This is a
 multi-linestring. The demon's plaything!\"";
-        let vec = &mut Vec::new();
-        let mut scanner = Scanner::new(input_string, vec);
-
+        let scanner = Scanner::new(input_string);
+        let vec: Vec<Token<'a>> = scanner.collect();
         assert_eq!(
-            scanner.lex_input(),
+            &vec,
             &vec![
                 Token::new(TokenType::String("\"This is a good string.\""), 0, 0),
                 Token::new(TokenType::Newline(0), 0, 24),
@@ -833,13 +827,12 @@ multi-linestring. The demon's plaything!\"";
                     4,
                     0
                 ),
-                Token::new(TokenType::EOF, 5, 41),
             ]
         );
     }
 
     #[test]
-    fn lex_numbers() {
+    fn lex_numbers<'a>() {
         let input_string = "314159
 3.14159
 314159.
@@ -849,11 +842,10 @@ multi-linestring. The demon's plaything!\"";
 0
 .3";
 
-        let vec = &mut Vec::new();
-        let mut scanner = Scanner::new(input_string, vec);
-
+        let scanner = Scanner::new(input_string);
+        let vec: Vec<Token<'a>> = scanner.collect();
         assert_eq!(
-            scanner.lex_input(),
+            &vec,
             &vec![
                 Token::new(TokenType::Number("314159"), 0, 0),
                 Token::new(TokenType::Newline(0), 0, 6),
@@ -870,13 +862,12 @@ multi-linestring. The demon's plaything!\"";
                 Token::new(TokenType::Number("0"), 6, 0),
                 Token::new(TokenType::Newline(0), 6, 1),
                 Token::new(TokenType::NumberStartDot(".3"), 7, 0),
-                Token::new(TokenType::EOF, 7, 2),
             ]
         );
     }
 
     #[test]
-    fn lex_hex() {
+    fn lex_hex<'a>() {
         let input_string = "0123456789
 0x01234567
 0x0A1B2C3D4E5F6
@@ -887,11 +878,10 @@ $0A1B2C3D4E5F6
 $ABCDEF
 $";
 
-        let vec = &mut Vec::new();
-        let mut scanner = Scanner::new(input_string, vec);
-
+        let scanner = Scanner::new(input_string);
+        let vec: Vec<Token<'a>> = scanner.collect();
         assert_eq!(
-            scanner.lex_input(),
+            &vec,
             &vec![
                 Token::new(TokenType::Number("0123456789"), 0, 0),
                 Token::new(TokenType::Newline(0), 0, 10),
@@ -910,13 +900,12 @@ $";
                 Token::new(TokenType::Number("$ABCDEF"), 7, 0),
                 Token::new(TokenType::Newline(0), 7, 7),
                 Token::new(TokenType::Number("$"), 8, 0),
-                Token::new(TokenType::EOF, 8, 1),
             ]
         );
     }
 
     #[test]
-    fn lex_basic_identifiers() {
+    fn lex_basic_identifiers<'a>() {
         let input_string = "a
 Z
 AbCdE
@@ -925,11 +914,10 @@ _test123
 test_123
 testCase";
 
-        let vec = &mut Vec::new();
-        let mut scanner = Scanner::new(input_string, vec);
-
+        let scanner = Scanner::new(input_string);
+        let vec: Vec<Token<'a>> = scanner.collect();
         assert_eq!(
-            scanner.lex_input(),
+            &vec,
             &vec![
                 Token::new(TokenType::Identifier("a"), 0, 0),
                 Token::new(TokenType::Newline(0), 0, 1),
@@ -944,20 +932,18 @@ testCase";
                 Token::new(TokenType::Identifier("test_123"), 5, 0),
                 Token::new(TokenType::Newline(0), 5, 8),
                 Token::new(TokenType::Identifier("testCase"), 6, 0),
-                Token::new(TokenType::EOF, 6, 8),
             ]
         )
     }
 
     #[test]
-    fn lex_reserved_keywords() {
+    fn lex_reserved_keywords<'a>() {
         let input_string = "var and or if else return for repeat while do until switch case default div break enum";
 
-        let vec = &mut Vec::new();
-        let mut scanner = Scanner::new(input_string, vec);
-
+        let scanner = Scanner::new(input_string);
+        let vec: Vec<Token<'a>> = scanner.collect();
         assert_eq!(
-            scanner.lex_input(),
+            &vec,
             &vec![
                 Token::new(TokenType::Var, 0, 0),
                 Token::new(TokenType::AndAlias, 0, 4),
@@ -976,39 +962,35 @@ testCase";
                 Token::new(TokenType::Div, 0, 72),
                 Token::new(TokenType::Break, 0, 76),
                 Token::new(TokenType::Enum, 0, 82),
-                Token::new(TokenType::EOF, 0, 86),
             ]
         )
     }
 
     #[test]
-    fn lex_alias_words() {
+    fn lex_alias_words<'a>() {
         let input_string = "and not or mod";
 
-        let vec = &mut Vec::new();
-        let mut scanner = Scanner::new(input_string, vec);
-
+        let scanner = Scanner::new(input_string);
+        let vec: Vec<Token<'a>> = scanner.collect();
         assert_eq!(
-            scanner.lex_input(),
+            &vec,
             &vec![
                 Token::new(TokenType::AndAlias, 0, 0),
                 Token::new(TokenType::NotAlias, 0, 4),
                 Token::new(TokenType::OrAlias, 0, 8),
                 Token::new(TokenType::ModAlias, 0, 11),
-                Token::new(TokenType::EOF, 0, 14)
             ]
         )
     }
 
     #[test]
-    fn lex_indexers() {
+    fn lex_indexers<'a>() {
         let input_string = "[ [? [# [| [@ ]";
 
-        let vec = &mut Vec::new();
-        let mut scanner = Scanner::new(input_string, vec);
-
+        let scanner = Scanner::new(input_string);
+        let vec: Vec<Token<'a>> = scanner.collect();
         assert_eq!(
-            scanner.lex_input(),
+            &vec,
             &vec![
                 Token::new(TokenType::LeftBracket, 0, 0),
                 Token::new(TokenType::MapIndexer, 0, 2),
@@ -1016,24 +998,22 @@ testCase";
                 Token::new(TokenType::ListIndexer, 0, 8),
                 Token::new(TokenType::ArrayIndexer, 0, 11),
                 Token::new(TokenType::RightBracket, 0, 14),
-                Token::new(TokenType::EOF, 0, 15),
             ]
         )
     }
 
     #[test]
-    fn lex_compiler_directives() {
+    fn lex_compiler_directives<'a>() {
         let input_string = "#region Region Name Long
 #macro macroName 0
 #endregion
 #macro doing this \\
 is bad";
 
-        let vec = &mut Vec::new();
-        let mut scanner = Scanner::new(input_string, vec);
-
+        let scanner = Scanner::new(input_string);
+        let vec: Vec<Token<'a>> = scanner.collect();
         assert_eq!(
-            scanner.lex_input(),
+            &vec,
             &vec![
                 Token::new(TokenType::RegionBegin("#region Region Name Long"), 0, 0),
                 Token::new(TokenType::Newline(0), 0, 24),
@@ -1042,23 +1022,21 @@ is bad";
                 Token::new(TokenType::RegionEnd("#endregion"), 2, 0),
                 Token::new(TokenType::Newline(0), 2, 10),
                 Token::new(TokenType::Macro("#macro doing this \\\nis bad"), 3, 0),
-                Token::new(TokenType::EOF, 4, 6),
             ]
         )
     }
     #[test]
-    fn lex_comments() {
+    fn lex_comments<'a>() {
         let input_string = "// normal comment
 var x = a; // end comment
 /* one liner */
 /* multi
 liner comment
 */";
-        let vec = &mut Vec::new();
-        let mut scanner = Scanner::new(input_string, vec);
-
+        let scanner = Scanner::new(input_string);
+        let vec: Vec<Token<'a>> = scanner.collect();
         assert_eq!(
-            scanner.lex_input(),
+            &vec,
             &vec![
                 // line 0
                 Token::new(TokenType::Comment("// normal comment"), 0, 0),
@@ -1076,7 +1054,6 @@ liner comment
                 Token::new(TokenType::Newline(0), 2, 15),
                 // line 3
                 Token::new(TokenType::MultilineComment("/* multi\nliner comment\n*/"), 3, 0),
-                Token::new(TokenType::EOF, 5, 2),
             ]
         )
     }

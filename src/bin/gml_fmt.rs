@@ -1,4 +1,5 @@
 extern crate clap;
+extern crate logos;
 
 use clap::{App, Arg};
 use gml_fmt::config::Config;

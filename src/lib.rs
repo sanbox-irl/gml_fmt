@@ -9,12 +9,11 @@ pub mod statements;
 use config::{Config, PrintFlags};
 use parser::Parser;
 use printer::Printer;
-use scanner::Scanner;
 use std::{error::Error, fs};
 
 pub fn run_config(config: &Config) -> Result<(), Box<dyn Error>> {
     let log = config.print_flags.contains(PrintFlags::LOGS);
-    let log_scan = config.print_flags.contains(PrintFlags::SCANNER_LOGS);
+    // let log_scan = config.print_flags.contains(PrintFlags::SCANNER_LOGS);
     let overwrite = config.print_flags.contains(PrintFlags::OVERWRITE);
 
     for this_file in &config.files {
@@ -37,10 +36,10 @@ pub fn run_config(config: &Config) -> Result<(), Box<dyn Error>> {
                 println!("==========AST===========");
                 println!("{}", res.2.unwrap());
             }
-            if log_scan {
-                println!("=========SCANLINE=========");
-                println!("{}", res.3.unwrap());
-            }
+            // if log_scan {
+            //     println!("=========SCANLINE=========");
+            //     println!("{}", res.3.unwrap());
+            // }
 
             if overwrite {
                 fs::write(this_file, output)?;
@@ -60,19 +59,15 @@ pub fn run_test(input: &str) -> String {
     return res.1.unwrap();
 }
 
-fn run(source: &str, print_ast: bool) -> (Option<String>, Option<String>, Option<String>, Option<String>) {
+fn run(source: &str, print_ast: bool) -> (Option<String>, Option<String>, Option<String>) {
     let source_size = source.len();
-    let mut tok = Vec::with_capacity(source_size * 2);
-    let mut scanner = Scanner::new(source, &mut tok);
-    let our_tokens = scanner.lex_input();
-    let mut parser = Parser::new(our_tokens);
+    let mut parser = Parser::new(source);
     parser.build_ast();
     if let Some(err) = parser.failure {
-        return (Some(err), None, None, Some(format!("{:#?}", our_tokens)));
+        return (Some(err), None, None);
     }
 
-    let mut printer = Printer::new(source_size / 2);
-    printer.autoformat(&parser.ast[..]);
+    let printer = Printer::new(source_size / 2).autoformat(&parser.ast[..]);
 
     (
         None,
@@ -82,6 +77,5 @@ fn run(source: &str, print_ast: bool) -> (Option<String>, Option<String>, Option
         } else {
             None
         },
-        Some(format!("{:#?}", our_tokens)),
     )
 }

@@ -1,1 +1,3 @@
-#macro give_me_five x =5+5
+if (x) {
+show_debug_message("gah!");
+}

@@ -95,7 +95,6 @@ pub enum TokenType<'a> {
     MultilineComment(&'a str),
 
     UnidentifiedInput(&'a str),
-    EOF,
 }
 
 impl<'a> TokenType<'a> {
