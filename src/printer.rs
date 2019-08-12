@@ -22,6 +22,7 @@ pub struct Printer<'a> {
     block_instructions: Vec<BlockInstruction>,
     group_instructions: Vec<GroupInstruction>,
     user_indentation_instructions: Vec<usize>,
+    do_dot_indent: bool,
 }
 
 impl<'a> Printer<'a> {
@@ -33,6 +34,7 @@ impl<'a> Printer<'a> {
             block_instructions: Vec::new(),
             group_instructions: Vec::new(),
             user_indentation_instructions: Vec::new(),
+            do_dot_indent: true,
         }
     }
 
@@ -558,6 +560,7 @@ impl<'a> Printer<'a> {
                 self.print_expr(left);
                 self.ensure_space();
                 self.print_token(operator, true);
+                self.allow_user_indentation();
                 self.print_comments_and_newlines(
                     comments_and_newlines_between_op_and_r,
                     IndentationMove::Stay,
@@ -565,6 +568,7 @@ impl<'a> Printer<'a> {
                     true,
                 );
                 self.print_expr(right);
+                self.rewind_user_indentation();
             }
 
             Expr::Grouping {
@@ -712,10 +716,22 @@ impl<'a> Printer<'a> {
                 self.print_expr(object_name);
                 self.backspace();
                 self.print(".", false);
-                // self.user_indentation_instructions.push(self.indentation);
-                self.print_comments_and_newlines(comments_between, IndentationMove::Stay, LeadingNewlines::One, true);
+                self.allow_user_indentation();
+
+                let mut can_unlock = false;
+                let indentation = if self.do_dot_indent {
+                    can_unlock = true;
+                    self.do_dot_indent = false;
+                    IndentationMove::Right
+                } else {
+                    IndentationMove::Stay
+                };
+                self.print_comments_and_newlines(comments_between, indentation, LeadingNewlines::One, true);
                 self.print_expr(instance_variable);
-                // self.indentation = self.user_indentation_instructions.pop().unwrap();
+                self.rewind_user_indentation();
+                if can_unlock && self.do_dot_indent == false {
+                    self.do_dot_indent = true;
+                }
             }
             Expr::DataStructureAccess {
                 ds_name,
@@ -729,8 +745,10 @@ impl<'a> Printer<'a> {
 
                 let mut iter = access_exprs.into_iter().peekable();
                 while let Some((comments, expr)) = iter.next() {
+                    self.allow_user_indentation();
                     self.print_comments_and_newlines(comments, IndentationMove::Stay, LeadingNewlines::All, false);
                     self.print_expr(expr);
+                    self.rewind_user_indentation();
                     self.backspace();
 
                     if let Some(_) = iter.peek() {
@@ -757,6 +775,8 @@ impl<'a> Printer<'a> {
             } => {
                 self.print_expr(conditional);
                 self.print("?", true);
+                self.allow_user_indentation();
+
                 self.print_comments_and_newlines(
                     comments_and_newlines_after_q,
                     IndentationMove::Right,
@@ -773,6 +793,7 @@ impl<'a> Printer<'a> {
                     false,
                 );
                 self.print_expr(right);
+                self.rewind_user_indentation();
 
                 if did_move {
                     self.set_indentation(IndentationMove::Left);
@@ -975,6 +996,14 @@ impl<'a> Printer<'a> {
         }
     }
 
+    fn check_indentation(&self, indentation_move: IndentationMove) -> usize {
+        match indentation_move {
+            IndentationMove::Right => self.indentation + 1,
+            IndentationMove::Stay => self.indentation,
+            IndentationMove::Left => self.indentation - 1,
+        }
+    }
+
     fn only_newlines(vec: &'a Vec<Token<'a>>) -> bool {
         for this_token in vec {
             if let TokenType::Newline(_) = this_token.token_type {
@@ -1025,8 +1054,10 @@ impl<'a> Printer<'a> {
                             // check for a force indentation
                             if self.user_indentation_instructions.is_empty() == false
                                 && respect_user_newline
-                                && user_indentation > self.indentation
+                                && user_indentation > self.check_indentation(indentation_move)
                             {
+                                println!("User indentation is {}", user_indentation);
+                                println!("Our indentation check is {}", self.check_indentation(indentation_move));
                                 self.backspace();
                                 self.print(NEWLINE, false);
                                 self.print_indentation_raw(user_indentation);
@@ -1230,6 +1261,14 @@ impl<'a> Printer<'a> {
             self.print_newline(indentation_move);
         }
     }
+
+    fn allow_user_indentation(&mut self) {
+        self.user_indentation_instructions.push(self.indentation);
+    }
+
+    fn rewind_user_indentation(&mut self) {
+        self.indentation = self.user_indentation_instructions.pop().unwrap();
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -1237,6 +1276,16 @@ enum IndentationMove {
     Right,
     Stay,
     Left,
+}
+
+impl IndentationMove {
+    fn to_usize(self) -> isize {
+        match self {
+            IndentationMove::Right => 1,
+            IndentationMove::Stay => 0,
+            IndentationMove::Left => -1,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]
