@@ -811,15 +811,13 @@ impl<'a> Parser<'a> {
             match token.token_type {
                 TokenType::Dot => {
                     self.consume_next();
-                    if let Some(t) = self.scanner.peek() {
-                        if let TokenType::Identifier(_) = t.token_type {
-                            let instance_variable = self.expression();
-                            expression = self.create_comment_expr_box(Expr::DotAccess {
-                                object_name: expression,
-                                instance_variable,
-                            });
-                        }
-                    }
+                    let comments_between = self.get_newlines_and_comments();
+                    let instance_variable = self.expression();
+                    expression = self.create_comment_expr_box(Expr::DotAccess {
+                        object_name: expression,
+                        comments_between,
+                        instance_variable,
+                    });
                 }
 
                 TokenType::LeftBracket

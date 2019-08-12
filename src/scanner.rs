@@ -642,7 +642,7 @@ impl<'a> Scanner<'a> {
                             _ => break,
                         };
                     }
-                    let ret = self.add_multiple_token(TokenType::Newline(tally), tally as u32);
+                    let ret = self.add_multiple_token(TokenType::Newline(tally / 4), tally as u32);
                     self.next_line();
                     ret
                 }

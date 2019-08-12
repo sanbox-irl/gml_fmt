@@ -66,6 +66,7 @@ pub enum Expr<'a> {
     },
     DotAccess {
         object_name: ExprBox<'a>,
+        comments_between: CommentsAndNewlines<'a>,
         instance_variable: ExprBox<'a>,
     },
     DataStructureAccess {

@@ -1,4 +1,5 @@
-if (x) {
-    // @gm_fmt no_format_line
-    x   =           20;
-}
+x.
+    y.
+    z;
+
+    show_debug_message("hey nerd");
