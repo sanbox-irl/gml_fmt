@@ -440,9 +440,12 @@ impl<'a> Parser<'a> {
     fn enum_declaration(&mut self) -> StmtBox<'a> {
         let comments_after_control_word = self.get_newlines_and_comments();
         let name = self.expression();
+        println!("The Enum name was {:?}", name);
 
         self.check_next_consume(TokenType::LeftBrace);
         let comments_after_lbrace = self.get_newlines_and_comments();
+        println!("The Comments after brace were {:?}", comments_after_lbrace);
+
         let members = self.finish_call(TokenType::RightBrace, TokenType::Comma);
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
 
@@ -860,7 +863,7 @@ impl<'a> Parser<'a> {
             match t.token_type {
                 TokenType::Number(_) | TokenType::String(_) => {
                     let t = self.consume_next();
-                    let comments = self.get_comments_until_newline();
+                    let comments = self.get_newlines_and_comments();
                     return self.create_expr_box_no_comment(Expr::Literal {
                         literal_token: t,
                         comments,
@@ -868,7 +871,7 @@ impl<'a> Parser<'a> {
                 }
                 TokenType::NumberStartDot(_) => {
                     let t = self.consume_next();
-                    let comments = self.get_comments_until_newline();
+                    let comments = self.get_newlines_and_comments();
                     return self.create_expr_box_no_comment(Expr::NumberStartDot {
                         literal_token: t,
                         comments,
@@ -876,7 +879,7 @@ impl<'a> Parser<'a> {
                 }
                 TokenType::NumberEndDot(_) => {
                     let t = self.consume_next();
-                    let comments = self.get_comments_until_newline();
+                    let comments = self.get_newlines_and_comments();
                     return self.create_expr_box_no_comment(Expr::NumberEndDot {
                         literal_token: t,
                         comments,
@@ -884,7 +887,7 @@ impl<'a> Parser<'a> {
                 }
                 TokenType::Identifier(_) => {
                     let t = self.consume_next();
-                    let comments = self.get_comments_until_newline();
+                    let comments = self.get_newlines_and_comments();
                     return self.create_expr_box_no_comment(Expr::Identifier { name: t, comments });
                 }
                 TokenType::LeftParen => {
@@ -1023,29 +1026,6 @@ impl<'a> Parser<'a> {
             match token.token_type {
                 TokenType::Newline(_)
                 | TokenType::Comment(_)
-                | TokenType::MultilineComment(_)
-                | TokenType::RegionBegin(_)
-                | TokenType::RegionEnd(_)
-                | TokenType::Then => {
-                    let token = self.scanner.next().unwrap();
-                    if let Some(vec) = &mut ret {
-                        vec.push(token);
-                    } else {
-                        ret = Some(vec![token]);
-                    }
-                }
-                _ => break,
-            }
-        }
-
-        ret
-    }
-
-    fn get_comments_until_newline(&mut self) -> Option<Vec<Token<'a>>> {
-        let mut ret: Option<Vec<Token<'a>>> = None;
-        while let Some(token) = self.scanner.peek() {
-            match token.token_type {
-                TokenType::Comment(_)
                 | TokenType::MultilineComment(_)
                 | TokenType::RegionBegin(_)
                 | TokenType::RegionEnd(_)
