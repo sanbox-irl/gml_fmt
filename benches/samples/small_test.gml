@@ -1,3 +1,1 @@
-if (x) {
-show_debug_message("gah!");
-}
+var x = .3; var z = 3.;

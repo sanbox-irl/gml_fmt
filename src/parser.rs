@@ -33,7 +33,6 @@ impl<'a> Parser<'a> {
                 let ret = self.statement();
                 self.ast.push(ret);
             }
-            self.scanner.next();
         }
     }
 
@@ -65,6 +64,7 @@ impl<'a> Parser<'a> {
                     return self.define_statement();
                 }
                 TokenType::Var => {
+                    println!("Ach! a var! in the wild...{:?}", token);
                     return self.series_var_declaration();
                 }
                 TokenType::Enum => {
@@ -144,7 +144,10 @@ impl<'a> Parser<'a> {
         self.check_next_consume(TokenType::Var);
         let comments_after_control_word = self.get_newlines_and_comments();
         let var_decl = self.var_declaration();
+        println!("Next token after var declaration is..{:?}", self.scanner.peek());
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
+        println!("Next token after semicolon is..{:?}", self.scanner.peek());
+
         StatementWrapper::new(
             Statement::VariableDeclList {
                 var_decl,
@@ -1028,13 +1031,10 @@ impl<'a> Parser<'a> {
                 | TokenType::RegionBegin(_)
                 | TokenType::RegionEnd(_) => {
                     let token = self.scanner.next().unwrap();
-                    match ret {
-                        Some(vec) => {
-                            vec.push(token);
-                        }
-                        None => {
-                            ret = Some(vec![token]);
-                        }
+                    if let Some(vec) = &mut ret {
+                        vec.push(token);
+                    } else {
+                        ret = Some(vec![token]);
                     }
                 }
                 _ => break,
@@ -1048,18 +1048,15 @@ impl<'a> Parser<'a> {
         let mut ret: Option<Vec<Token<'a>>> = None;
         while let Some(token) = self.scanner.peek() {
             match token.token_type {
-                | TokenType::Comment(_)
+                TokenType::Comment(_)
                 | TokenType::MultilineComment(_)
                 | TokenType::RegionBegin(_)
                 | TokenType::RegionEnd(_) => {
                     let token = self.scanner.next().unwrap();
-                    match ret {
-                        Some(mut vec) => {
-                            vec.push(token);
-                        }
-                        None => {
-                            ret = Some(vec![token]);
-                        }
+                    if let Some(vec) = &mut ret {
+                        vec.push(token);
+                    } else {
+                        ret = Some(vec![token]);
                     }
                 }
                 _ => break,
@@ -1074,10 +1071,16 @@ impl<'a> Parser<'a> {
     }
 
     fn create_comment_expr_box(&mut self, expr: Expr<'a>) -> ExprBox<'a> {
-        Box::new((expr, self.get_newlines_and_comments()))
+        Box::new(ExprBoxInterior {
+            expr,
+            trailing_comments: self.get_newlines_and_comments(),
+        })
     }
 
     fn create_expr_box_no_comment(&self, expr: Expr<'a>) -> ExprBox<'a> {
-        Box::new((expr, None))
+        Box::new(ExprBoxInterior {
+            expr,
+            trailing_comments: None,
+        })
     }
 }

@@ -269,7 +269,7 @@ impl<'a> Printer<'a> {
 
                 let current_indentation = self.indentation;
                 if has_block == false {
-                    if let Expr::Grouping { .. } = &condition.0 {
+                    if let Expr::Grouping { .. } = &condition.expr {
                         self.group_instructions.push(GroupInstructions {
                             force_respect: Some(true),
                             force_indentation: Some(IndentationMove::Right),
@@ -528,7 +528,7 @@ impl<'a> Printer<'a> {
     }
 
     fn print_expr(&mut self, expr: &'a ExprBox<'a>) {
-        match &expr.0 {
+        match &expr.expr {
             Expr::Call {
                 procedure_name,
                 comments_and_newlines_after_lparen,
@@ -809,7 +809,7 @@ impl<'a> Printer<'a> {
             Expr::UnexpectedEnd => {}
         }
 
-        self.print_comments_and_newlines(&expr.1, IndentationMove::Stay, LeadingNewlines::All, false);
+        self.print_comments_and_newlines(&expr.trailing_comments, IndentationMove::Stay, LeadingNewlines::All, false);
         self.do_not_print_single_newline_statement = false;
     }
 
@@ -1191,7 +1191,7 @@ impl<'a> Printer<'a> {
                 true
             };
 
-            if delimited_line.trailing_comment.is_some() && delimited_line.trailing_comment.unwrap().len() != 0 {
+            if let Some(_) = &delimited_line.trailing_comment {
                 let did_newlines = self.print_comments_and_newlines(
                     &delimited_line.trailing_comment,
                     IndentationMove::Stay,
