@@ -1,1 +1,4 @@
-var x = .3; var z = 3.;
+if (x) {
+    // @gm_fmt no_format_line
+    x   =           20;
+}
