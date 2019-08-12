@@ -348,7 +348,7 @@ impl<'a> Printer<'a> {
                 self.print("until", true);
                 self.print_expr(condition);
                 self.backspace();
-                self.print_semicolon(stmt.has_semicolon);
+                self.print_semicolon_and_newline(stmt.has_semicolon, IndentationMove::Stay);
             }
             Statement::For {
                 comments_after_control_word,
