@@ -46,6 +46,7 @@ impl<'a> Scanner<'a> {
         map.insert("enum", TokenType::Enum);
         map.insert("with", TokenType::With);
         map.insert("then", TokenType::Then);
+        map.insert("globalvar", TokenType::GlobalVar);
         map
     }
 
@@ -378,7 +379,7 @@ impl<'a> Scanner<'a> {
                             '\\' => {
                                 self.iter.next();
                                 if let Some((_, break_char)) = self.iter.peek() {
-                                    if *break_char == '"' {
+                                    if *break_char == '"' || *break_char == '\\' {
                                         self.iter.next();
                                         current = self.next_char_boundary();
                                     }

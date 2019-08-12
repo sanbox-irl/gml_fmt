@@ -63,7 +63,7 @@ impl<'a> Parser<'a> {
                     self.consume_next();
                     return self.define_statement();
                 }
-                TokenType::Var => {
+                TokenType::Var | TokenType::GlobalVar => {
                     return self.series_var_declaration();
                 }
                 TokenType::Enum => {
@@ -141,13 +141,14 @@ impl<'a> Parser<'a> {
     }
 
     fn series_var_declaration(&mut self) -> StmtBox<'a> {
-        self.check_next_consume(TokenType::Var);
+        let starting_var_type = self.scanner.next().unwrap();
         let comments_after_control_word = self.get_newlines_and_comments();
         let var_decl = self.var_declaration();
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
 
         StatementWrapper::new(
             Statement::VariableDeclList {
+                starting_var_type,
                 var_decl,
                 comments_after_control_word,
             },
@@ -165,15 +166,18 @@ impl<'a> Parser<'a> {
                 break;
             }
 
-            let say_var = self.check_next_consume(TokenType::Var);
-            let say_var_comments = if say_var {
-                Some(self.get_newlines_and_comments())
-            } else {
-                None
-            };
+            let has_var = self.check_next_either(TokenType::Var, TokenType::GlobalVar);
+
+            let mut say_var = None;
+            let mut say_var_comments = None;
+
+            if has_var {
+                say_var = Some(self.scanner.next().unwrap());
+                say_var_comments = Some(self.get_newlines_and_comments());
+            }
 
             // If we've said var, and then had an expression, we deserve suffering.
-            if say_var == false {
+            if has_var == false {
                 if let Some(next) = self.scanner.peek() {
                     if let TokenType::Identifier(_) = next.token_type {
                     } else {

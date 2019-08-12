@@ -35,6 +35,7 @@ impl<'a> StatementWrapper<'a> {
 #[derive(Debug)]
 pub enum Statement<'a> {
     VariableDeclList {
+        starting_var_type: Token<'a>,
         comments_after_control_word: CommentsAndNewlines<'a>,
         var_decl: DelimitedLines<'a, VariableDecl<'a>>,
     },
@@ -126,7 +127,7 @@ pub enum CaseType<'a> {
 #[derive(Debug)]
 pub struct VariableDecl<'a> {
     pub var_expr: ExprBox<'a>,
-    pub say_var: bool,
+    pub say_var: Option<Token<'a>>,
     pub say_var_comments: Option<CommentsAndNewlines<'a>>,
 }
 

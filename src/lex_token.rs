@@ -62,6 +62,7 @@ pub enum TokenType<'a> {
     Define,
 
     Var,
+    GlobalVar,
     If,
     Else,
     Return,

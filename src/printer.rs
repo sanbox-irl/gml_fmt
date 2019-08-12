@@ -66,10 +66,12 @@ impl<'a> Printer<'a> {
     fn print_statement(&mut self, stmt: &'a StatementWrapper<'a>) {
         match &stmt.statement {
             Statement::VariableDeclList {
+                starting_var_type,
                 comments_after_control_word,
                 var_decl: var_decl_list,
             } => {
-                self.print("var", true);
+                self.print_token(starting_var_type, true);
+
                 self.print_comments_and_newlines(
                     comments_after_control_word,
                     IndentationMove::Stay,
@@ -80,8 +82,8 @@ impl<'a> Printer<'a> {
                 let mut indented_vars = false;
                 let mut iter = var_decl_list.lines.iter().peekable();
                 while let Some(delimited_var) = iter.next() {
-                    if delimited_var.expr.say_var {
-                        self.print("var", true);
+                    if let Some(var_token) = &delimited_var.expr.say_var {
+                        self.print_token(&var_token, true);
 
                         if let Some(comments) = &delimited_var.expr.say_var_comments {
                             let did_move = self.print_comments_and_newlines(
@@ -548,6 +550,7 @@ impl<'a> Printer<'a> {
 
                 self.print_expr(script_name);
                 self.backspace();
+                self.print_newline(IndentationMove::Stay);
 
                 for this_stmt in body {
                     self.print_statement(this_stmt);
@@ -1191,6 +1194,7 @@ impl<'a> Printer<'a> {
             TokenType::Define => "#define",
 
             TokenType::Var => "var",
+            TokenType::GlobalVar => "globalvar",
             TokenType::If => "if",
             TokenType::Else => "else",
             TokenType::Return => "return",
