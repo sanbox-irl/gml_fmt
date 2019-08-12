@@ -19,7 +19,7 @@ pub fn run_config(config: &Config) -> Result<(), Box<dyn Error>> {
     for this_file in &config.files {
         let contents = fs::read_to_string(this_file)?;
 
-        if contents.contains("// @gm_fmt ignore") {
+        if contents.contains("// @gml_fmt ignore") {
             continue;
         }
 
