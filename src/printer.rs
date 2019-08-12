@@ -1083,8 +1083,6 @@ impl<'a> Printer<'a> {
                                 && respect_user_newline
                                 && user_indentation > self.check_indentation(indentation_move)
                             {
-                                println!("User indentation is {}", user_indentation);
-                                println!("Our indentation check is {}", self.check_indentation(indentation_move));
                                 self.backspace();
                                 self.print(NEWLINE, false);
                                 self.print_indentation_raw(user_indentation);
