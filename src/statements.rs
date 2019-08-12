@@ -67,9 +67,12 @@ pub enum Statement<'a> {
         comments_after_control_word: CommentsAndNewlines<'a>,
         comments_after_lparen: CommentsAndNewlines<'a>,
         initializer: Option<StmtBox<'a>>,
+        comments_after_initializer: CommentsAndNewlines<'a>,
         condition: Option<ExprBox<'a>>,
+        comments_after_condition: CommentsAndNewlines<'a>,
         increment: Option<ExprBox<'a>>,
-        trailing_comments: CommentsAndNewlines<'a>,
+        comments_after_increment: CommentsAndNewlines<'a>,
+        comments_after_rparen: CommentsAndNewlines<'a>,
         body: StmtBox<'a>,
     },
     Switch {

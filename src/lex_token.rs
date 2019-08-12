@@ -36,6 +36,7 @@ pub enum TokenType<'a> {
     Decrementer,
     Bang,
     Hook,
+    Tilde,
 
     LessThanGreaterThan,
 

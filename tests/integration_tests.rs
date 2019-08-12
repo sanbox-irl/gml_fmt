@@ -404,3 +404,65 @@ fn nice_macro() {
 
     assert_eq!(gml_fmt::run_test(input), output);
 }
+
+#[test]
+fn whitesmith_enum() {
+    let input = "enum YosiFunction
+    {
+    init,
+    main,
+    new_player,
+    new_zapper,
+    new_laser,
+    move_ground,
+    rect,
+    blueprint_read,
+    player_die,
+    }
+";
+
+    let output = "enum YosiFunction {
+    init,
+    main,
+    new_player,
+    new_zapper,
+    new_laser,
+    move_ground,
+    rect,
+    blueprint_read,
+    player_die,
+}
+";
+
+    assert_eq!(gml_fmt::run_test(input), output);
+}
+
+#[test]
+fn whitesmith_control_statement() {
+    let input = "while true
+    {
+    // who would format like this
+    }
+";
+
+    let output = "while true {
+    // who would format like this
+}
+";
+
+    assert_eq!(gml_fmt::run_test(input), output);
+}
+
+#[test]
+fn bad_for_loop() {
+    let input = "for (var xx = clamp((global.cameraLeft - 25) div 192, 0, 6); xx <= clamp((global.cameraRight + 25) div 192, 0, 6); ++xx;) {
+// comments
+}";
+
+    let output = "for (var xx = clamp((global.cameraLeft - 25) div 192, 0, 6); xx <= clamp((global.cameraRight + 25) div 192, 0, 6); ++xx) {
+    // comments
+}
+";
+
+    assert_eq!(gml_fmt::run_test(input), output);
+}

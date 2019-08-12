@@ -383,21 +383,25 @@ impl<'a> Parser<'a> {
         } else {
             Some(self.expression_statement())
         };
+        let comments_after_initializer = self.get_newlines_and_comments();
 
         let condition = if self.check_next_consume(TokenType::Semicolon) {
             None
         } else {
             Some(self.expression())
         };
-
         self.check_next_consume(TokenType::Semicolon);
+        let comments_after_condition = self.get_newlines_and_comments();
         let increment = if self.check_next(TokenType::RightParen) {
             None
         } else {
             Some(self.expression())
         };
+        self.check_next_consume(TokenType::Semicolon);
+        let comments_after_increment = self.get_newlines_and_comments();
+
         self.check_next_consume(TokenType::RightParen);
-        let trailing_comments = self.get_newlines_and_comments();
+        let comments_after_rparen = self.get_newlines_and_comments();
 
         let body = self.statement();
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
@@ -407,10 +411,13 @@ impl<'a> Parser<'a> {
                 comments_after_control_word,
                 comments_after_lparen,
                 initializer,
+                comments_after_initializer,
                 condition,
+                comments_after_condition,
                 increment,
+                comments_after_increment,
+                comments_after_rparen,
                 body,
-                trailing_comments,
             },
             has_semicolon,
         )
@@ -747,7 +754,7 @@ impl<'a> Parser<'a> {
         if self.can_pair {
             if let Some(t) = self.scanner.peek() {
                 match t.token_type {
-                    TokenType::Bang | TokenType::Minus | TokenType::Plus => {
+                    TokenType::Bang | TokenType::Minus | TokenType::Plus | TokenType::Tilde | TokenType::NotAlias => {
                         let t = self.scanner.next().unwrap();
                         let comments_and_newlines_between = self.get_newlines_and_comments();
                         let right = self.unary();

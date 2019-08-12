@@ -354,9 +354,12 @@ impl<'a> Printer<'a> {
                 comments_after_control_word,
                 comments_after_lparen,
                 initializer,
+                comments_after_initializer,
                 condition,
+                comments_after_condition,
                 increment,
-                trailing_comments,
+                comments_after_increment,
+                comments_after_rparen,
                 body,
             } => {
                 self.print("for", true);
@@ -367,7 +370,6 @@ impl<'a> Printer<'a> {
                     false,
                 );
                 self.print(LPAREN, false);
-
                 let did_move = self.print_comments_and_newlines(
                     comments_after_lparen,
                     IndentationMove::Right,
@@ -381,13 +383,24 @@ impl<'a> Printer<'a> {
                 } else {
                     self.print(SEMICOLON, true);
                 }
+                self.print_comments_and_newlines(
+                    comments_after_initializer,
+                    IndentationMove::Stay,
+                    LeadingNewlines::One,
+                    false,
+                );
 
                 if let Some(condition) = condition {
                     self.print_expr(condition);
                 }
-
                 self.backspace();
                 self.print(SEMICOLON, true);
+                self.print_comments_and_newlines(
+                    comments_after_condition,
+                    IndentationMove::Stay,
+                    LeadingNewlines::One,
+                    false,
+                );
 
                 if let Some(increment) = increment {
                     self.print_expr(increment);
@@ -395,12 +408,26 @@ impl<'a> Printer<'a> {
                     self.backspace();
                 }
 
-                self.backspace();
+                let did_move_final_comment = self.print_comments_and_newlines(
+                    comments_after_increment,
+                    IndentationMove::Stay,
+                    LeadingNewlines::One,
+                    false,
+                );
+                if did_move_final_comment == false {
+                    self.backspace();
+                }
+
                 if did_move {
                     self.print_newline(IndentationMove::Left);
                 }
                 self.print(RPAREN, true);
-                self.print_comments_and_newlines(trailing_comments, IndentationMove::Stay, LeadingNewlines::One, false);
+                self.print_comments_and_newlines(
+                    comments_after_rparen,
+                    IndentationMove::Stay,
+                    LeadingNewlines::One,
+                    false,
+                );
 
                 self.print_statement(body);
                 self.print_semicolon(stmt.has_semicolon);
@@ -663,7 +690,7 @@ impl<'a> Printer<'a> {
                 comments_and_newlines_between,
                 right,
             } => {
-                self.print_token(&operator, false);
+                self.print_token(&operator, operator.token_type == TokenType::NotAlias);
                 self.print_comments_and_newlines(
                     comments_and_newlines_between,
                     IndentationMove::Stay,
@@ -1132,6 +1159,7 @@ impl<'a> Printer<'a> {
             TokenType::Decrementer => "--",
             TokenType::Bang => "!",
             TokenType::Hook => "?",
+            TokenType::Tilde => "~",
 
             TokenType::PlusEquals => "+=",
             TokenType::MinusEquals => "-=",
@@ -1276,16 +1304,6 @@ enum IndentationMove {
     Right,
     Stay,
     Left,
-}
-
-impl IndentationMove {
-    fn to_usize(self) -> isize {
-        match self {
-            IndentationMove::Right => 1,
-            IndentationMove::Stay => 0,
-            IndentationMove::Left => -1,
-        }
-    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]

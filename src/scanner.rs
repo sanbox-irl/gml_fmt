@@ -57,6 +57,7 @@ impl<'a> Scanner<'a> {
                 '{' => self.add_simple_token(TokenType::LeftBrace),
                 '}' => self.add_simple_token(TokenType::RightBrace),
                 ',' => self.add_simple_token(TokenType::Comma),
+                '~' => self.add_simple_token(TokenType::Tilde),
                 '-' => {
                     if let Some((_, c)) = self.iter.peek() {
                         if let Some(token) = match c {
