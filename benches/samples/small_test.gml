@@ -1,5 +1,4 @@
-x.
-    y.
-    z;
+if (true) then y();
 
-    show_debug_message("hey nerd");
+if (true) then
+	y();

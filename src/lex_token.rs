@@ -83,6 +83,7 @@ pub enum TokenType<'a> {
     NotAlias,
     ModAlias,
     Div,
+    Then,
 
     Newline(usize),
     Identifier(&'a str),

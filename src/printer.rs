@@ -1048,6 +1048,12 @@ impl<'a> Printer<'a> {
                         ignore_newline = false;
                     }
 
+                    TokenType::Then => {
+                        self.ensure_space();
+                        self.print_token(&this_one, true);
+                        ignore_newline = false;
+                    }
+
                     _ => {
                         println!(
                             "Printing {} which isn't newline, comment, or region in a comment_newline section...",
@@ -1080,6 +1086,7 @@ impl<'a> Printer<'a> {
             TokenType::Star => "*",
             TokenType::Mod => "%",
             TokenType::Hashtag => "#",
+            TokenType::Then => "then",
 
             TokenType::ListIndexer => "[|",
             TokenType::MapIndexer => "[?",

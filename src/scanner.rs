@@ -23,7 +23,7 @@ impl<'a> Scanner<'a> {
     }
 
     fn create_keyword_hashmap() -> FnvHashMap<&'a str, TokenType<'a>> {
-        let mut map = FnvHashMap::with_capacity_and_hasher(21, Default::default());;
+        let mut map = FnvHashMap::with_capacity_and_hasher(25, Default::default());;
         map.insert("var", TokenType::Var);
         map.insert("and", TokenType::AndAlias);
         map.insert("or", TokenType::OrAlias);
@@ -45,6 +45,7 @@ impl<'a> Scanner<'a> {
         map.insert("exit", TokenType::Exit);
         map.insert("enum", TokenType::Enum);
         map.insert("with", TokenType::With);
+        map.insert("then", TokenType::Then);
         map
     }
 

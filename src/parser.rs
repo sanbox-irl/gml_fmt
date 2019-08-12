@@ -1025,7 +1025,8 @@ impl<'a> Parser<'a> {
                 | TokenType::Comment(_)
                 | TokenType::MultilineComment(_)
                 | TokenType::RegionBegin(_)
-                | TokenType::RegionEnd(_) => {
+                | TokenType::RegionEnd(_)
+                | TokenType::Then => {
                     let token = self.scanner.next().unwrap();
                     if let Some(vec) = &mut ret {
                         vec.push(token);
@@ -1047,7 +1048,8 @@ impl<'a> Parser<'a> {
                 TokenType::Comment(_)
                 | TokenType::MultilineComment(_)
                 | TokenType::RegionBegin(_)
-                | TokenType::RegionEnd(_) => {
+                | TokenType::RegionEnd(_)
+                | TokenType::Then => {
                     let token = self.scanner.next().unwrap();
                     if let Some(vec) = &mut ret {
                         vec.push(token);
