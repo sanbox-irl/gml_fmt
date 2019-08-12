@@ -1,9 +1,20 @@
-enum EImGui_ComboFlags
-{
-    PopupAlignLeft          = 1 << 0,   // Align the popup toward the left by default
-    HeightSmall             = 1 << 1,   // Max ~4 items visible. Tip: If you want your combo popup to be a specific size you can use SetNextWindowSizeConstraints() prior to calling BeginCombo()
-    HeightRegular           = 1 << 2,   // Max ~8 items visible (default)
-    HeightLarge             = 1 << 3,   // Max ~20 items visible
-    HeightLargest           = 1 << 4,   // As many fitting items as possible
-    HeightMask_             = EImGui_ComboFlags.HeightSmall | EImGui_ComboFlags.HeightRegular | EImGui_ComboFlags.HeightLarge | EImGui_ComboFlags.HeightLargest
-};
+var argi = 0,
+    sprite = argument[argi++],
+    sub_img = argument[argi++],
+    width = (argument_count > 2) ? argument[argi++] : undefined,
+    height = (argument_count > 3) ? argument[argi++] : undefined,
+    frame_padding = (argument_count > 4) ? argument[argi++] : -1,
+    bgr = (argument_count > 5) ? argument[argi++] : 0,
+    bgg = (argument_count > 6) ? argument[argi++] : 0,
+    bgb = (argument_count > 7) ? argument[argi++] : 0,
+    bga = (argument_count > 8) ? argument[argi++] : 0, 
+    tintr = (argument_count > 9)  ? argument[argi++] : 1.0, 
+    tintg = (argument_count > 10) ? argument[argi++] : 1.0, 
+    tintb = (argument_count > 11) ? argument[argi++] : 1.0, 
+    tinta = (argument_count > 12) ? argument[argi++] : 1.0;
+
+
+if is_undefined(width) width = sprite_get_width(sprite);
+if is_undefined(height) height = sprite_get_height(sprite);
+
+var ret = false;

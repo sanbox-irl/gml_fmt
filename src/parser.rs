@@ -172,6 +172,20 @@ impl<'a> Parser<'a> {
                 None
             };
 
+            // If we've said var, and then had an expression, we deserve suffering.
+            if say_var == false {
+                if let Some(next) = self.scanner.peek() {
+                    if let TokenType::Identifier(_) = next.token_type {
+                    } else {
+                        // EEK! We had a `,` and then some comments and now we're
+                        // somewhere else. If you write code like this, you
+                        // do not live in the light of the lord
+                        end_delimiter = false;
+                        break;
+                    }
+                }
+            }
+
             let var_decl = VariableDecl {
                 say_var,
                 say_var_comments,

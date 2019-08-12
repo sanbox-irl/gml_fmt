@@ -133,7 +133,7 @@ impl<'a> Printer<'a> {
                     }
                 }
 
-                self.print_semicolon_and_newline(
+                let did_newline = self.print_semicolon_and_newline(
                     stmt.has_semicolon,
                     if indented_vars {
                         IndentationMove::Left
@@ -141,6 +141,10 @@ impl<'a> Printer<'a> {
                         IndentationMove::Stay
                     },
                 );
+
+                if indented_vars && did_newline == false {
+                    self.print_newline(IndentationMove::Left);
+                }
             }
             Statement::EnumDeclaration {
                 comments_after_control_word,
@@ -1279,12 +1283,14 @@ impl<'a> Printer<'a> {
         }
     }
 
-    fn print_semicolon_and_newline(&mut self, do_it: bool, indentation_move: IndentationMove) {
+    fn print_semicolon_and_newline(&mut self, do_it: bool, indentation_move: IndentationMove) -> bool {
         if do_it {
             self.print_semicolon(true);
+            false
         } else {
             self.print_semicolon(true);
             self.print_newline(indentation_move);
+            true
         }
     }
 
