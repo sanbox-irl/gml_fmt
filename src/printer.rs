@@ -115,20 +115,22 @@ impl<'a> Printer<'a> {
                         true
                     };
 
-                    if delimited_var.trailing_comment.len() != 0 {
-                        let did_newlines = self.print_comments_and_newlines(
-                            &delimited_var.trailing_comment,
-                            if indented_vars {
-                                IndentationMove::Stay
-                            } else {
-                                IndentationMove::Right
-                            },
-                            LeadingNewlines::One,
-                            true,
-                        );
+                    if let Some(comment) = &delimited_var.trailing_comment {
+                        if comment.len() != 0 {
+                            let did_newlines = self.print_comments_and_newlines(
+                                &delimited_var.trailing_comment,
+                                if indented_vars {
+                                    IndentationMove::Stay
+                                } else {
+                                    IndentationMove::Right
+                                },
+                                LeadingNewlines::One,
+                                true,
+                            );
 
-                        if did_newlines {
-                            indented_vars = true;
+                            if did_newlines {
+                                indented_vars = true;
+                            }
                         }
                     }
                 }
@@ -995,76 +997,78 @@ impl<'a> Printer<'a> {
 
     fn print_comments_and_newlines(
         &mut self,
-        vec: &'a Vec<Token<'a>>,
+        vec: &'a Option<Vec<Token<'a>>>,
         indentation_move: IndentationMove,
         leading_newlines: LeadingNewlines,
         respect_user_newline: bool,
     ) -> bool {
-        if vec.len() == 0 || (Printer::only_newlines(vec) && respect_user_newline == false) {
-            return false;
-        }
+        if let Some(vec) = vec {
+            if vec.len() == 0 || (Printer::only_newlines(&vec) && respect_user_newline == false) {
+                return false;
+            }
+            let mut did_move = false;
+            let mut ignore_newline = leading_newlines != LeadingNewlines::All;
 
-        let mut did_move = false;
-        let mut ignore_newline = leading_newlines != LeadingNewlines::All;
-
-        let mut iter = vec.into_iter().peekable();
-        while let Some(this_one) = iter.next() {
-            match this_one.token_type {
-                TokenType::Newline(_) => {
-                    if ignore_newline {
-                        while let Some(next_one) = iter.peek() {
-                            if let TokenType::Newline(_) = next_one.token_type {
-                                iter.next();
-                            } else {
-                                break;
+            let mut iter = vec.into_iter().peekable();
+            while let Some(this_one) = iter.next() {
+                match this_one.token_type {
+                    TokenType::Newline(_) => {
+                        if ignore_newline {
+                            while let Some(next_one) = iter.peek() {
+                                if let TokenType::Newline(_) = next_one.token_type {
+                                    iter.next();
+                                } else {
+                                    break;
+                                }
+                            }
+                            ignore_newline = false;
+                            if leading_newlines == LeadingNewlines::None {
+                                continue;
                             }
                         }
-                        ignore_newline = false;
-                        if leading_newlines == LeadingNewlines::None {
-                            continue;
-                        }
-                    }
 
-                    if did_move {
-                        self.print_newline(IndentationMove::Stay);
-                    } else {
-                        did_move = true;
-                        if let Some(indent) = self.force_indentation {
-                            self.print_newline(indent);
-                            self.force_indentation = None;
-                        // }
-                        // else if self.accept_original_indentation {
-                        //     self.indentation = original_indentation;
-                        //     self.print_newline(IndentationMove::Stay);
+                        if did_move {
+                            self.print_newline(IndentationMove::Stay);
                         } else {
-                            self.print_newline(indentation_move);
+                            did_move = true;
+                            if let Some(indent) = self.force_indentation {
+                                self.print_newline(indent);
+                                self.force_indentation = None;
+                            // }
+                            // else if self.accept_original_indentation {
+                            //     self.indentation = original_indentation;
+                            //     self.print_newline(IndentationMove::Stay);
+                            } else {
+                                self.print_newline(indentation_move);
+                            }
                         }
                     }
-                }
 
-                TokenType::Comment(_) | TokenType::MultilineComment(_) => {
-                    self.ensure_space();
-                    self.print_token(this_one, false);
-                    ignore_newline = false;
-                }
+                    TokenType::Comment(_) | TokenType::MultilineComment(_) => {
+                        self.ensure_space();
+                        self.print_token(&this_one, false);
+                        ignore_newline = false;
+                    }
 
-                TokenType::RegionEnd(_) | TokenType::RegionBegin(_) => {
-                    self.ensure_space();
-                    self.print_token(this_one, true);
-                    ignore_newline = false;
-                }
+                    TokenType::RegionEnd(_) | TokenType::RegionBegin(_) => {
+                        self.ensure_space();
+                        self.print_token(&this_one, true);
+                        ignore_newline = false;
+                    }
 
-                _ => {
-                    println!(
-                        "Printing {} which isn't newline, comment, or region in a comment_newline section...",
-                        this_one
-                    );
-                    self.print_token(this_one, true);
+                    _ => {
+                        println!(
+                            "Printing {} which isn't newline, comment, or region in a comment_newline section...",
+                            this_one
+                        );
+                        self.print_token(&this_one, true);
+                    }
                 }
             }
+            did_move
+        } else {
+            false
         }
-
-        did_move
     }
 
     pub fn get_token_name(token_type: &'a TokenType<'a>) -> &'a str {
@@ -1187,7 +1191,7 @@ impl<'a> Printer<'a> {
                 true
             };
 
-            if delimited_line.trailing_comment.len() != 0 {
+            if delimited_line.trailing_comment.is_some() && delimited_line.trailing_comment.unwrap().len() != 0 {
                 let did_newlines = self.print_comments_and_newlines(
                     &delimited_line.trailing_comment,
                     IndentationMove::Stay,

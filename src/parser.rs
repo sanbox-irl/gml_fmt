@@ -1018,44 +1018,55 @@ impl<'a> Parser<'a> {
             false
         }
     }
-    fn get_newlines_and_comments(&mut self) -> Vec<Token<'a>> {
-        let mut vec = vec![];
+    fn get_newlines_and_comments(&mut self) -> Option<Vec<Token<'a>>> {
+        let mut ret: Option<Vec<Token<'a>>> = None;
         while let Some(token) = self.scanner.peek() {
             match token.token_type {
-                TokenType::Newline(_) => {
-                    let token = self.scanner.next().unwrap();
-                    vec.push(token);
-                }
-                TokenType::Comment(_)
+                TokenType::Newline(_)
+                | TokenType::Comment(_)
                 | TokenType::MultilineComment(_)
                 | TokenType::RegionBegin(_)
                 | TokenType::RegionEnd(_) => {
                     let token = self.scanner.next().unwrap();
-                    vec.push(token);
+                    match ret {
+                        Some(vec) => {
+                            vec.push(token);
+                        }
+                        None => {
+                            ret = Some(vec![token]);
+                        }
+                    }
                 }
                 _ => break,
             }
         }
 
-        vec
+        ret
     }
 
-    fn get_comments_until_newline(&mut self) -> Vec<Token<'a>> {
-        let mut vec = vec![];
+    fn get_comments_until_newline(&mut self) -> Option<Vec<Token<'a>>> {
+        let mut ret: Option<Vec<Token<'a>>> = None;
         while let Some(token) = self.scanner.peek() {
             match token.token_type {
-                TokenType::Comment(_)
+                | TokenType::Comment(_)
                 | TokenType::MultilineComment(_)
                 | TokenType::RegionBegin(_)
                 | TokenType::RegionEnd(_) => {
                     let token = self.scanner.next().unwrap();
-                    vec.push(token);
+                    match ret {
+                        Some(mut vec) => {
+                            vec.push(token);
+                        }
+                        None => {
+                            ret = Some(vec![token]);
+                        }
+                    }
                 }
                 _ => break,
             }
         }
 
-        vec
+        ret
     }
 
     fn consume_next(&mut self) -> Token<'a> {
@@ -1067,6 +1078,6 @@ impl<'a> Parser<'a> {
     }
 
     fn create_expr_box_no_comment(&self, expr: Expr<'a>) -> ExprBox<'a> {
-        Box::new((expr, vec![]))
+        Box::new((expr, None))
     }
 }

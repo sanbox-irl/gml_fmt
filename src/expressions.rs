@@ -1,7 +1,7 @@
 use super::lex_token::*;
 use super::statements::DelimitedLines;
 pub type ExprBox<'a> = Box<(Expr<'a>, CommentsAndNewlines<'a>)>;
-pub type CommentsAndNewlines<'a> = Vec<Token<'a>>;
+pub type CommentsAndNewlines<'a> = Option<Vec<Token<'a>>>;
 
 pub type DSAccess<'a> = Vec<(CommentsAndNewlines<'a>, ExprBox<'a>)>;
 
