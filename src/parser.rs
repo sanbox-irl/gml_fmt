@@ -26,13 +26,13 @@ impl<'a> Parser<'a> {
 
     pub fn build_ast(&mut self) {
         while let Some(_) = self.scanner.peek() {
-            if let Some(_) = self.failure {
+            if self.failure.is_some() {
                 break;
-            } else {
-                self.can_pair = true;
-                let ret = self.statement();
-                self.ast.push(ret);
             }
+
+            self.can_pair = true;
+            let ret = self.statement();
+            self.ast.push(ret);
         }
     }
 
@@ -64,7 +64,6 @@ impl<'a> Parser<'a> {
                     return self.define_statement();
                 }
                 TokenType::Var => {
-                    println!("Ach! a var! in the wild...{:?}", token);
                     return self.series_var_declaration();
                 }
                 TokenType::Enum => {
@@ -110,6 +109,7 @@ impl<'a> Parser<'a> {
                 _ => return self.expression_statement(),
             }
         };
+        println!("Hit the end!");
         self.expression_statement()
     }
 
@@ -144,9 +144,7 @@ impl<'a> Parser<'a> {
         self.check_next_consume(TokenType::Var);
         let comments_after_control_word = self.get_newlines_and_comments();
         let var_decl = self.var_declaration();
-        println!("Next token after var declaration is..{:?}", self.scanner.peek());
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
-        println!("Next token after semicolon is..{:?}", self.scanner.peek());
 
         StatementWrapper::new(
             Statement::VariableDeclList {
