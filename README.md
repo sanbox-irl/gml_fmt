@@ -51,34 +51,37 @@ if (formatted) {
     show_debug_message("We're K&R all day.");
 }
 ```
-Additionally, `gml_fmt` removes excess newlines, adds spacing where appropriate, does some indentation where appropriate, and always leaves an extra blank line at the end of a file.
+Additionally, `gml_fmt` removes excess newlines, adds spacing and indentationm and always leaves an extra blank line at the end of a file. It also adds semicolons where they are absent and will soon add `()` around conditionals.
 
 For example:
 ```js
 // =========INPUT=========
-if (a(b[i])&& b[i] .c < 0)
+if (a(b[i])&& b[i] .c    < 0)
     {
 
     var c = b[i].q
-    var l = b[i].q
-
-
+    var l = call();
 
     b[i].q = c;
     b[i].q[0] = 30;
-    
+
+
     }
 //=========OUTPUT=========
 if (a(b[i]) && b[i].c < 0) {
     var c = b[i].q;
-    var l = b[i].q;
+    var l = call();
     
     b[i].q = c;
     b[i].q[0] = 30;
 }
 
 ```
-Since the amount of formatting that `gml_fmt` does is fairly large, it is recommended to download it and try to format some code yourself.
+Since the amount of formatting that `gml_fmt` does is reasonably substantial, it is recommended to download it and try to format some code yourself. It formats code in the style that most GML or JS programmers are familiar with.
+
+If you have used formatters in other languages, such as `prettier` or `rs_fmt` you'll find that this formatter is dumber than those. This is because, unlike those languages, we don't handle line breaks in "chained" phrases (Dot.Acess.Chains or Binary Operator Chains or Accessor[Chains]) because it is exceptionally complex. Asking the user to handle that themselves is reasonable. As a result, `gml_fmt` does not, and could not, enforce a line limit, since to break a line over that line limit, we would have to descibe how to break chained phrases.
+
+Additionally, as a result of this, we allow users to use their own indentation levels in chained phrases. Essentially, this means you can have some wild indentation in `if (x && y)` phrases. 
 
 # What do I do if the formatter breaks my code?
 
