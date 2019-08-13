@@ -76,6 +76,7 @@ if (a(b[i]) && b[i].c < 0) {
     b[i].q[0] = 30;
 }
 
+
 ```
 Since the amount of formatting that `gml_fmt` does is reasonably substantial, it is recommended to download it and try to format some code yourself. It formats code in the style that most GML or JS programmers are familiar with.
 
