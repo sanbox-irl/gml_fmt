@@ -9,7 +9,10 @@ edition = "2018"
 clap = "2.33.0"
 bitflags = "1.1.0"
 fnv = "1.0.6"
+serde = { version = "1.0.98", features = ["derive"] }
+toml = "0.5.2"
 logos = "0.9.7"
+
 
 [dev-dependencies]
 criterion = "0.2.11"

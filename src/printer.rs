@@ -1,12 +1,13 @@
 use super::expressions::*;
 use super::lex_token::{Token, TokenType};
 use super::statements::*;
+use super::LangConfig;
 use bitflags;
 
 type StmtBox<'a> = Box<StatementWrapper<'a>>;
 
 const SPACE: &str = " ";
-const TAB: &str = "    ";
+const TAB: &str = "\t";
 const NEWLINE: &str = "\n";
 const LPAREN: &str = "(";
 const RPAREN: &str = ")";
@@ -17,6 +18,7 @@ const SEMICOLON: &str = ";";
 
 pub struct Printer<'a> {
     pub output: Vec<&'a str>,
+    lang_config: &'a LangConfig,
     indentation: usize,
     do_not_print_single_newline_statement: bool,
     block_instructions: Vec<BlockInstruction>,
@@ -27,9 +29,10 @@ pub struct Printer<'a> {
 }
 
 impl<'a> Printer<'a> {
-    pub fn new(size: usize) -> Printer<'a> {
+    pub fn new(size: usize, lang_config: &'a LangConfig) -> Printer<'a> {
         Printer {
             output: Vec::with_capacity(size),
+            lang_config,
             indentation: 0,
             do_not_print_single_newline_statement: false,
             block_instructions: Vec::new(),
@@ -72,7 +75,9 @@ impl<'a> Printer<'a> {
                     }
 
                     _ => {
-                        self.print(NEWLINE, false);
+                        for _ in 0..self.lang_config.newlines_at_end {
+                            self.print(NEWLINE, false);
+                        }
                         break;
                     }
                 };
@@ -1002,7 +1007,7 @@ impl<'a> Printer<'a> {
 
     fn backspace(&mut self) {
         let pos = self.output.len();
-        if pos != 0 && self.output[pos - 1] == SPACE {
+        if pos != 0 && self.on_whitespace_line() == false && self.output[pos - 1] == SPACE  {
             self.output.remove(pos - 1);
         }
     }
@@ -1046,17 +1051,23 @@ impl<'a> Printer<'a> {
 
     fn print_indentation(&mut self, indentation_move: IndentationMove) {
         self.set_indentation(indentation_move);
-
-        for _ in 0..self.indentation {
-            self.print(TAB, false);
-        }
+        self.print_indentation_final();
     }
 
     fn print_indentation_raw(&mut self, indent_size: usize) {
         self.indentation = indent_size;
+        self.print_indentation_final();
+    }
 
+    fn print_indentation_final(&mut self) {
         for _ in 0..self.indentation {
-            self.print(TAB, false);
+            if self.lang_config.use_spaces {
+                for _ in 0..self.lang_config.space_size {
+                    self.print(SPACE, false);
+                }
+            } else {
+                self.print(TAB, false);
+            }
         }
     }
 

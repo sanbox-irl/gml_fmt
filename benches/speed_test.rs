@@ -13,7 +13,7 @@ fn lex_test() {
         process::exit(1);
     });
 
-    gml_fmt::run_config(&config)
+    gml_fmt::run_config(&config, &gml_fmt::lang_config::LangConfig::default())
         .expect("Attempted to run osg_lex_speed test, but failed. Did you move the file?");
 }
 
