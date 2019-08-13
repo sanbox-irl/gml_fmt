@@ -153,8 +153,9 @@ impl<'a> Printer<'a> {
 
                         if did_newlines {
                             indented_vars = true;
+                        } else {
+                            self.rewind_user_indentation();
                         }
-                        self.rewind_user_indentation();
                     }
                 }
 

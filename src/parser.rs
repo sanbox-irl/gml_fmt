@@ -888,7 +888,7 @@ impl<'a> Parser<'a> {
                             break;
                         }
 
-                        access_exprs.push((self.get_newlines_and_comments(), self.call()));
+                        access_exprs.push((self.get_newlines_and_comments(), self.expression()));
 
                         if self.check_next_consume(TokenType::Comma) == false {
                             break;
