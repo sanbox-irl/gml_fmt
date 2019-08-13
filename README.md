@@ -12,13 +12,13 @@ Simply go to [releases](http://link.com) and download the most recent binary in 
 - [macOS](http:://link.com)
 - [Linux](http:://link.com)
 
-The Windows builds may be delayed from other platforms, as I have not found a suitable deployment platform for Rust. Instead, I compile it myself on each release.
-
-Once you've downloaded the program, simply place it next to your `.yyp` file in your projects root directory. Open your native terminal (Command Prompt on Windows, Bash on other platforms) and run:
+Once you've downloaded the program, simply place it next to your `.yyp` file in your projects root directory. Navigate in your native terminal to that folder (Command Prompt on Windows, Bash on other platforms) and run:
 
 ```bash
 gml_fmt --version
 ```
+
+(You may need to do `./gml_fmt --version` depending on your platform.)
 
 If you get back a version number, the tool is working.
 
@@ -40,7 +40,7 @@ If you would like to use the tool without moving it between projects, add it to 
 ```
 gml_fmt path/to/directory/of/project
 ```
-Created a bash script to automate this task might be a good idea.
+Creating a bash script to automate this task might be a good idea.
 
 # Wait, wait..what are you doing to my code?
 `gml_fmt` is opinionated, primarily because making configuration options makes it slower to make and slower to run. 
@@ -51,7 +51,7 @@ if (formatted) {
     show_debug_message("We're K&R all day.");
 }
 ```
-Additionally, `gml_fmt` removes excess newlines, adds spacing and indentationm and always leaves an extra blank line at the end of a file. It also adds semicolons where they are absent and will soon add `()` around conditionals.
+Additionally, `gml_fmt` removes excess newlines, adds spacing and indentation, and always leaves an extra blank line at the end of a file. It also adds semicolons where they are absent and will soon add `()` around conditionals where absent.
 
 For example:
 ```js
@@ -93,21 +93,17 @@ To keep using the tool before a fix is made, appending this comment anywhere in 
 ```
 will ask gml_fmt to ignore that file completely. In the future, line based ignores will be created.
 
-### Platforms
+# Contributing
 
-It is currently only a CLI, though the following platforms will be supported:
+## So how does it work?
 
-- [x] A simple CLI to autoformat on request.
-- [ ] A watcher, spawned by the CLI, to format all .gml files in a project on save.
-- [ ] A GMEdit plugin to support formatting without saving.
+Under the hood, `gml_fmt` is really a bad parser. It is a recursive descent parser with extremely loose syntax. After that, it pretty-prints the resulting AST. Both the printer and the parser are single-pass.
 
-### Features
+Right now, the entire process is single-threaded, but I'm interested in making the printing a second thread and adding messaging between the two. 
 
-- [x] Can handle code which will not compile.
-- [x] Extremely fast with few allocations.
-- [x] Opinionated. It will have only a few configuration options.
+The entire program is written in Rust, for speed and for my own learning. We use very few dependencies, but we do use `clap` for handling our command-line interface, `bitflags` for...making bitflags, `fnv` for a small hasher to help with performance, and in the future, we will use `logos` to make a faster lexer. That might not happen, as we currently lex 10k LOC in about 200 micro-seconds, but it might even simplify our lexing, which would always be appreciated. 
 
-## Contributing
+## So how do I help?
 
 Please fork, contact me here, submit an issue or a PR, or contact me via Discord at `jack (sanbox)#0001` if you would like to contribute. All contributions are welcome!
 
@@ -116,3 +112,20 @@ The project is simple to build -- `cargo build` will build it and install the ne
 To test, see `./benches/samples/small_test.gml` and the built in bash script `run_sample.sh`. Alternatively, run the test suit with `test.sh`. Both require you to have a file `./ignored/output.yaml` (you will need to create the "ignored" directory).
 
 Before submitting a PR, you should run the test suit. Anything that fails the test suit will not be accepted. 
+
+# Current To Do List
+
+## Platforms
+
+It is currently only a CLI, though the following platforms will be supported:
+
+- [x] A simple CLI to autoformat on request.
+- [ ] A watcher, spawned by the CLI, to format all .gml files in a project on save.
+- [ ] A GMEdit plugin to support formatting without saving.
+
+## Features
+
+- [x] Can handle code which will not compile.
+- [x] Extremely fast with few allocations.
+- [x] Opinionated. It will have only a few configuration options.
+- [ ] Can not yet handle line breaks.
