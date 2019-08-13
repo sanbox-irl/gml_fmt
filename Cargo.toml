@@ -1,6 +1,6 @@
 [package]
 name = "gml_fmt"
-version = "0.9.4"
+version = "1.0.0"
 authors = ["Jack Spira <jjspira@gmail.com>"]
 edition = "2018"
 
