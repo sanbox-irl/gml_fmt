@@ -90,13 +90,13 @@ There is a very limited number of configurable things in `gml_fmt`. Add a file c
 The configuration file, like many Rust projects, is in TOML. It is simple to use.
 
 The following options are available:
-```toml
+```
 use_spaces: boolean
 space_size: number
 newlines_at_end: number
 ```
 All, or none, of these options may be present. Newlines at end, in particular, refers to how many newlines we will end your file with. The standard configuration (ie, what is chosen if you have no config file) is the following:
-```toml
+```
 use_spaces: true
 space_size: 4
 newlines_at_end: 1
