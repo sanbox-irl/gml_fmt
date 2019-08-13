@@ -11,6 +11,8 @@ pub struct Parser<'a> {
     allow_unidentified: bool,
     scanner: Peekable<Scanner<'a>>,
     can_pair: bool,
+    leftover_stmts: Vec<StmtBox<'a>>,
+    check_leftovers: bool,
 }
 
 impl<'a> Parser<'a> {
@@ -21,6 +23,8 @@ impl<'a> Parser<'a> {
             failure: None,
             allow_unidentified: false,
             can_pair: true,
+            leftover_stmts: Vec::new(),
+            check_leftovers: false,
         }
     }
 
@@ -33,6 +37,11 @@ impl<'a> Parser<'a> {
             self.can_pair = true;
             let ret = self.statement();
             self.ast.push(ret);
+
+            if self.check_leftovers {
+                self.ast.append(&mut self.leftover_stmts);
+                self.check_leftovers = false;
+            }
         }
     }
 
@@ -109,7 +118,6 @@ impl<'a> Parser<'a> {
                 _ => return self.expression_statement(),
             }
         };
-        println!("Hit the end!");
         self.expression_statement()
     }
 
@@ -187,13 +195,34 @@ impl<'a> Parser<'a> {
                         end_delimiter = false;
                         break;
                     }
+                } else {
+                    // ACK! we're in a dingus's `,` but we're out of tokens.
+                    // Who would do this? Do they deserve formatting?
+                    // What are we eve doing here. Is this good for America?
+                    end_delimiter = true;
+                    break;
                 }
             }
+
+            let var_expr = self.expression();
+
+            match var_expr.expr {
+                Expr::Identifier { .. } | Expr::Assign { .. } => {}
+
+                _ => {
+                    // Ah shit you suck.
+                    let has_semicolon = self.check_next_consume(TokenType::Semicolon);
+                    self.check_leftovers = true;
+                    self.leftover_stmts.push(StatementWrapper::new(Statement::ExpresssionStatement { expression: var_expr }, has_semicolon));
+                    end_delimiter = true; // we never woulda gotten here if not for you cursed end delimiters!
+                    break;
+                }
+            };
 
             let var_decl = VariableDecl {
                 say_var,
                 say_var_comments,
-                var_expr: self.expression(),
+                var_expr,
             };
             let do_break = self.check_next_consume(TokenType::Comma) == false;
             let trailing_comment = self.get_newlines_and_comments();
@@ -465,11 +494,9 @@ impl<'a> Parser<'a> {
     fn enum_declaration(&mut self) -> StmtBox<'a> {
         let comments_after_control_word = self.get_newlines_and_comments();
         let name = self.expression();
-        println!("The Enum name was {:?}", name);
 
         self.check_next_consume(TokenType::LeftBrace);
         let comments_after_lbrace = self.get_newlines_and_comments();
-        println!("The Comments after brace were {:?}", comments_after_lbrace);
 
         let members = self.finish_call(TokenType::RightBrace, TokenType::Comma);
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
@@ -840,7 +867,7 @@ impl<'a> Parser<'a> {
                 TokenType::Dot => {
                     self.consume_next();
                     let comments_between = self.get_newlines_and_comments();
-                    let instance_variable = self.expression();
+                    let instance_variable = self.call();
                     expression = self.create_comment_expr_box(Expr::DotAccess {
                         object_name: expression,
                         comments_between,
@@ -861,7 +888,7 @@ impl<'a> Parser<'a> {
                             break;
                         }
 
-                        access_exprs.push((self.get_newlines_and_comments(), self.expression()));
+                        access_exprs.push((self.get_newlines_and_comments(), self.call()));
 
                         if self.check_next_consume(TokenType::Comma) == false {
                             break;
@@ -871,7 +898,7 @@ impl<'a> Parser<'a> {
                     self.check_next_consume(TokenType::RightBracket);
                     expression = self.create_comment_expr_box(Expr::DataStructureAccess {
                         ds_name: expression,
-                        access_type: access_type,
+                        access_type,
                         access_exprs,
                     });
                 }

@@ -23,6 +23,7 @@ pub struct Printer<'a> {
     group_instructions: Vec<GroupInstruction>,
     user_indentation_instructions: Vec<usize>,
     do_dot_indent: bool,
+    in_a_for_loop: Vec<()>,
 }
 
 impl<'a> Printer<'a> {
@@ -35,6 +36,7 @@ impl<'a> Printer<'a> {
             group_instructions: Vec::new(),
             user_indentation_instructions: Vec::new(),
             do_dot_indent: true,
+            in_a_for_loop: Vec::new(),
         }
     }
 
@@ -53,13 +55,29 @@ impl<'a> Printer<'a> {
             self.print_statement(this_statement);
         }
 
-        // Print Ending Newline
-        if self.on_whitespace_line() || self.output.len() == 0 {
-            return self;
-        }
-        self.backspace();
-        self.print(NEWLINE, false);
+        // Make sure we only have one blank line:
+        // this is our emergency break!
+        let mut pos = self.output.len();
+        if pos != 0 {
+            pos -= 1;
+            loop {
+                match self.output[pos] {
+                    SPACE | TAB | NEWLINE => {
+                        self.output.remove(pos);
+                        if pos == 0 {
+                            break;
+                        } else {
+                            pos -= 1;
+                        }
+                    }
 
+                    _ => {
+                        self.print(NEWLINE, false);
+                        break;
+                    }
+                };
+            }
+        }
         self
     }
 
@@ -72,14 +90,15 @@ impl<'a> Printer<'a> {
             } => {
                 self.print_token(starting_var_type, true);
 
-                self.print_comments_and_newlines(
+                let already_started_indent = self.print_comments_and_newlines(
                     comments_after_control_word,
-                    IndentationMove::Stay,
+                    IndentationMove::Right,
                     LeadingNewlines::One,
                     false,
                 );
 
-                let mut indented_vars = false;
+                // let mut forced_semicolon_already = false;
+                let mut indented_vars = already_started_indent;
                 let mut iter = var_decl_list.lines.iter().peekable();
                 while let Some(delimited_var) = iter.next() {
                     if let Some(var_token) = &delimited_var.expr.say_var {
@@ -102,51 +121,72 @@ impl<'a> Printer<'a> {
                             }
                         }
                     };
+                    self.allow_user_indentation();
                     self.print_expr(&delimited_var.expr.var_expr);
                     self.backspace();
+                    self.rewind_user_indentation();
 
-                    if let Some(_) = iter.peek() {
+                    let last_line = iter.peek().is_none();
+
+                    if last_line == false {
                         self.print(COMMA, true);
-                        false
                     } else {
                         if var_decl_list.has_end_delimiter {
                             self.print(COMMA, true);
+                        } else {
+                            self.print(SEMICOLON, true);
                         }
-                        true
                     };
 
-                    if let Some(comment) = &delimited_var.trailing_comment {
-                        if comment.len() != 0 {
-                            let did_newlines = self.print_comments_and_newlines(
-                                &delimited_var.trailing_comment,
-                                if indented_vars {
-                                    IndentationMove::Stay
-                                } else {
-                                    IndentationMove::Right
-                                },
-                                LeadingNewlines::One,
-                                true,
-                            );
+                    if let Some(_) = &delimited_var.trailing_comment {
+                        self.allow_user_indentation();
+                        let did_newlines = self.print_comments_and_newlines(
+                            &delimited_var.trailing_comment,
+                            if indented_vars {
+                                IndentationMove::Stay
+                            } else {
+                                IndentationMove::Right
+                            },
+                            LeadingNewlines::All,
+                            true,
+                        );
 
-                            if did_newlines {
-                                indented_vars = true;
-                            }
+                        if did_newlines {
+                            indented_vars = true;
                         }
+                        self.rewind_user_indentation();
                     }
                 }
 
-                let did_newline = self.print_semicolon_and_newline(
-                    stmt.has_semicolon,
-                    if indented_vars {
-                        IndentationMove::Left
+                if indented_vars {
+                    if self.on_whitespace_line() == false {
+                        self.print_newline(IndentationMove::Left);
                     } else {
-                        IndentationMove::Stay
-                    },
-                );
-
-                if indented_vars && did_newline == false {
-                    self.print_newline(IndentationMove::Left);
+                        self.backspace_till_newline();
+                        self.print_indentation(IndentationMove::Left);
+                    }
                 }
+
+                if self.on_whitespace_line() == false && self.in_a_for_loop.is_empty() {
+                    self.print_newline(IndentationMove::Stay);
+                    self.do_not_print_single_newline_statement = true;
+                }
+
+                // let did_newline = if stmt.has_semicolon && !forced_semicolon_already {
+                //     self.print_semicolon(true);
+                //     false
+                // } else {
+                //     self.print_newline(if indented_vars {
+                //         IndentationMove::Left
+                //     } else {
+                //         IndentationMove::Stay
+                //     });
+                //     true
+                // };
+
+                // if indented_vars && did_newline == false {
+                //     self.print_newline(IndentationMove::Left);
+                // }
             }
             Statement::EnumDeclaration {
                 comments_after_control_word,
@@ -376,6 +416,8 @@ impl<'a> Printer<'a> {
                     false,
                 );
                 self.print(LPAREN, false);
+                self.in_a_for_loop.push(());
+
                 let did_move = self.print_comments_and_newlines(
                     comments_after_lparen,
                     IndentationMove::Right,
@@ -428,6 +470,8 @@ impl<'a> Printer<'a> {
                     self.print_newline(IndentationMove::Left);
                 }
                 self.print(RPAREN, true);
+                self.in_a_for_loop.pop();
+
                 self.print_comments_and_newlines(
                     comments_after_rparen,
                     IndentationMove::Stay,
@@ -643,8 +687,6 @@ impl<'a> Printer<'a> {
                     instructions.force_leading_newlines(),
                     instructions.force_respect(),
                 );
-
-                // if let Some(instruction) =
             }
 
             Expr::ArrayLiteral {
@@ -892,7 +934,7 @@ impl<'a> Printer<'a> {
 
     fn prev_line_was_whitespace(&self) -> bool {
         let mut pos = self.output.len();
-        if pos == 0 {
+        if pos < 2 {
             return false;
         };
 
@@ -995,9 +1037,6 @@ impl<'a> Printer<'a> {
         if self.prev_line_was_whitespace() {
             return;
         }
-        if self.output.len() == 0 {
-            return;
-        }
         self.backspace();
 
         self.print(NEWLINE, false);
@@ -1088,10 +1127,14 @@ impl<'a> Printer<'a> {
                             // check for a force indentation
                             if self.user_indentation_instructions.is_empty() == false
                                 && respect_user_newline
-                                && user_indentation > self.check_indentation(indentation_move)
+                                && user_indentation >= self.check_indentation(indentation_move)
                             {
-                                self.backspace();
-                                self.print(NEWLINE, false);
+                                if self.prev_line_was_whitespace() {
+                                    self.backspace_till_newline();
+                                } else {
+                                    self.backspace();
+                                    self.print(NEWLINE, false);
+                                }
                                 self.print_indentation_raw(user_indentation);
                             } else {
                                 self.print_newline(indentation_move);

@@ -37,8 +37,8 @@ pub fn run_config(config: &Config) -> Result<(), Box<dyn Error>> {
             if log {
                 println!("=========OUTPUT=========");
                 println!("{}", output);
-                // println!("==========AST===========");
-                // println!("{}", res.2.unwrap());
+                println!("==========AST===========");
+                println!("{}", res.2.unwrap());
             }
             // if log_scan {
             //     println!("=========SCANLINE=========");
