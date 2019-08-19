@@ -250,7 +250,9 @@ impl<'a> Printer<'a> {
                 self.print(LBRACE, false);
 
                 // if we have more than one statement, or if our statement isn't an expression statement, then we indent.
-                let must_indent = statements.len() > 1 || (statements.len() == 1 && statements[0].hold_expr() == false);
+                let must_indent = block_instructions.contains(BlockInstruction::MUST_INDENT)
+                    || statements.len() > 1
+                    || (statements.len() == 1 && statements[0].hold_expr() == false);
                 let did_move = self.print_comments_and_newlines(
                     comments_after_lbrace,
                     IndentationMove::Right,
@@ -392,7 +394,8 @@ impl<'a> Printer<'a> {
                     false,
                 );
 
-                self.block_instructions.push(BlockInstruction::NO_NEWLINE_AFTER_BLOCK);
+                self.block_instructions
+                    .push(BlockInstruction::NO_NEWLINE_AFTER_BLOCK | BlockInstruction::MUST_INDENT);
                 self.print_statement(body);
                 self.print_comments_and_newlines(comments_between, IndentationMove::Stay, LeadingNewlines::None, false);
 
@@ -1007,7 +1010,7 @@ impl<'a> Printer<'a> {
 
     fn backspace(&mut self) {
         let pos = self.output.len();
-        if pos != 0 && self.on_whitespace_line() == false && self.output[pos - 1] == SPACE  {
+        if pos != 0 && self.on_whitespace_line() == false && self.output[pos - 1] == SPACE {
             self.output.remove(pos - 1);
         }
     }
@@ -1040,7 +1043,7 @@ impl<'a> Printer<'a> {
     }
 
     fn print_newline(&mut self, indentation_move: IndentationMove) {
-        if self.prev_line_was_whitespace() {
+        if self.output.len() == 0 || self.prev_line_was_whitespace() {
             return;
         }
         self.backspace();
@@ -1380,6 +1383,7 @@ bitflags::bitflags! {
     pub struct BlockInstruction: u8 {
         const NONE                      = 0b00000000;
         const NO_NEWLINE_AFTER_BLOCK    = 0b00000001;
+        const MUST_INDENT               = 0b00000010;
     }
 }
 

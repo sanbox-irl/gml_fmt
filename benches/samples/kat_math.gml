@@ -28,12 +28,14 @@ var sk_cayscale = sk_child[sk_data_bone.appliedYScale];
 var sk_caxshear = sk_child[sk_data_bone.appliedXShear];
 var sk_carotation = sk_child[sk_data_bone.appliedRotation]
 // parent local transforms
+;
 var sk_pax = sk_parent[sk_data_bone.appliedX];
 var sk_pay = sk_parent[sk_data_bone.appliedY];
 var sk_paxscale = sk_parent[sk_data_bone.appliedXScale];
 var sk_payscale = sk_parent[sk_data_bone.appliedYScale];
 var sk_parotation = sk_parent[sk_data_bone.appliedRotation] + sk_parent[sk_data_bone.appliedXShear]
 // normalise scales
+;
 if (sk_caxscale < 0) {
     sk_caxscale = -sk_caxscale;
     sk_cayscale = -sk_cayscale;
@@ -71,9 +73,9 @@ var sk_dir = -darctan2(sk_ty, sk_tx);
 var sk_clength = sk_child[sk_data_bone.length];
 if ((sk_paxscale - sk_payscale) == 0) {
     // uniform
-    var sk_r1 = point_distance(0, 0, sk_cax, sk_cay)* sk_paxscale;
+    var sk_r1 = point_distance(0, 0, sk_cax, sk_cay) * sk_paxscale;
     var sk_r2 = sk_clength * sk_caxscale * sk_paxscale;
-    var sk_a2 = darccos(clamp((sk_dd - sk_r1 * sk_r1 - sk_r2 * sk_r2) / max(2 * sk_r1 * sk_r2, 0.0000001), -1, 1))* -sk_bendDir;
+    var sk_a2 = darccos(clamp((sk_dd - sk_r1 * sk_r1 - sk_r2 * sk_r2) / max(2 * sk_r1 * sk_r2, 0.0000001), -1, 1)) * -sk_bendDir;
     var sk_a1 = sk_dir - darctan2(sk_r2 * dsin(sk_a2), sk_r1 + sk_r2 * dcos(sk_a2));
     // update applied transforms and apply
     var sk_offsetShear = -darctan2(sk_cay, sk_cax);
@@ -110,5 +112,6 @@ if ((sk_paxscale - sk_payscale) == 0) {
     sk_parent[@ sk_data_bone.appliedTransformMode] = SK_TRANSFORM_MODE_NORMAL;
     sk_bone_update(sk_parent);
     sk_child[@ sk_data_bone.appliedY] = 0;
-    sk_bone_ik(sk_child, sk_targetX, sk_targetY, sk_alpha);// temp solution (a lot slower than setting it directly), but it works!
+    sk_bone_ik(sk_child, sk_targetX, sk_targetY, sk_alpha);
+    // temp solution (a lot slower than setting it directly), but it works!
 }
