@@ -26,6 +26,7 @@ pub struct Printer<'a> {
     user_indentation_instructions: Vec<usize>,
     do_dot_indent: bool,
     in_a_for_loop: Vec<()>,
+    do_not_need_semicolon: Vec<()>,
 }
 
 impl<'a> Printer<'a> {
@@ -40,6 +41,7 @@ impl<'a> Printer<'a> {
             user_indentation_instructions: Vec::new(),
             do_dot_indent: true,
             in_a_for_loop: Vec::new(),
+            do_not_need_semicolon: Vec::new(),
         }
     }
 
@@ -97,9 +99,7 @@ impl<'a> Printer<'a> {
 
                 let already_started_indent = self.print_comments_and_newlines(
                     comments_after_control_word,
-                    IndentationMove::Right,
-                    LeadingNewlines::One,
-                    false,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Right, LeadingNewlines::One),
                 );
 
                 // let mut forced_semicolon_already = false;
@@ -112,13 +112,14 @@ impl<'a> Printer<'a> {
                         if let Some(comments) = &delimited_var.expr.say_var_comments {
                             let did_move = self.print_comments_and_newlines(
                                 comments,
-                                if indented_vars {
-                                    IndentationMove::Stay
-                                } else {
-                                    IndentationMove::Right
-                                },
-                                LeadingNewlines::One,
-                                false,
+                                CommentAndNewlinesInstruction::new(
+                                    if indented_vars {
+                                        IndentationMove::Stay
+                                    } else {
+                                        IndentationMove::Right
+                                    },
+                                    LeadingNewlines::One,
+                                ),
                             );
 
                             if did_move {
@@ -147,13 +148,14 @@ impl<'a> Printer<'a> {
                         self.allow_user_indentation();
                         let did_newlines = self.print_comments_and_newlines(
                             &delimited_var.trailing_comment,
-                            if indented_vars {
-                                IndentationMove::Stay
-                            } else {
-                                IndentationMove::Right
-                            },
-                            LeadingNewlines::All,
-                            true,
+                            CommentAndNewlinesInstruction::new_respect_users(
+                                if indented_vars {
+                                    IndentationMove::Stay
+                                } else {
+                                    IndentationMove::Right
+                                },
+                                LeadingNewlines::All,
+                            ),
                         );
 
                         if did_newlines {
@@ -203,9 +205,7 @@ impl<'a> Printer<'a> {
                 self.print("enum", true);
                 self.print_comments_and_newlines(
                     comments_after_control_word,
-                    IndentationMove::Stay,
-                    LeadingNewlines::One,
-                    false,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
                 );
 
                 self.print_expr(name);
@@ -213,9 +213,7 @@ impl<'a> Printer<'a> {
 
                 let did_move = self.print_comments_and_newlines(
                     comments_after_lbrace,
-                    IndentationMove::Right,
-                    LeadingNewlines::One,
-                    false,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Right, LeadingNewlines::One),
                 );
                 if did_move == false {
                     self.print_newline(IndentationMove::Right);
@@ -230,34 +228,34 @@ impl<'a> Printer<'a> {
                 self.print_semicolon(stmt.has_semicolon);
             }
             Statement::ExpresssionStatement { expression } => {
-                let final_newlines: Option<&CommentsAndNewlines> = {
-                    if stmt.has_semicolon {
-                        None
-                    } else {
-                        if let Some(trailing_comments) = &expression.trailing_comments {
-                            if Printer::only_newlines(&trailing_comments) {
-                                Some(&expression.trailing_comments)
-                            } else {
-                                None
-                            }
-                        } else {
-                            None
-                        }
-                    }
-                };
+                // let final_newlines: Option<&CommentsAndNewlines> = {
+                //     if stmt.has_semicolon {
+                //         None
+                //     } else {
+                //         if let Some(trailing_comments) = &expression.trailing_comments {
+                //             if Printer::only_newlines(&trailing_comments) {
+                //                 Some(&expression.trailing_comments)
+                //             } else {
+                //                 None
+                //             }
+                //         } else {
+                //             None
+                //         }
+                //     }
+                // };
                 self.print_expr(expression);
 
-                if let Some(trailing_newline) = final_newlines {
-                    self.print_semicolon(true);
-                    self.print_comments_and_newlines(
-                        trailing_newline,
-                        IndentationMove::Stay,
-                        LeadingNewlines::One,
-                        true,
-                    );
-                } else {
-                    self.print_semicolon(stmt.has_semicolon);
-                }
+                // if let Some(trailing_newline) = final_newlines {
+                //     self.print_semicolon(true);
+                //     self.print_comments_and_newlines(
+                //         trailing_newline,
+                //         IndentationMove::Stay,
+                //         LeadingNewlines::One,
+                //         true,
+                //     );
+                // } else {
+                self.print_semicolon(stmt.has_semicolon);
+                // }
             }
             Statement::Block {
                 statements,
@@ -281,9 +279,7 @@ impl<'a> Printer<'a> {
                     || (statements.len() == 1 && statements[0].hold_expr() == false);
                 let did_move = self.print_comments_and_newlines(
                     comments_after_lbrace,
-                    IndentationMove::Right,
-                    LeadingNewlines::One,
-                    false,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Right, LeadingNewlines::One),
                 );
                 if must_indent && did_move == false {
                     self.print_newline(IndentationMove::Right);
@@ -333,9 +329,7 @@ impl<'a> Printer<'a> {
                 self.print("if", true);
                 self.print_comments_and_newlines(
                     comments_after_control_word,
-                    IndentationMove::Stay,
-                    LeadingNewlines::One,
-                    false,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
                 );
 
                 let has_block = if let Statement::Block { .. } = &then_branch.statement {
@@ -361,13 +355,16 @@ impl<'a> Printer<'a> {
 
                 let did_move = self.print_comments_and_newlines(
                     comments_between,
-                    if forcible_indent {
-                        IndentationMove::Left
-                    } else {
-                        IndentationMove::Stay
+                    CommentAndNewlinesInstruction {
+                        indentation_move: if forcible_indent {
+                            IndentationMove::Left
+                        } else {
+                            IndentationMove::Stay
+                        },
+                        leading_newlines: LeadingNewlines::All,
+                        respect_user_newline: true,
+                        trailing_comment: true,
                     },
-                    LeadingNewlines::All,
-                    true,
                 );
                 if did_move == false {
                     self.print_newline(if forcible_indent {
@@ -396,9 +393,7 @@ impl<'a> Printer<'a> {
                 self.print_token(token, true);
                 self.print_comments_and_newlines(
                     comments_after_control_word,
-                    IndentationMove::Stay,
-                    LeadingNewlines::One,
-                    false,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
                 );
 
                 self.print_expr(condition);
@@ -415,17 +410,23 @@ impl<'a> Printer<'a> {
                 self.print("do", true);
                 self.print_comments_and_newlines(
                     comments_after_control_word,
-                    IndentationMove::Stay,
-                    LeadingNewlines::One,
-                    false,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
                 );
 
                 self.block_instructions
                     .push(BlockInstruction::NO_NEWLINE_AFTER_BLOCK | BlockInstruction::MUST_INDENT);
                 self.print_statement(body);
-                self.print_comments_and_newlines(comments_between, IndentationMove::Stay, LeadingNewlines::None, false);
+                self.print_comments_and_newlines(
+                    comments_between,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::None),
+                );
 
-                self.ensure_space();
+                self.backspace_whitespace();
+                if self.last_entry().unwrap() == RBRACE {
+                    self.ensure_space();
+                } else {
+                    self.print_newline(IndentationMove::Stay);
+                }
                 self.print("until", true);
                 self.print_expr(condition);
                 self.backspace();
@@ -446,18 +447,14 @@ impl<'a> Printer<'a> {
                 self.print("for", true);
                 self.print_comments_and_newlines(
                     comments_after_control_word,
-                    IndentationMove::Stay,
-                    LeadingNewlines::One,
-                    false,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
                 );
                 self.print(LPAREN, false);
                 self.in_a_for_loop.push(());
 
                 let did_move = self.print_comments_and_newlines(
                     comments_after_lparen,
-                    IndentationMove::Right,
-                    LeadingNewlines::One,
-                    true,
+                    CommentAndNewlinesInstruction::new_respect_users(IndentationMove::Right, LeadingNewlines::One),
                 );
 
                 if let Some(initializer) = initializer {
@@ -468,9 +465,7 @@ impl<'a> Printer<'a> {
                 }
                 self.print_comments_and_newlines(
                     comments_after_initializer,
-                    IndentationMove::Stay,
-                    LeadingNewlines::One,
-                    false,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
                 );
 
                 if let Some(condition) = condition {
@@ -480,9 +475,7 @@ impl<'a> Printer<'a> {
                 self.print(SEMICOLON, true);
                 self.print_comments_and_newlines(
                     comments_after_condition,
-                    IndentationMove::Stay,
-                    LeadingNewlines::One,
-                    false,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
                 );
 
                 if let Some(increment) = increment {
@@ -493,9 +486,7 @@ impl<'a> Printer<'a> {
 
                 let did_move_final_comment = self.print_comments_and_newlines(
                     comments_after_increment,
-                    IndentationMove::Stay,
-                    LeadingNewlines::One,
-                    false,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
                 );
                 if did_move_final_comment == false {
                     self.backspace();
@@ -509,9 +500,7 @@ impl<'a> Printer<'a> {
 
                 self.print_comments_and_newlines(
                     comments_after_rparen,
-                    IndentationMove::Stay,
-                    LeadingNewlines::One,
-                    false,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
                 );
 
                 self.print_statement(body);
@@ -544,9 +533,7 @@ impl<'a> Printer<'a> {
                 self.print("switch", true);
                 self.print_comments_and_newlines(
                     comments_after_control_word,
-                    IndentationMove::Stay,
-                    LeadingNewlines::One,
-                    false,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
                 );
 
                 self.print_expr(condition);
@@ -555,9 +542,7 @@ impl<'a> Printer<'a> {
                 self.print(LBRACE, true);
                 let did_newline = self.print_comments_and_newlines(
                     comments_after_lbrace,
-                    IndentationMove::Right,
-                    LeadingNewlines::One,
-                    false,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Right, LeadingNewlines::One),
                 );
                 if did_newline == false {
                     self.print_newline(IndentationMove::Right);
@@ -569,9 +554,7 @@ impl<'a> Printer<'a> {
                             self.print("case", true);
                             self.print_comments_and_newlines(
                                 &case.comments_after_control_word,
-                                IndentationMove::Stay,
-                                LeadingNewlines::One,
-                                false,
+                                CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
                             );
 
                             self.print_expr(case_constant);
@@ -586,9 +569,7 @@ impl<'a> Printer<'a> {
                     let saved_indentation = self.indentation;
                     let did_move = self.print_comments_and_newlines(
                         &case.comments_after_colon,
-                        IndentationMove::Right,
-                        LeadingNewlines::One,
-                        false,
+                        CommentAndNewlinesInstruction::new(IndentationMove::Right, LeadingNewlines::One),
                     );
                     if did_move == false {
                         self.print_newline(IndentationMove::Right);
@@ -622,9 +603,7 @@ impl<'a> Printer<'a> {
                 self.print("#define", true);
                 self.print_comments_and_newlines(
                     comments_after_control_word,
-                    IndentationMove::Stay,
-                    LeadingNewlines::One,
-                    false,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
                 );
 
                 self.print_expr(script_name);
@@ -636,6 +615,52 @@ impl<'a> Printer<'a> {
                 }
             }
         }
+
+        // no semicolon
+
+        //         Statement::Comment { comment } => self.print_token(comment, true),
+        // Statement::MultilineComment { multiline_comment } => self.print_token(multiline_comment, true),
+        // Statement::RegionBegin(comment) | Statement::RegionEnd(comment) | Statement::Macro(comment) => {
+        //     self.print_token(comment, false);
+        //     self.backspace();
+        // }
+        // Statement::Define {
+
+        let okay_to_not_have_semicolon = self.do_not_need_semicolon.pop().is_some();
+
+        if stmt.has_semicolon == false && okay_to_not_have_semicolon == false {
+            match stmt.statement {
+                Statement::Comment { .. }
+                | Statement::MultilineComment { .. }
+                | Statement::RegionBegin { .. }
+                | Statement::RegionEnd { .. }
+                | Statement::Macro { .. } => {}
+
+                _ => {
+                    // we do this so we *always* print a newline.
+                    let mut newlines = self.backspace_whitespace();
+
+                    if let Some(last_entry) = self.last_entry() {
+                        match last_entry {
+                            RBRACE => {}
+
+                            SEMICOLON => {
+                                newlines = usize::max(newlines, 1);
+                            }
+
+                            _ => {
+                                self.print_semicolon(true);
+                                newlines = usize::max(newlines, 1);
+                            }
+                        }
+                        if last_entry != RBRACE && last_entry != SEMICOLON {}
+                        for _ in 0..newlines {
+                            self.print_newline(IndentationMove::Stay);
+                        }
+                    }
+                }
+            };
+        };
     }
 
     fn print_expr(&mut self, expr: &'a ExprBox<'a>) {
@@ -651,9 +676,7 @@ impl<'a> Printer<'a> {
                 self.print(LPAREN, false);
                 let did_move = self.print_comments_and_newlines(
                     comments_and_newlines_after_lparen,
-                    IndentationMove::Right,
-                    LeadingNewlines::One,
-                    true,
+                    CommentAndNewlinesInstruction::new_respect_users(IndentationMove::Right, LeadingNewlines::One),
                 );
 
                 self.print_delimited_lines(arguments, COMMA, false, false);
@@ -676,9 +699,7 @@ impl<'a> Printer<'a> {
                 self.allow_user_indentation();
                 self.print_comments_and_newlines(
                     comments_and_newlines_between_op_and_r,
-                    IndentationMove::Stay,
-                    LeadingNewlines::All,
-                    true,
+                    CommentAndNewlinesInstruction::new_respect_users(IndentationMove::Stay, LeadingNewlines::All),
                 );
                 self.print_expr(right);
                 self.rewind_user_indentation();
@@ -692,9 +713,7 @@ impl<'a> Printer<'a> {
                 self.print(LPAREN, false);
                 let did_move = self.print_comments_and_newlines(
                     comments_and_newlines_after_lparen,
-                    IndentationMove::Right,
-                    LeadingNewlines::One,
-                    true,
+                    CommentAndNewlinesInstruction::new_respect_users(IndentationMove::Right, LeadingNewlines::One),
                 );
 
                 for expression in expressions {
@@ -718,9 +737,12 @@ impl<'a> Printer<'a> {
 
                 self.print_comments_and_newlines(
                     comments_and_newlines_after_rparen,
-                    instructions.force_indentation(),
-                    instructions.force_leading_newlines(),
-                    instructions.force_respect(),
+                    CommentAndNewlinesInstruction {
+                        indentation_move: instructions.force_indentation(),
+                        leading_newlines: instructions.force_leading_newlines(),
+                        respect_user_newline: instructions.force_respect(),
+                        trailing_comment: false,
+                    },
                 );
             }
 
@@ -731,9 +753,7 @@ impl<'a> Printer<'a> {
                 self.print("[", false);
                 let did_move = self.print_comments_and_newlines(
                     comments_and_newlines_after_lbracket,
-                    IndentationMove::Right,
-                    LeadingNewlines::One,
-                    true,
+                    CommentAndNewlinesInstruction::new_respect_users(IndentationMove::Right, LeadingNewlines::One),
                 );
 
                 self.print_delimited_lines(arguments, COMMA, false, false);
@@ -748,7 +768,10 @@ impl<'a> Printer<'a> {
                 comments,
             } => {
                 self.print_token(&literal_token, true);
-                self.print_comments_and_newlines(comments, IndentationMove::Stay, LeadingNewlines::All, false);
+                self.print_comments_and_newlines(
+                    comments,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::All),
+                );
             }
 
             Expr::NumberStartDot {
@@ -757,7 +780,10 @@ impl<'a> Printer<'a> {
             } => {
                 self.print("0", false);
                 self.print_token(&literal_token, true);
-                self.print_comments_and_newlines(comments, IndentationMove::Stay, LeadingNewlines::All, false);
+                self.print_comments_and_newlines(
+                    comments,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::All),
+                );
             }
 
             Expr::NumberEndDot {
@@ -766,7 +792,10 @@ impl<'a> Printer<'a> {
             } => {
                 self.print_token(&literal_token, false);
                 self.print("0", true);
-                self.print_comments_and_newlines(comments, IndentationMove::Stay, LeadingNewlines::All, false);
+                self.print_comments_and_newlines(
+                    comments,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::All),
+                );
             }
 
             Expr::Unary {
@@ -777,9 +806,7 @@ impl<'a> Printer<'a> {
                 self.print_token(&operator, operator.token_type == TokenType::NotAlias);
                 self.print_comments_and_newlines(
                     comments_and_newlines_between,
-                    IndentationMove::Stay,
-                    LeadingNewlines::All,
-                    false,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::All),
                 );
                 self.print_expr(right);
             }
@@ -793,9 +820,7 @@ impl<'a> Printer<'a> {
                 self.print_token(&operator, true);
                 self.print_comments_and_newlines(
                     comments_and_newlines_between,
-                    IndentationMove::Stay,
-                    LeadingNewlines::All,
-                    false,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::All),
                 );
             }
             Expr::Assign {
@@ -808,15 +833,16 @@ impl<'a> Printer<'a> {
                 self.print_token(&operator, true);
                 self.print_comments_and_newlines(
                     comments_and_newlines_between_op_and_r,
-                    IndentationMove::Stay,
-                    LeadingNewlines::All,
-                    false,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::All),
                 );
                 self.print_expr(right);
             }
             Expr::Identifier { name, comments } => {
                 self.print_token(name, true);
-                self.print_comments_and_newlines(comments, IndentationMove::Stay, LeadingNewlines::All, false);
+                self.print_comments_and_newlines(
+                    comments,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::All),
+                );
             }
 
             Expr::DotAccess {
@@ -837,7 +863,10 @@ impl<'a> Printer<'a> {
                 } else {
                     IndentationMove::Stay
                 };
-                self.print_comments_and_newlines(comments_between, indentation, LeadingNewlines::One, true);
+                self.print_comments_and_newlines(
+                    comments_between,
+                    CommentAndNewlinesInstruction::new_respect_users(indentation, LeadingNewlines::One),
+                );
                 self.print_expr(instance_variable);
                 self.rewind_user_indentation();
                 if can_unlock && self.do_dot_indent == false {
@@ -857,7 +886,10 @@ impl<'a> Printer<'a> {
                 let mut iter = access_exprs.into_iter().peekable();
                 while let Some((comments, expr)) = iter.next() {
                     self.allow_user_indentation();
-                    self.print_comments_and_newlines(comments, IndentationMove::Stay, LeadingNewlines::All, false);
+                    self.print_comments_and_newlines(
+                        comments,
+                        CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::All),
+                    );
                     self.print_expr(expr);
                     self.rewind_user_indentation();
                     self.backspace();
@@ -890,18 +922,14 @@ impl<'a> Printer<'a> {
 
                 self.print_comments_and_newlines(
                     comments_and_newlines_after_q,
-                    IndentationMove::Right,
-                    LeadingNewlines::All,
-                    false,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Right, LeadingNewlines::All),
                 );
 
                 self.print_expr(left);
                 self.print(":", true);
                 let did_move = self.print_comments_and_newlines(
                     comments_and_newlines_after_colon,
-                    IndentationMove::Right,
-                    LeadingNewlines::One,
-                    false,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Right, LeadingNewlines::One),
                 );
                 self.print_expr(right);
                 self.rewind_user_indentation();
@@ -912,13 +940,20 @@ impl<'a> Printer<'a> {
             }
 
             Expr::Newline => {
+                self.do_not_need_semicolon.push(());
                 if self.do_not_print_single_newline_statement == false {
                     self.print_newline(IndentationMove::Stay);
                 }
             }
 
-            Expr::Comment { comment } => self.print_token(comment, false),
-            Expr::MultilineComment { multiline_comment } => self.print_token(multiline_comment, false),
+            Expr::Comment { comment } => {
+                self.do_not_need_semicolon.push(());
+                self.print_token(comment, false);
+            }
+            Expr::MultilineComment { multiline_comment } => {
+                self.do_not_need_semicolon.push(());
+                self.print_token(multiline_comment, false);
+            }
 
             Expr::UnidentifiedAsLiteral { literal_token } => {
                 self.print_token(&literal_token, true);
@@ -928,9 +963,12 @@ impl<'a> Printer<'a> {
 
         self.print_comments_and_newlines(
             &expr.trailing_comments,
-            IndentationMove::Stay,
-            LeadingNewlines::All,
-            false,
+            CommentAndNewlinesInstruction {
+                indentation_move: IndentationMove::Stay,
+                leading_newlines: LeadingNewlines::All,
+                respect_user_newline: true,
+                trailing_comment: true,
+            },
         );
         self.do_not_print_single_newline_statement = false;
     }
@@ -1015,23 +1053,31 @@ impl<'a> Printer<'a> {
         }
     }
 
-    fn backspace_whitespace(&mut self) {
+    fn backspace_whitespace(&mut self) -> usize {
         let mut pos = self.output.len();
         if pos == 0 {
-            return;
+            return 0;
         };
+
+        let mut newline_number = 0;
 
         pos -= 1;
 
         while pos != 0 {
             match self.output[pos] {
-                NEWLINE | TAB | SPACE => {
+                NEWLINE => {
+                    self.output.remove(pos);
+                    pos -= 1;
+                    newline_number += 1;
+                }
+                TAB | SPACE => {
                     self.output.remove(pos);
                     pos -= 1;
                 }
                 _ => break,
             };
         }
+        newline_number
     }
 
     fn backspace(&mut self) {
@@ -1131,16 +1177,14 @@ impl<'a> Printer<'a> {
     fn print_comments_and_newlines(
         &mut self,
         vec: &'a Option<Vec<Token<'a>>>,
-        indentation_move: IndentationMove,
-        leading_newlines: LeadingNewlines,
-        respect_user_newline: bool,
+        instructions: CommentAndNewlinesInstruction,
     ) -> bool {
         if let Some(vec) = vec {
-            if vec.len() == 0 || (Printer::only_newlines(&vec) && respect_user_newline == false) {
+            if vec.len() == 0 || (Printer::only_newlines(&vec) && instructions.respect_user_newline == false) {
                 return false;
             }
             let mut did_move = false;
-            let mut ignore_newline = leading_newlines != LeadingNewlines::All;
+            let mut ignore_newline = instructions.leading_newlines != LeadingNewlines::All;
 
             let mut iter = vec.into_iter().peekable();
             while let Some(this_one) = iter.next() {
@@ -1155,7 +1199,7 @@ impl<'a> Printer<'a> {
                                 }
                             }
                             ignore_newline = false;
-                            if leading_newlines == LeadingNewlines::None {
+                            if instructions.leading_newlines == LeadingNewlines::None {
                                 continue;
                             }
                         }
@@ -1167,8 +1211,8 @@ impl<'a> Printer<'a> {
 
                             // check for a force indentation
                             if self.user_indentation_instructions.is_empty() == false
-                                && respect_user_newline
-                                && user_indentation >= self.check_indentation(indentation_move)
+                                && instructions.respect_user_newline
+                                && user_indentation >= self.check_indentation(instructions.indentation_move)
                             {
                                 if self.prev_line_was_whitespace() {
                                     self.backspace_till_newline();
@@ -1178,24 +1222,33 @@ impl<'a> Printer<'a> {
                                 }
                                 self.print_indentation_raw(user_indentation);
                             } else {
-                                self.print_newline(indentation_move);
+                                self.print_newline(instructions.indentation_move);
                             }
                         }
                     }
 
                     TokenType::Comment(_) | TokenType::MultilineComment(_) => {
+                        if instructions.trailing_comment {
+                            self.do_not_need_semicolon.push(());
+                        }
                         self.ensure_space();
                         self.print_token(&this_one, false);
                         ignore_newline = false;
                     }
 
                     TokenType::RegionEnd(_) | TokenType::RegionBegin(_) => {
+                        if instructions.trailing_comment {
+                            self.do_not_need_semicolon.push(())
+                        }
                         self.ensure_space();
                         self.print_token(&this_one, true);
                         ignore_newline = false;
                     }
 
                     TokenType::Then => {
+                        if instructions.trailing_comment {
+                            self.do_not_need_semicolon.push(())
+                        }
                         self.ensure_space();
                         self.print_token(&this_one, true);
                         ignore_newline = false;
@@ -1206,6 +1259,9 @@ impl<'a> Printer<'a> {
                             "Printing {} which isn't newline, comment, or region in a comment_newline section...",
                             this_one
                         );
+                        if instructions.trailing_comment {
+                            self.do_not_need_semicolon.push(())
+                        }
                         self.print_token(&this_one, true);
                     }
                 }
@@ -1342,9 +1398,7 @@ impl<'a> Printer<'a> {
             if let Some(_) = &delimited_line.trailing_comment {
                 let did_newlines = self.print_comments_and_newlines(
                     &delimited_line.trailing_comment,
-                    IndentationMove::Stay,
-                    LeadingNewlines::All,
-                    true,
+                    CommentAndNewlinesInstruction::new_respect_users(IndentationMove::Stay, LeadingNewlines::All),
                 );
 
                 if did_newlines == false && force_newline_between {
@@ -1442,6 +1496,43 @@ impl GroupInstruction {
             ret
         } else {
             false
+        }
+    }
+}
+
+struct CommentAndNewlinesInstruction {
+    indentation_move: IndentationMove,
+    leading_newlines: LeadingNewlines,
+    respect_user_newline: bool,
+    trailing_comment: bool,
+}
+
+impl CommentAndNewlinesInstruction {
+    pub fn new(indentation_move: IndentationMove, leading_newlines: LeadingNewlines) -> Self {
+        CommentAndNewlinesInstruction {
+            indentation_move,
+            leading_newlines,
+            ..Default::default()
+        }
+    }
+
+    pub fn new_respect_users(indentation_move: IndentationMove, leading_newlines: LeadingNewlines) -> Self {
+        CommentAndNewlinesInstruction {
+            indentation_move,
+            leading_newlines,
+            respect_user_newline: true,
+            ..Default::default()
+        }
+    }
+}
+
+impl Default for CommentAndNewlinesInstruction {
+    fn default() -> Self {
+        CommentAndNewlinesInstruction {
+            indentation_move: IndentationMove::Stay,
+            leading_newlines: LeadingNewlines::One,
+            respect_user_newline: false,
+            trailing_comment: false,
         }
     }
 }

@@ -17,7 +17,7 @@ fn regions() {
 #[test]
 fn multiline_string() {
     let input = "@\"Test sure  yup\"";
-    let format = "@\"Test sure  yup\"
+    let format = "@\"Test sure  yup\";
 ";
 
     assert_eq!(gml_fmt::run_test(input), format);
@@ -336,7 +336,7 @@ fn ending_delimiter_enum() {
     5, // foor
     6, // foo,
     7, // bar
-)
+);
 ";
 
     assert_eq!(gml_fmt::run_test(input), output);
@@ -463,6 +463,35 @@ fn bad_for_loop() {
     let output = "for (var xx = clamp((global.cameraLeft - 25) div 192, 0, 6); xx <= clamp((global.cameraRight + 25) div 192, 0, 6); ++xx) {
     // comments
 }
+";
+
+    assert_eq!(gml_fmt::run_test(input), output);
+}
+
+#[test]
+fn expression_no_semicolon_test() {
+    let input = "call(z)
+call(q)
+x = 20
+y = 10
+";
+    let output = "call(z);
+call(q);
+x = 20;
+y = 10;
+";
+    assert_eq!(gml_fmt::run_test(input), output);
+}
+
+#[test]
+fn mix_no_semicolon() {
+    let input = "global.roundOver=true
+alarm[3]=room_speed/10;
+audio_stop_sound(aMusicTitle);";
+
+    let output = "global.roundOver = true;
+alarm[3] = room_speed / 10;
+audio_stop_sound(aMusicTitle);
 ";
 
     assert_eq!(gml_fmt::run_test(input), output);

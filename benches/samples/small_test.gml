@@ -1,4 +1,3 @@
-x = 5
-y = 10
-z = 20
-
+global.roundOver=true
+alarm[3]=room_speed/10;
+audio_stop_sound(aMusicTitle);
