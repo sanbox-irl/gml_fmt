@@ -230,8 +230,34 @@ impl<'a> Printer<'a> {
                 self.print_semicolon(stmt.has_semicolon);
             }
             Statement::ExpresssionStatement { expression } => {
+                let final_newlines: Option<&CommentsAndNewlines> = {
+                    if stmt.has_semicolon {
+                        None
+                    } else {
+                        if let Some(trailing_comments) = &expression.trailing_comments {
+                            if Printer::only_newlines(&trailing_comments) {
+                                Some(&expression.trailing_comments)
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        }
+                    }
+                };
                 self.print_expr(expression);
-                self.print_semicolon(stmt.has_semicolon);
+
+                if let Some(trailing_newline) = final_newlines {
+                    self.print_semicolon(true);
+                    self.print_comments_and_newlines(
+                        trailing_newline,
+                        IndentationMove::Stay,
+                        LeadingNewlines::One,
+                        true,
+                    );
+                } else {
+                    self.print_semicolon(stmt.has_semicolon);
+                }
             }
             Statement::Block {
                 statements,
