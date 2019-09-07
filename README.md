@@ -6,11 +6,11 @@
 
 # How To Install and Run
 
-Simply go to [releases](https://github.com/sanboxrunner/gml_fmt/releases/tag/v1.0.0) and download the most recent binary in whatever OS you're on. Or, click here:
+Simply go to [releases](https://github.com/sanboxrunner/gml_fmt/releases/tag/v1.0.1) and download the most recent binary in whatever OS you're on. Or, click here:
 
-- [Windows 10](https://github.com/sanboxrunner/gml_fmt/releases/download/v1.0.0/gml_fmt-v1.0.0-x86_64-windows-msvc.tar.gz)
-- [macOS](https://github.com/sanboxrunner/gml_fmt/releases/download/v1.0.0/gml_fmt-v1.0.0-x86_64-apple-darwin.tar.gz)
-- [Linux](https://github.com/sanboxrunner/gml_fmt/releases/download/v1.0.0/gml_fmt-v1.0.0-x86_64-unknown-linux-gnu.tar.gz)
+- [Windows 10](https://github.com/sanboxrunner/gml_fmt/releases/download/v1.0.0/gml_fmt-v1.0.1-x86_64-windows-msvc.tar.gz)
+- [macOS](https://github.com/sanboxrunner/gml_fmt/releases/download/v1.0.0/gml_fmt-v1.0.1-x86_64-apple-darwin.tar.gz)
+- [Linux](https://github.com/sanboxrunner/gml_fmt/releases/download/v1.0.0/gml_fmt-v1.0.1-x86_64-unknown-linux-gnu.tar.gz)
 
 Once you have downloaded and extracted the program (perhaps using 7zip) from the .gzip and the .tar, simply place it next to your `.yyp` file in your project's root directory. Navigate in your native terminal to that folder (Command Prompt on Windows, Bash on other platforms) and run:
 
