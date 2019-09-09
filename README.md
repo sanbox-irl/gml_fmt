@@ -91,7 +91,7 @@ There is a very limited number of configurable things in `gml_fmt`. Add a file c
 The configuration file, like many Rust projects, is in TOML. It is simple to use.
 
 The following options are available:
-```toml
+```
 use_spaces = boolean
 space_size = number
 newlines_at_end = number
