@@ -1,14 +1,42 @@
 use super::lex_token::*;
 use fnv::FnvHashMap;
+use once_cell::sync::Lazy;
 use std::iter::Peekable;
 use std::str::CharIndices;
+
+static KEYWORD_MAP: Lazy<FnvHashMap<&'static str, TokenType>> = Lazy::new(|| {
+    let mut map = FnvHashMap::with_capacity_and_hasher(25, Default::default());
+    map.insert("var", TokenType::Var);
+    map.insert("and", TokenType::AndAlias);
+    map.insert("or", TokenType::OrAlias);
+    map.insert("not", TokenType::NotAlias);
+    map.insert("if", TokenType::If);
+    map.insert("else", TokenType::Else);
+    map.insert("return", TokenType::Return);
+    map.insert("for", TokenType::For);
+    map.insert("repeat", TokenType::Repeat);
+    map.insert("while", TokenType::While);
+    map.insert("do", TokenType::Do);
+    map.insert("until", TokenType::Until);
+    map.insert("switch", TokenType::Switch);
+    map.insert("case", TokenType::Case);
+    map.insert("default", TokenType::DefaultCase);
+    map.insert("mod", TokenType::ModAlias);
+    map.insert("div", TokenType::Div);
+    map.insert("break", TokenType::Break);
+    map.insert("exit", TokenType::Exit);
+    map.insert("enum", TokenType::Enum);
+    map.insert("with", TokenType::With);
+    map.insert("then", TokenType::Then);
+    map.insert("globalvar", TokenType::GlobalVar);
+    map
+});
 
 pub struct Scanner<'a> {
     input: &'a str,
     line_number: u32,
     column_number: u32,
     iter: Peekable<CharIndices<'a>>,
-    keyword_map: FnvHashMap<&'a str, TokenType<'a>>,
 }
 
 impl<'a> Scanner<'a> {
@@ -18,36 +46,7 @@ impl<'a> Scanner<'a> {
             line_number: 0,
             column_number: 0,
             iter: input.char_indices().peekable(),
-            keyword_map: Scanner::create_keyword_hashmap(),
         }
-    }
-
-    fn create_keyword_hashmap() -> FnvHashMap<&'a str, TokenType<'a>> {
-        let mut map = FnvHashMap::with_capacity_and_hasher(25, Default::default());;
-        map.insert("var", TokenType::Var);
-        map.insert("and", TokenType::AndAlias);
-        map.insert("or", TokenType::OrAlias);
-        map.insert("not", TokenType::NotAlias);
-        map.insert("if", TokenType::If);
-        map.insert("else", TokenType::Else);
-        map.insert("return", TokenType::Return);
-        map.insert("for", TokenType::For);
-        map.insert("repeat", TokenType::Repeat);
-        map.insert("while", TokenType::While);
-        map.insert("do", TokenType::Do);
-        map.insert("until", TokenType::Until);
-        map.insert("switch", TokenType::Switch);
-        map.insert("case", TokenType::Case);
-        map.insert("default", TokenType::DefaultCase);
-        map.insert("mod", TokenType::ModAlias);
-        map.insert("div", TokenType::Div);
-        map.insert("break", TokenType::Break);
-        map.insert("exit", TokenType::Exit);
-        map.insert("enum", TokenType::Enum);
-        map.insert("with", TokenType::With);
-        map.insert("then", TokenType::Then);
-        map.insert("globalvar", TokenType::GlobalVar);
-        map
     }
 
     pub fn lex_input(&mut self) -> Option<Token<'a>> {
@@ -611,7 +610,7 @@ impl<'a> Scanner<'a> {
 
                     let current = self.next_char_boundary();
 
-                    match self.keyword_map.get(&self.input[start..current]) {
+                    match KEYWORD_MAP.get(&self.input[start..current]) {
                         Some(token) => {
                             let token = *token;
                             self.add_multiple_token(token, (current - start) as u32)

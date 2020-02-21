@@ -1,13 +1,13 @@
 use super::lex_token::*;
 use super::statements::DelimitedLines;
-pub type ExprBox<'a> = Box<(ExprBoxInterior<'a>)>;
+pub type ExprBox<'a> = Box<ExprBoxInterior<'a>>;
 pub type CommentsAndNewlines<'a> = Option<Vec<Token<'a>>>;
 pub type DSAccess<'a> = Vec<(CommentsAndNewlines<'a>, ExprBox<'a>)>;
 
 #[derive(Debug)]
 pub struct ExprBoxInterior<'a> {
     pub expr: Expr<'a>,
-    pub trailing_comments: CommentsAndNewlines<'a>
+    pub trailing_comments: CommentsAndNewlines<'a>,
 }
 
 #[derive(Debug)]

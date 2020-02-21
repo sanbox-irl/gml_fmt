@@ -1,3 +1,18 @@
-global.roundOver=true
-alarm[3]=room_speed/10;
-audio_stop_sound(aMusicTitle);
+if condition {
+    something()
+    ;
+    switch state {
+        case 1:
+            stateA()
+            ; break;
+            
+        case 2:
+            stateB()
+            ; break;
+            
+            ;
+    };
+} else ;
+{
+    otherwise();
+}

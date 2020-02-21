@@ -1,5 +1,4 @@
 extern crate clap;
-extern crate logos;
 extern crate serde;
 
 use clap::{App, Arg};
