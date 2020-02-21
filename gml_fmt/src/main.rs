@@ -1,11 +1,10 @@
-extern crate clap;
-extern crate serde;
-
 use clap::{App, Arg};
-use gml_fmt::config::Config;
-use gml_fmt::config::PrintFlags;
+use gml_fmt_lib::{
+    self,
+    config::{Config, PrintFlags},
+    lang_config::LangConfig,
+};
 use std::{path::PathBuf, process};
-
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -40,7 +39,7 @@ fn main() {
 
     // Get our path and make our lang_config file
     let our_path = std::env::current_dir().unwrap();
-    let lang_config = gml_fmt::lang_config::LangConfig::new(&our_path);
+    let lang_config = LangConfig::new(&our_path);
 
     // Get Path
     let input_path = if matches.is_present("PATH") {
@@ -72,7 +71,7 @@ fn main() {
         process::exit(1);
     });
 
-    match gml_fmt::run_config(&config, &lang_config) {
+    match gml_fmt_lib::run_config(&config, &lang_config) {
         Ok(()) => {
             println!("Format complete.");
         }

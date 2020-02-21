@@ -2,8 +2,11 @@
 extern crate criterion;
 
 use criterion::Criterion;
-use gml_fmt;
-use gml_fmt::config::{Config, PrintFlags};
+use gml_fmt_lib::{
+    self,
+    config::{Config, PrintFlags},
+    lang_config::LangConfig,
+};
 use std::{path::PathBuf, process};
 
 fn lex_test() {
@@ -13,7 +16,7 @@ fn lex_test() {
         process::exit(1);
     });
 
-    gml_fmt::run_config(&config, &gml_fmt::lang_config::LangConfig::default())
+    gml_fmt_lib::run_config(&config, &LangConfig::default())
         .expect("Attempted to run osg_lex_speed test, but failed. Did you move the file?");
 }
 

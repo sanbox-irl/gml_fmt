@@ -1,4 +1,4 @@
-use gml_fmt;
+use gml_fmt_lib::run_test;
 
 #[test]
 fn regions() {
@@ -11,7 +11,7 @@ fn regions() {
 
 #endregion Okay
 ";
-    assert_eq!(gml_fmt::run_test(input), format);
+    assert_eq!(run_test(input), format);
 }
 
 #[test]
@@ -20,7 +20,7 @@ fn multiline_string() {
     let format = "@\"Test sure  yup\";
 ";
 
-    assert_eq!(gml_fmt::run_test(input), format);
+    assert_eq!(run_test(input), format);
 }
 
 #[test]
@@ -38,7 +38,7 @@ else if (xx < (2 / 2.75)) {
 }
 ";
 
-    assert_eq!(gml_fmt::run_test(input), format);
+    assert_eq!(run_test(input), format);
 }
 
 #[test]
@@ -49,7 +49,7 @@ var x = 2, y, var q";
 var x = 2, y, var q;
 ";
 
-    assert_eq!(gml_fmt::run_test(input), format);
+    assert_eq!(run_test(input), format);
 }
 
 #[test]
@@ -76,7 +76,7 @@ do {
 } until (true);
 ";
 
-    assert_eq!(gml_fmt::run_test(input), format);
+    assert_eq!(run_test(input), format);
 }
 
 #[test]
@@ -111,7 +111,7 @@ for (var i;;) {
 }
 ";
 
-    assert_eq!(gml_fmt::run_test(input), format);
+    assert_eq!(run_test(input), format);
 }
 
 #[test]
@@ -122,7 +122,7 @@ fn decimal_number() {
 var z = 3.0;
 ";
 
-    assert_eq!(gml_fmt::run_test(input), format);
+    assert_eq!(run_test(input), format);
 }
 
 #[test]
@@ -131,7 +131,7 @@ fn trailing_commas() {
     let format = "func(a, b, c,);
 ";
 
-    assert_eq!(gml_fmt::run_test(input), format);
+    assert_eq!(run_test(input), format);
 }
 
 #[test]
@@ -148,7 +148,7 @@ fn not_trailing_commas() {
     _e[Foo.bar]
 );
 ";
-    assert_eq!(gml_fmt::run_test(input), output);
+    assert_eq!(run_test(input), output);
 }
 
 #[test]
@@ -188,7 +188,7 @@ SCROLL_UP,ANY,NONE
 }
 ";
 
-    assert_eq!(gml_fmt::run_test(input), format);
+    assert_eq!(run_test(input), format);
 }
 
 #[test]
@@ -229,7 +229,7 @@ until(_gah / _boo > _bah);
 } until (_gah / _boo > _bah);
 ";
 
-    assert_eq!(gml_fmt::run_test(input), output);
+    assert_eq!(run_test(input), output);
 }
 
 #[test]
@@ -299,7 +299,7 @@ y += vsp*ss;";
 x += hsp * ss;
 y += vsp * ss;
 ";
-    assert_eq!(gml_fmt::run_test(input), output);
+    assert_eq!(run_test(input), output);
 }
 
 #[test]
@@ -319,7 +319,7 @@ fn do_access_cascading() {
     b[i].q[0] = 30;
 }
 ";
-    assert_eq!(gml_fmt::run_test(input), output);
+    assert_eq!(run_test(input), output);
 }
 
 #[test]
@@ -339,7 +339,7 @@ fn ending_delimiter_enum() {
 );
 ";
 
-    assert_eq!(gml_fmt::run_test(input), output);
+    assert_eq!(run_test(input), output);
 }
 
 #[test]
@@ -359,7 +359,7 @@ fn double_call() {
 );
 ";
 
-    assert_eq!(gml_fmt::run_test(input), input);
+    assert_eq!(run_test(input), input);
 }
 
 #[test]
@@ -379,7 +379,7 @@ if (true)
 if (true) return false;
 ";
 
-    assert_eq!(gml_fmt::run_test(input), input);
+    assert_eq!(run_test(input), input);
 }
 
 #[test]
@@ -394,7 +394,7 @@ fn horrible_multiline_string() {
     \"lifetime\": 8000
 }\');
 ";
-    assert_eq!(gml_fmt::run_test(input), input);
+    assert_eq!(run_test(input), input);
 }
 
 #[test]
@@ -403,7 +403,7 @@ fn nice_macro() {
     let output = "#macro give_me_five x =5+5;
 ";
 
-    assert_eq!(gml_fmt::run_test(input), output);
+    assert_eq!(run_test(input), output);
 }
 
 #[test]
@@ -435,7 +435,7 @@ fn whitesmith_enum() {
 }
 ";
 
-    assert_eq!(gml_fmt::run_test(input), output);
+    assert_eq!(run_test(input), output);
 }
 
 #[test]
@@ -451,7 +451,7 @@ fn whitesmith_control_statement() {
 }
 ";
 
-    assert_eq!(gml_fmt::run_test(input), output);
+    assert_eq!(run_test(input), output);
 }
 
 #[test]
@@ -465,7 +465,7 @@ fn bad_for_loop() {
 }
 ";
 
-    assert_eq!(gml_fmt::run_test(input), output);
+    assert_eq!(run_test(input), output);
 }
 
 #[test]
@@ -480,7 +480,7 @@ call(q);
 x = 20;
 y = 10;
 ";
-    assert_eq!(gml_fmt::run_test(input), output);
+    assert_eq!(run_test(input), output);
 }
 
 #[test]
@@ -494,5 +494,5 @@ alarm[3] = room_speed / 10;
 audio_stop_sound(aMusicTitle);
 ";
 
-    assert_eq!(gml_fmt::run_test(input), output);
+    assert_eq!(run_test(input), output);
 }
