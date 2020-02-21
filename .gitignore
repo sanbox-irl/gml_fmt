@@ -6,3 +6,4 @@ ignored/
 .DS_Store
 
 .vscode/
+*.sh
