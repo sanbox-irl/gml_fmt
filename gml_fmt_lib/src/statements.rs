@@ -2,7 +2,6 @@ use super::expressions::*;
 use super::lex_token::Token;
 
 pub type StmtBox<'a> = Box<StatementWrapper<'a>>;
-pub type ParenInfo = (bool, bool);
 #[derive(Debug)]
 pub struct DelimitedLines<'a, T> {
     pub lines: Vec<DelimitedLine<'a, T>>,

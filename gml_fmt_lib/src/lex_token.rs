@@ -100,15 +100,6 @@ pub enum TokenType<'a> {
     UnidentifiedInput(&'a str),
 }
 
-impl<'a> TokenType<'a> {
-    pub fn is_ident(&self) -> bool {
-        if let TokenType::Identifier(_) = self {
-            return true;
-        };
-        false
-    }
-}
-
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub struct Token<'a> {
     pub token_type: TokenType<'a>,

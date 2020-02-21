@@ -1,19 +1,21 @@
-pub mod config;
-pub mod expressions;
-pub mod lang_config;
-pub mod lex_token;
-pub mod parser;
-pub mod printer;
-pub mod scanner;
-pub mod statements;
+mod config;
+mod expressions;
+mod lang_config;
+mod lex_token;
+mod parser;
+mod printer;
+mod scanner;
+mod statements;
 
-pub use config::{Config, PrintFlags};
-use lang_config::LangConfig;
+use anyhow::Result as AnyResult;
 use parser::Parser;
 use printer::Printer;
-use std::{error::Error, fs};
+use std::fs;
 
-pub fn run_config(config: &Config, lang_config: &LangConfig) -> Result<(), Box<dyn Error>> {
+pub use config::{Config, PrintFlags};
+pub use lang_config::LangConfig;
+
+pub fn run_config(config: &Config, lang_config: &LangConfig) -> AnyResult<()> {
     let log = config.print_flags.contains(PrintFlags::LOGS);
     // let log_scan = config.print_flags.contains(PrintFlags::SCANNER_LOGS);
     let overwrite = config.print_flags.contains(PrintFlags::OVERWRITE);
@@ -42,10 +44,6 @@ pub fn run_config(config: &Config, lang_config: &LangConfig) -> Result<(), Box<d
                 println!("==========AST===========");
                 println!("{}", res.2.unwrap());
             }
-            // if log_scan {
-            //     println!("=========SCANLINE=========");
-            //     println!("{}", res.3.unwrap());
-            // }
 
             if overwrite {
                 fs::write(this_file, output)?;

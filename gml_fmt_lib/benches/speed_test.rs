@@ -2,11 +2,7 @@
 extern crate criterion;
 
 use criterion::Criterion;
-use gml_fmt_lib::{
-    self,
-    config::{Config, PrintFlags},
-    lang_config::LangConfig,
-};
+use gml_fmt_lib::{Config, LangConfig, PrintFlags};
 use std::{path::PathBuf, process};
 
 fn lex_test() {

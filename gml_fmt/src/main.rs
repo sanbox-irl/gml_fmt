@@ -1,9 +1,5 @@
 use clap::{App, Arg};
-use gml_fmt_lib::{
-    self,
-    config::{Config, PrintFlags},
-    lang_config::LangConfig,
-};
+use gml_fmt_lib::{Config, LangConfig, PrintFlags};
 use std::{path::PathBuf, process};
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
