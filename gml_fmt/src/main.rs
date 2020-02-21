@@ -22,9 +22,9 @@ fn main() {
                 .help("Prints out logging information along with formatting"),
         )
         .arg(
-            Arg::with_name("log-scanner")
+            Arg::with_name("log-ast")
                 .short("s")
-                .help("Prints out logging information on the scanner."),
+                .help("Prints out the AST to the console"),
         )
         .arg(
             Arg::with_name("no-overwrite")
@@ -48,18 +48,22 @@ fn main() {
     let do_file = matches.is_present("file");
 
     // Do we print logs?
-    let mut print_flags = if matches.is_present("no-overwrite") {
-        PrintFlags::NO_OUTPUT
-    } else {
-        PrintFlags::OVERWRITE
-    };
+    let mut print_flags = PrintFlags::OVERWRITE;
 
-    if matches.is_present("log") {
-        print_flags |= PrintFlags::LOGS;
+    if matches.is_present("no-overwrite") {
+        print_flags = PrintFlags::empty()
     }
 
-    if matches.is_present("log-scanner") {
-        print_flags |= PrintFlags::SCANNER_LOGS;
+    if matches.is_present("log") {
+        print_flags.insert(PrintFlags::LOGS);
+    }
+
+    if matches.is_present("log") {
+        print_flags.insert(PrintFlags::LOGS);
+    }
+
+    if matches.is_present("log-ast") {
+        print_flags.insert(PrintFlags::LOG_AST);
     }
 
     let config = Config::new(input_path, print_flags, do_file).unwrap_or_else(|e| {
@@ -67,7 +71,7 @@ fn main() {
         process::exit(1);
     });
 
-    match gml_fmt_lib::run_config(&config, &lang_config) {
+    match gml_fmt_lib::run_with_config(&config, &lang_config) {
         Ok(()) => {
             println!("Format complete.");
         }

@@ -7,12 +7,12 @@ use std::{path::PathBuf, process};
 
 fn lex_test() {
     let path = PathBuf::from("benches/samples/osg_lex_speed.gml");
-    let config = Config::new(path, PrintFlags::NO_OUTPUT, true).unwrap_or_else(|e| {
+    let config = Config::new(path, PrintFlags::empty(), true).unwrap_or_else(|e| {
         eprintln!("File reading error: {}", e);
         process::exit(1);
     });
 
-    gml_fmt_lib::run_config(&config, &LangConfig::default())
+    gml_fmt_lib::run_with_config(&config, &LangConfig::default())
         .expect("Attempted to run osg_lex_speed test, but failed. Did you move the file?");
 }
 

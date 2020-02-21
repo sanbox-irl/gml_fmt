@@ -15,9 +15,8 @@ use std::fs;
 pub use config::{Config, PrintFlags};
 pub use lang_config::LangConfig;
 
-pub fn run_config(config: &Config, lang_config: &LangConfig) -> AnyResult<()> {
+pub fn run_with_config(config: &Config, lang_config: &LangConfig) -> AnyResult<()> {
     let log = config.print_flags.contains(PrintFlags::LOGS);
-    // let log_scan = config.print_flags.contains(PrintFlags::SCANNER_LOGS);
     let overwrite = config.print_flags.contains(PrintFlags::OVERWRITE);
 
     for this_file in &config.files {
@@ -32,21 +31,31 @@ pub fn run_config(config: &Config, lang_config: &LangConfig) -> AnyResult<()> {
             println!("{}", contents);
         }
 
-        let res = run(&contents, lang_config, log);
-        if let Some(err) = res.0 {
-            println!("Could not parse file {:?}", this_file);
-            println!("{}", err);
+        let mut ast_log = if config.print_flags.contains(PrintFlags::LOG_AST) {
+            Some(String::new())
         } else {
-            let output = res.1.unwrap();
-            if log {
-                println!("=========OUTPUT=========");
-                println!("{}", output);
-                println!("==========AST===========");
-                println!("{}", res.2.unwrap());
-            }
+            None
+        };
 
-            if overwrite {
-                fs::write(this_file, output)?;
+        match run(&contents, lang_config, ast_log.as_mut()) {
+            Ok(output) => {
+                if log {
+                    println!("=========OUTPUT=========");
+                    println!("{}", output);
+                }
+
+                if let Some(ast) = ast_log {
+                    println!("==========AST===========");
+                    println!("{}", ast);
+                }
+
+                if overwrite {
+                    fs::write(this_file, output)?;
+                }
+            }
+            Err(e) => {
+                println!("Could not parse file {:?}", this_file);
+                println!("{}", e);
             }
         }
     }
@@ -54,32 +63,21 @@ pub fn run_config(config: &Config, lang_config: &LangConfig) -> AnyResult<()> {
     Ok(())
 }
 
-pub fn run_test(input: &str) -> String {
-    let res = run(input, &LangConfig::default(), false);
-    if let Some(err) = res.0 {
-        println!("{}", err);
-        return input.to_owned();
-    }
-    return res.1.unwrap();
-}
-
-fn run(source: &str, lang_config: &LangConfig, print_ast: bool) -> (Option<String>, Option<String>, Option<String>) {
+pub fn run(source: &str, lang_config: &LangConfig, print_ast: Option<&mut String>) -> AnyResult<String> {
     let source_size = source.len();
-    let mut parser = Parser::new(source);
-    parser.build_ast();
-    if let Some(err) = parser.failure {
-        return (Some(err), None, None);
+    match Parser::new(source).build_ast() {
+        Ok(ast) => {
+            if let Some(give_ast) = print_ast {
+                *give_ast = format!("{:#?}", ast);
+            }
+
+            let printer = Printer::new(source_size / 2, lang_config).autoformat(&ast);
+
+            Ok(printer.get_output(source_size))
+        }
+
+        Err(e) => {
+            anyhow::bail!("{}", e);
+        }
     }
-
-    let printer = Printer::new(source_size / 2, lang_config).autoformat(&parser.ast[..]);
-
-    (
-        None,
-        Some(Printer::get_output(&printer.output, source_size)),
-        if print_ast {
-            Some(format!("{:#?}", parser.ast))
-        } else {
-            None
-        },
-    )
 }

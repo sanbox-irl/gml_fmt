@@ -1,4 +1,14 @@
-use gml_fmt_lib::run_test;
+use gml_fmt_lib::*;
+
+const LANG_CONFIG: LangConfig = LangConfig {
+    use_spaces: true,
+    space_size: 4,
+    newlines_at_end: 1,
+};
+
+fn run_test(input: &str) -> String {
+    run(input, &LANG_CONFIG, None).expect("Panicked during Integration Test!")
+}
 
 #[test]
 fn regions() {

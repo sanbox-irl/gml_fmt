@@ -92,5 +92,4 @@ pub enum Expr<'a> {
     UnidentifiedAsLiteral {
         literal_token: Token<'a>,
     },
-    UnexpectedEnd,
 }

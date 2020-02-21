@@ -17,7 +17,7 @@ const COMMA: &str = ",";
 const SEMICOLON: &str = ";";
 
 pub struct Printer<'a> {
-    pub output: Vec<&'a str>,
+    output: Vec<&'a str>,
     lang_config: &'a LangConfig,
     indentation: usize,
     do_not_print_single_newline_statement: bool,
@@ -45,10 +45,10 @@ impl<'a> Printer<'a> {
         }
     }
 
-    pub fn get_output(vec_output: &Vec<&'a str>, size: usize) -> String {
+    pub fn get_output(self, size: usize) -> String {
         let mut output = String::with_capacity(size);
 
-        for this_one in vec_output {
+        for this_one in self.output {
             output.push_str(this_one);
         }
 
@@ -958,7 +958,6 @@ impl<'a> Printer<'a> {
             Expr::UnidentifiedAsLiteral { literal_token } => {
                 self.print_token(&literal_token, true);
             }
-            Expr::UnexpectedEnd => {}
         }
 
         self.print_comments_and_newlines(
