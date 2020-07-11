@@ -65,6 +65,7 @@ pub enum TokenType<'a> {
     GlobalVar,
     If,
     Else,
+    Function,
     Return,
     For,
     Repeat,

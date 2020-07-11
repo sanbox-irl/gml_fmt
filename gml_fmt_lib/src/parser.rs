@@ -83,6 +83,10 @@ impl<'a> Parser<'a> {
                     self.consume_next();
                     return self.if_statement();
                 }
+                TokenType::Function => {
+                    self.consume_next();
+                    return self.function_statement();
+                }
                 TokenType::Return => {
                     self.consume_next();
                     return self.return_statement();
@@ -325,6 +329,26 @@ impl<'a> Parser<'a> {
                 comments_after_control_word,
                 comments_between,
                 condition,
+                body,
+            },
+            has_semicolon,
+        ))
+    }
+
+    fn function_statement(&mut self) -> AnyResult<StmtBox<'a>> {
+        let comments_after_control_word = self.get_newlines_and_comments();
+        let expression = self.expression()?;
+        let arguments = self.finish_call(TokenType::RightParen, TokenType::Comma)?;
+        let comments_after_rparen = self.get_newlines_and_comments();
+        let body = self.statement()?;
+        let has_semicolon = self.check_next_consume(TokenType::Semicolon);
+
+        Ok(StatementWrapper::new(
+            Statement::Function {
+                comments_after_control_word,
+                function_name: expression,
+                arguments,
+                comments_after_rparen,
                 body,
             },
             has_semicolon,

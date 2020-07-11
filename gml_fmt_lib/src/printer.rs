@@ -384,6 +384,31 @@ impl<'a> Printer<'a> {
                 }
                 self.print_semicolon(stmt.has_semicolon);
             }
+            Statement::Function {
+                comments_after_control_word,
+                function_name,
+                arguments,
+                comments_after_rparen,
+                body,
+            } => {
+                self.print("function", true);
+                self.print_comments_and_newlines(
+                    comments_after_control_word,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
+                );
+                self.print_expr(function_name);
+
+                self.print_delimited_lines(arguments, COMMA, false, false);
+                self.backspace_whitespace();
+
+                self.print_comments_and_newlines(
+                    comments_after_rparen,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
+                );
+
+                self.print_statement(body);
+                self.print_semicolon(stmt.has_semicolon);
+            }
             Statement::WhileWithRepeat {
                 token,
                 condition,
@@ -1338,6 +1363,7 @@ impl<'a> Printer<'a> {
             TokenType::Else => "else",
             TokenType::Return => "return",
             TokenType::For => "for",
+            TokenType::Function => "function",
             TokenType::Repeat => "repeat",
             TokenType::While => "while",
             TokenType::With => "with",

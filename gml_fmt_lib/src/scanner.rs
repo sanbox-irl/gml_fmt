@@ -12,6 +12,7 @@ static KEYWORD_MAP: Lazy<FnvHashMap<&'static str, TokenType>> = Lazy::new(|| {
     map.insert("not", TokenType::NotAlias);
     map.insert("if", TokenType::If);
     map.insert("else", TokenType::Else);
+    map.insert("function", TokenType::Function);
     map.insert("return", TokenType::Return);
     map.insert("for", TokenType::For);
     map.insert("repeat", TokenType::Repeat);
@@ -940,7 +941,7 @@ testCase";
 
     #[test]
     fn lex_reserved_keywords<'a>() {
-        let input_string = "var and or if else return for repeat while do until switch case default div break enum";
+        let input_string = "var and or if else return for repeat while do until switch case default div break enum function";
 
         let scanner = Scanner::new(input_string);
         let vec: Vec<Token<'a>> = scanner.collect();
@@ -964,6 +965,7 @@ testCase";
                 Token::new(TokenType::Div, 0, 72),
                 Token::new(TokenType::Break, 0, 76),
                 Token::new(TokenType::Enum, 0, 82),
+                Token::new(TokenType::Function, 0, 87),
             ]
         )
     }

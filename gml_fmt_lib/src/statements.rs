@@ -88,6 +88,13 @@ pub enum Statement<'a> {
         comments_after_lbrace: CommentsAndNewlines<'a>,
         statements: Vec<StmtBox<'a>>,
     },
+    Function {
+        comments_after_control_word: CommentsAndNewlines<'a>,
+        function_name: ExprBox<'a>,
+        arguments: DelimitedLines<'a, ExprBox<'a>>,
+        comments_after_rparen: CommentsAndNewlines<'a>,
+        body: StmtBox<'a>,
+    },
     Return {
         expression: Option<ExprBox<'a>>,
     },
