@@ -129,17 +129,11 @@ fn function_definition() {
     let input = "function fn_name(arg1,arg2){
 show_debug_message(0);
 }
-
-fn_name = function(arg1,arg2){
-show_debug_message(1);
-}";
+";
     let format = "function fn_name(arg1, arg2) {
     show_debug_message(0);
 }
-
-fn_name = function(arg1, arg2) {
-    show_debug_message(1);
-}";
+";
 
     assert_eq!(run_test(input), format);
 }

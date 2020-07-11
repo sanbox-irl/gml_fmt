@@ -85,7 +85,7 @@ impl<'a> Parser<'a> {
                 }
                 TokenType::Function => {
                     self.consume_next();
-                    return self.function_statement();
+                    return self.function_declaration();
                 }
                 TokenType::Return => {
                     self.consume_next();
@@ -335,12 +335,15 @@ impl<'a> Parser<'a> {
         ))
     }
 
-    fn function_statement(&mut self) -> AnyResult<StmtBox<'a>> {
+    fn function_declaration(&mut self) -> AnyResult<StmtBox<'a>> {
         let comments_after_control_word = self.get_newlines_and_comments();
         let expression = self.expression()?;
-        let arguments = self.finish_call(TokenType::RightParen, TokenType::Comma)?;
+        self.check_next_consume(TokenType::RightParen);
         let comments_after_rparen = self.get_newlines_and_comments();
         let body = self.statement()?;
+
+        let arguments = self.finish_call(TokenType::RightParen, TokenType::Comma)?;
+
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
 
         Ok(StatementWrapper::new(
