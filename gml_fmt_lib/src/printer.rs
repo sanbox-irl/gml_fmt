@@ -386,8 +386,7 @@ impl<'a> Printer<'a> {
             }
             Statement::Function {
                 comments_after_control_word,
-                function_name,
-                arguments,
+                function_call,
                 comments_after_rparen,
                 body,
             } => {
@@ -396,16 +395,13 @@ impl<'a> Printer<'a> {
                     comments_after_control_word,
                     CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
                 );
-                self.print_expr(function_name);
-
-                self.print_delimited_lines(arguments, COMMA, false, false);
+                self.print_expr(function_call);
                 self.backspace_whitespace();
 
                 self.print_comments_and_newlines(
                     comments_after_rparen,
                     CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
                 );
-
                 self.print_statement(body);
                 self.print_semicolon(stmt.has_semicolon);
             }
@@ -694,17 +690,17 @@ impl<'a> Printer<'a> {
                 procedure_name,
                 comments_and_newlines_after_lparen,
                 arguments,
+                is_constructor,
             } => {
-                self.print_expr(procedure_name);
-                self.backspace();
-
-                // For lambda's, otherwise known as variable functions in GM
-                // TODO: add condition for constructor here too
+                // For variable functions in GM
                 if let Expr::UnidentifiedAsLiteral { literal_token } = procedure_name.expr {
                     if literal_token.token_type == TokenType::Function {
                         self.do_not_need_semicolon.push(());
                     }
                 }
+
+                self.print_expr(procedure_name);
+                self.backspace();
 
                 self.print(LPAREN, false);
                 let did_move = self.print_comments_and_newlines(
@@ -717,7 +713,13 @@ impl<'a> Printer<'a> {
                 if did_move {
                     self.print_newline(IndentationMove::Left);
                 }
+
                 self.print(RPAREN, true);
+
+                if *is_constructor {
+                    self.print("constructor", true);
+                    self.do_not_need_semicolon.push(());
+                }
             }
 
             Expr::Binary {
@@ -1372,6 +1374,7 @@ impl<'a> Printer<'a> {
             TokenType::Return => "return",
             TokenType::For => "for",
             TokenType::Function => "function",
+            TokenType::Constructor => "constructor",
             TokenType::Repeat => "repeat",
             TokenType::While => "while",
             TokenType::With => "with",

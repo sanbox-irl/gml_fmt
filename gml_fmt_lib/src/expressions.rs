@@ -16,6 +16,7 @@ pub enum Expr<'a> {
         procedure_name: ExprBox<'a>,
         comments_and_newlines_after_lparen: CommentsAndNewlines<'a>,
         arguments: DelimitedLines<'a, ExprBox<'a>>,
+        is_constructor: bool,
     },
     Binary {
         left: ExprBox<'a>,

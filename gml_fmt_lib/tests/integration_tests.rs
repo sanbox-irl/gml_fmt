@@ -53,9 +53,9 @@ else if (xx < (2 / 2.75)) {
 
 #[test]
 fn series_of_declarations() {
-    let input = "var function, xx, xx2, xxm1;
+    let input = "var fn, xx, xx2, xxm1;
 var x = 2, y, var q";
-    let format = "var function, xx, xx2, xxm1;
+    let format = "var fn, xx, xx2, xxm1;
 var x = 2, y, var q;
 ";
 
@@ -157,8 +157,16 @@ fn function_constructor() {
     let input = "function fn_name(arg1,arg2)constructor{
 show_debug_message(0);
 }
+
+fn_name=function(arg1,arg2)constructor{
+show_debug_message(0);
+}
 ";
     let format = "function fn_name(arg1, arg2) constructor {
+    show_debug_message(0);
+}
+
+fn_name = function(arg1, arg2) constructor {
     show_debug_message(0);
 }
 ";

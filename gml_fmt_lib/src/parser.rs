@@ -342,15 +342,12 @@ impl<'a> Parser<'a> {
         let comments_after_rparen = self.get_newlines_and_comments();
         let body = self.statement()?;
 
-        let arguments = self.finish_call(TokenType::RightParen, TokenType::Comma)?;
-
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
 
         Ok(StatementWrapper::new(
             Statement::Function {
                 comments_after_control_word,
-                function_name: expression,
-                arguments,
+                function_call: expression,
                 comments_after_rparen,
                 body,
             },
@@ -890,11 +887,35 @@ impl<'a> Parser<'a> {
         if self.check_next_consume(TokenType::LeftParen) {
             let comments_and_newlines_after_lparen = self.get_newlines_and_comments();
             let arguments = self.finish_call(TokenType::RightParen, TokenType::Comma)?;
+            let mut is_constructor = self.check_next_consume(TokenType::Constructor);
+            while let Some(token) = self.scanner.peek() {
+                println!("{:?}", token);
+                if self.check_next(TokenType::LeftBrace)
+                    | self.check_next(TokenType::RightBrace)
+                    | self.check_next(TokenType::LeftParen)
+                    | self.check_next(TokenType::RightParen)
+                    | self.check_next(TokenType::Semicolon)
+                    | self.check_next(TokenType::LogicalAnd)
+                    | self.check_next(TokenType::LogicalOr)
+                    | self.check_next(TokenType::LogicalXor)
+                    | self.check_next(TokenType::EqualEqual)
+                    | self.check_next(TokenType::Equal)
+                    | self.check_next(TokenType::Comma)
+                    | self.check_next(TokenType::Star)
+                    | self.check_next(TokenType::Hook)
+                    | self.check_next(TokenType::Newline(0))
+                {
+                    break;
+                } else if !is_constructor {
+                    is_constructor = self.check_next_consume(TokenType::Constructor);
+                }
+            }
 
             expression = self.create_comment_expr_box(Expr::Call {
                 procedure_name: expression,
                 arguments,
                 comments_and_newlines_after_lparen,
+                is_constructor,
             });
         }
 

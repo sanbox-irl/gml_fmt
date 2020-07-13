@@ -66,6 +66,7 @@ pub enum TokenType<'a> {
     If,
     Else,
     Function,
+    Constructor,
     Return,
     For,
     Repeat,

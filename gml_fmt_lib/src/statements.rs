@@ -90,8 +90,7 @@ pub enum Statement<'a> {
     },
     Function {
         comments_after_control_word: CommentsAndNewlines<'a>,
-        function_name: ExprBox<'a>,
-        arguments: DelimitedLines<'a, ExprBox<'a>>,
+        function_call: ExprBox<'a>,
         comments_after_rparen: CommentsAndNewlines<'a>,
         body: StmtBox<'a>,
     },
