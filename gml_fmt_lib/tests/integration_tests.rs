@@ -139,6 +139,34 @@ show_debug_message(0);
 }
 
 #[test]
+fn function_var_assignment() {
+    let input = "fn_name=function(arg1,arg2){
+show_debug_message(0);
+}
+";
+    let format = "fn_name = function(arg1, arg2) {
+    show_debug_message(0);
+}
+";
+
+    assert_eq!(run_test(input), format);
+}
+
+#[test]
+fn function_constructor() {
+    let input = "function fn_name(arg1,arg2)constructor{
+show_debug_message(0);
+}
+";
+    let format = "function fn_name(arg1, arg2) constructor {
+    show_debug_message(0);
+}
+";
+
+    assert_eq!(run_test(input), format);
+}
+
+#[test]
 fn decimal_number() {
     let input = "var x = .3; var z = 3.;";
 

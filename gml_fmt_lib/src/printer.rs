@@ -698,6 +698,14 @@ impl<'a> Printer<'a> {
                 self.print_expr(procedure_name);
                 self.backspace();
 
+                // For lambda's, otherwise known as variable functions in GM
+                // TODO: add condition for constructor here too
+                if let Expr::UnidentifiedAsLiteral { literal_token } = procedure_name.expr {
+                    if literal_token.token_type == TokenType::Function {
+                        self.do_not_need_semicolon.push(());
+                    }
+                }
+
                 self.print(LPAREN, false);
                 let did_move = self.print_comments_and_newlines(
                     comments_and_newlines_after_lparen,
