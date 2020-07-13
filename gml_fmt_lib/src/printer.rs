@@ -292,7 +292,8 @@ impl<'a> Printer<'a> {
 
                 for stmt in statements {
                     self.print_statement(stmt);
-                    if did_newline {
+
+                    if did_newline & stmt.has_semicolon {
                         if self.on_whitespace_line() == false {
                             self.print_newline(IndentationMove::Stay);
                             self.do_not_print_single_newline_statement = true;
@@ -692,7 +693,7 @@ impl<'a> Printer<'a> {
                 arguments,
                 is_constructor,
             } => {
-                // For variable functions in GM
+                // For variable functions
                 if let Expr::UnidentifiedAsLiteral { literal_token } = procedure_name.expr {
                     if literal_token.token_type == TokenType::Function {
                         self.do_not_need_semicolon.push(());

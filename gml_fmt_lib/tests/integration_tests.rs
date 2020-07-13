@@ -155,20 +155,36 @@ show_debug_message(0);
 #[test]
 fn function_constructor() {
     let input = "function fn_name(arg1,arg2)constructor{
+fn_debug=function(arg1,arg2){
 show_debug_message(0);
 }
+}
 
-fn_name=function(arg1,arg2)constructor{
+fn_var=function(arg1,arg2)constructor{
 show_debug_message(0);
 }
 ";
     let format = "function fn_name(arg1, arg2) constructor {
-    show_debug_message(0);
+    fn_debug = function(arg1, arg2) {
+        show_debug_message(0);
+    }
 }
 
-fn_name = function(arg1, arg2) constructor {
+fn_var = function(arg1, arg2) constructor {
     show_debug_message(0);
 }
+";
+
+    assert_eq!(run_test(input), format);
+}
+
+#[test]
+fn function_lambda() {
+    let input = "fn(arg1,function(i) { show_debug_message(0) })
+";
+    let format = "fn(arg1, function(i) {
+        show_debug_message(0);
+});
 ";
 
     assert_eq!(run_test(input), format);

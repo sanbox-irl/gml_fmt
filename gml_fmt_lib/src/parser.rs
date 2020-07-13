@@ -888,27 +888,15 @@ impl<'a> Parser<'a> {
             let comments_and_newlines_after_lparen = self.get_newlines_and_comments();
             let arguments = self.finish_call(TokenType::RightParen, TokenType::Comma)?;
             let mut is_constructor = self.check_next_consume(TokenType::Constructor);
+
             while let Some(token) = self.scanner.peek() {
-                println!("{:?}", token);
-                if self.check_next(TokenType::LeftBrace)
-                    | self.check_next(TokenType::RightBrace)
-                    | self.check_next(TokenType::LeftParen)
-                    | self.check_next(TokenType::RightParen)
-                    | self.check_next(TokenType::Semicolon)
-                    | self.check_next(TokenType::LogicalAnd)
-                    | self.check_next(TokenType::LogicalOr)
-                    | self.check_next(TokenType::LogicalXor)
-                    | self.check_next(TokenType::EqualEqual)
-                    | self.check_next(TokenType::Equal)
-                    | self.check_next(TokenType::Comma)
-                    | self.check_next(TokenType::Star)
-                    | self.check_next(TokenType::Hook)
-                    | self.check_next(TokenType::Newline(0))
-                {
-                    break;
-                } else if !is_constructor {
-                    is_constructor = self.check_next_consume(TokenType::Constructor);
+                match token.token_type {
+                    TokenType::Constructor => {
+                        is_constructor = true;
+                    }
+                    _ => break,
                 }
+                self.consume_next();
             }
 
             expression = self.create_comment_expr_box(Expr::Call {

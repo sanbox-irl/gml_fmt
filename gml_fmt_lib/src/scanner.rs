@@ -587,7 +587,12 @@ impl<'a> Scanner<'a> {
                             };
                         }
 
-                        self.column_number += (current - last_column_break) as u32;
+                        // TODO: check if fixed with function fixes
+                        if current > last_column_break {
+                            self.column_number += (current - last_column_break) as u32;
+                        } else {
+                            self.column_number = current as u32;
+                        }
                         Token::new(
                             TokenType::MultilineComment(&self.input[start..current]),
                             start_line,
