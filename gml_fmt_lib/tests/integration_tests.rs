@@ -143,14 +143,14 @@ fn function_var_assignment() {
     let input = "fn_name=function(arg1,arg2){
 show_debug_message(0);
 }
-var fn_temp = function(arg1, arg2) {
+fn_temp = function(arg1, arg2) {
     show_debug_message(0);
 }
 ";
     let format = "fn_name = function(arg1, arg2) {
     show_debug_message(0);
 }
-var fn_temp = function(arg1, arg2) {
+fn_temp = function(arg1, arg2) {
     show_debug_message(0);
 }
 ";
@@ -229,7 +229,7 @@ function fn_name(arg1, arg2) constructor {
 }
 
 #[test]
-fn return_new_struct() {
+fn struct_return_new() {
     let input = "fn_debug = function(arg1,arg2) {
 show_debug_message(0)
 return new _struct
