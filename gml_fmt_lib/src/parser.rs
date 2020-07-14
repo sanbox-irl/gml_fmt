@@ -575,6 +575,9 @@ impl<'a> Parser<'a> {
                     | TokenType::ModEquals => {
                         let operator = self.scanner.next().unwrap();
                         let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
+
+                        let calls_constructor = self.check_next_consume(TokenType::New);
+
                         let assignment_expr = self.assignment()?;
 
                         expr = self.create_expr_box_no_comment(Expr::Assign {
@@ -582,6 +585,7 @@ impl<'a> Parser<'a> {
                             operator: operator,
                             comments_and_newlines_between_op_and_r,
                             right: assignment_expr,
+                            calls_constructor,
                         });
                     }
 

@@ -179,6 +179,18 @@ fn_var = function(arg1, arg2) constructor {
 }
 
 #[test]
+fn function_constructor_call() {
+    let input = "_structObj=new fn_name(0,0);
+_varObj=new fn_var(0,0);
+";
+
+    let format = "_structObj = new fn_name(0, 0);
+_varObj = new fn_var(0, 0);
+";
+    assert_eq!(run_test(input), format);
+}
+
+#[test]
 fn function_lambda() {
     let input = "fn(arg1,function(i) { show_debug_message(0) })
 

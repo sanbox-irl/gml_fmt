@@ -60,6 +60,7 @@ pub enum Expr<'a> {
         operator: Token<'a>,
         comments_and_newlines_between_op_and_r: CommentsAndNewlines<'a>,
         right: ExprBox<'a>,
+        calls_constructor: bool,
     },
     Identifier {
         name: Token<'a>,

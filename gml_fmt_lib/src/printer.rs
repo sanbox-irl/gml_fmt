@@ -884,9 +884,16 @@ impl<'a> Printer<'a> {
                 operator,
                 comments_and_newlines_between_op_and_r,
                 right,
+                calls_constructor,
             } => {
                 self.print_expr(left);
                 self.print_token(&operator, true);
+
+                // for when a new instance of a struct is being assigned to a variable
+                if *calls_constructor {
+                    self.print("new", true);
+                }
+
                 self.print_comments_and_newlines(
                     comments_and_newlines_between_op_and_r,
                     CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::All),
@@ -1396,6 +1403,7 @@ impl<'a> Printer<'a> {
             TokenType::For => "for",
             TokenType::Function => "function",
             TokenType::Constructor => "constructor",
+            TokenType::New => "new",
             TokenType::Repeat => "repeat",
             TokenType::While => "while",
             TokenType::With => "with",
