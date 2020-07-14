@@ -284,10 +284,14 @@ impl<'a> Printer<'a> {
                 if must_indent && did_move == false {
                     self.print_newline(IndentationMove::Right);
                 }
-
                 let did_newline = did_move || must_indent;
                 if did_newline == false {
                     self.ensure_space();
+                }
+
+                // don't worry about semicolon or newline if only one statement
+                if statements.len() == 1 {
+                    self.do_not_need_semicolon.push(());
                 }
 
                 for stmt in statements {
@@ -693,6 +697,7 @@ impl<'a> Printer<'a> {
                 arguments,
                 is_constructor,
             } => {
+                // TODO: figure out lambdas
                 // For variable functions
                 if let Expr::UnidentifiedAsLiteral { literal_token } = procedure_name.expr {
                     if literal_token.token_type == TokenType::Function {
@@ -709,13 +714,29 @@ impl<'a> Printer<'a> {
                     CommentAndNewlinesInstruction::new_respect_users(IndentationMove::Right, LeadingNewlines::One),
                 );
 
+                let mut is_function = false;
+                let mut iter = arguments.lines.iter().peekable();
+
+                while let Some(delimited_line) = iter.next() {
+                    if let Expr::Call { procedure_name, .. } = &delimited_line.expr.expr {
+                        if let Expr::UnidentifiedAsLiteral { literal_token } = procedure_name.expr {
+                            is_function = literal_token.token_type == TokenType::Function;
+                        }
+                    }
+                }
+
                 self.print_delimited_lines(arguments, COMMA, false, false);
                 self.backspace_whitespace();
+
                 if did_move {
                     self.print_newline(IndentationMove::Left);
                 }
 
-                self.print(RPAREN, true);
+                if !is_function {
+                    self.print(RPAREN, true);
+                } else {
+                    self.block_instructions.push(BlockInstruction::NO_NEWLINE_AFTER_BLOCK);
+                }
 
                 if *is_constructor {
                     self.print("constructor", true);

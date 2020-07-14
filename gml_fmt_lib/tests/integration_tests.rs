@@ -181,10 +181,30 @@ fn_var = function(arg1, arg2) constructor {
 #[test]
 fn function_lambda() {
     let input = "fn(arg1,function(i) { show_debug_message(0) })
+
+fn(arg1,function(i) { show_debug_message(0); show_debug_message(1); })
+
+function fn_name(arg1, arg2) constructor {
+fn(arg1,function(i) { show_debug_message(0) })
+
+fn(arg1,function(i) { show_debug_message(0); show_debug_message(1); })
+}
 ";
-    let format = "fn(arg1, function(i) {
-        show_debug_message(0);
+    let format = "fn(arg1, function(i) { show_debug_message(0) });
+
+fn(arg1, function(i) {
+    show_debug_message(0);
+    show_debug_message(1);
 });
+
+function fn_name(arg1, arg2) constructor {
+    fn(arg1, function(i) { show_debug_message(0) });
+    
+    fn(arg1, function(i) {
+        show_debug_message(0);
+        show_debug_message(1);
+    });
+}
 ";
 
     assert_eq!(run_test(input), format);
