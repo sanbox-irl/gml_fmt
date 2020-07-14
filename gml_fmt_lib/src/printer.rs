@@ -1458,6 +1458,9 @@ impl<'a> Printer<'a> {
     ) {
         let mut iter = delimited_lines.lines.iter().peekable();
         while let Some(delimited_line) = iter.next() {
+            if delimited_line.is_new_struct {
+                self.print("new", true);
+            }
             self.print_expr(&delimited_line.expr);
             self.backspace();
 

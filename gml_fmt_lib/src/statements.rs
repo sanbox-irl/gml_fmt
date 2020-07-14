@@ -6,6 +6,7 @@ pub type StmtBox<'a> = Box<StatementWrapper<'a>>;
 pub struct DelimitedLines<'a, T> {
     pub lines: Vec<DelimitedLine<'a, T>>,
     pub has_end_delimiter: bool,
+
 }
 
 #[derive(Debug)]
@@ -144,4 +145,5 @@ pub struct VariableDecl<'a> {
 pub struct DelimitedLine<'a, T> {
     pub expr: T,
     pub trailing_comment: CommentsAndNewlines<'a>,
+    pub is_new_struct: bool,
 }

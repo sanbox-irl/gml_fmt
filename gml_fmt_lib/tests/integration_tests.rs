@@ -229,7 +229,15 @@ function fn_name(arg1, arg2) constructor {
 }
 
 #[test]
-fn struct_return_new() {
+fn struct_new_argument() {
+    let input = "fn(argument,new _struct(property1,property2))";
+    let format = "fn(argument, new _struct(property1, property2));
+";
+    assert_eq!(run_test(input), format);
+}
+
+#[test]
+fn struct_new_return() {
     let input = "fn_debug = function(arg1,arg2) {
 show_debug_message(0)
 return new _struct

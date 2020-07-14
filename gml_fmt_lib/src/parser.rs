@@ -212,6 +212,7 @@ impl<'a> Parser<'a> {
                 }
             }
 
+            let is_new_struct = self.check_next_consume(TokenType::New);
             let var_expr = self.expression()?;
 
             match var_expr.expr {
@@ -241,6 +242,7 @@ impl<'a> Parser<'a> {
             arguments.push(DelimitedLine {
                 expr: var_decl,
                 trailing_comment,
+                is_new_struct,
             });
 
             if do_break {
@@ -1083,12 +1085,17 @@ impl<'a> Parser<'a> {
                     break;
                 }
 
+                let is_new_struct = self.check_next_consume(TokenType::New);
                 let expr = self.expression()?;
                 let do_break = self.check_next_consume(delimiter_type) == false;
 
                 let trailing_comment = self.get_newlines_and_comments();
 
-                arguments.push(DelimitedLine { expr, trailing_comment });
+                arguments.push(DelimitedLine {
+                    expr,
+                    trailing_comment,
+                    is_new_struct,
+                });
 
                 if do_break {
                     end_delimiter = false;
