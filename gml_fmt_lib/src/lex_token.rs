@@ -68,6 +68,7 @@ pub enum TokenType<'a> {
     Function,
     Constructor,
     New,
+    Delete,
     Return,
     For,
     Repeat,

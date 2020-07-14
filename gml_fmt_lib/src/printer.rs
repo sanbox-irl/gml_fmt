@@ -410,6 +410,11 @@ impl<'a> Printer<'a> {
                 self.print_statement(body);
                 self.print_semicolon(stmt.has_semicolon);
             }
+            Statement::Delete { expression } => {
+                self.print("delete", true);
+                self.print_expr(expression);
+                self.print_semicolon_and_newline(stmt.has_semicolon, IndentationMove::Stay);
+            }
             Statement::WhileWithRepeat {
                 token,
                 condition,
@@ -532,11 +537,16 @@ impl<'a> Printer<'a> {
                 self.print_statement(body);
                 self.print_semicolon(stmt.has_semicolon);
             }
-            Statement::Return { expression } => {
+            Statement::Return { expression, is_struct } => {
                 self.print("return", false);
 
                 if let Some(expression) = expression {
                     self.print(SPACE, false);
+
+                    if *is_struct {
+                        self.print("new", true);
+                    }
+                    
                     self.print_expr(expression);
                 }
                 self.print_semicolon_and_newline(stmt.has_semicolon, IndentationMove::Stay);
@@ -1404,6 +1414,7 @@ impl<'a> Printer<'a> {
             TokenType::Function => "function",
             TokenType::Constructor => "constructor",
             TokenType::New => "new",
+            TokenType::Delete => "delete",
             TokenType::Repeat => "repeat",
             TokenType::While => "while",
             TokenType::With => "with",

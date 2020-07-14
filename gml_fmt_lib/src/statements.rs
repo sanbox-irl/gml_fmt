@@ -94,8 +94,12 @@ pub enum Statement<'a> {
         comments_after_rparen: CommentsAndNewlines<'a>,
         body: StmtBox<'a>,
     },
+    Delete {
+        expression: ExprBox<'a>,
+    },
     Return {
         expression: Option<ExprBox<'a>>,
+        is_struct: bool,
     },
     Break,
     Exit,

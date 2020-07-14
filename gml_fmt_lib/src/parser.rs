@@ -87,6 +87,10 @@ impl<'a> Parser<'a> {
                     self.consume_next();
                     return self.function_declaration();
                 }
+                TokenType::Delete => {
+                    self.consume_next();
+                    return self.delete_statement();
+                }
                 TokenType::Return => {
                     self.consume_next();
                     return self.return_statement();
@@ -355,6 +359,13 @@ impl<'a> Parser<'a> {
         ))
     }
 
+    fn delete_statement(&mut self) -> AnyResult<StmtBox<'a>> {
+        let expression = self.expression()?;
+
+        let has_semicolon = self.check_next_consume(TokenType::Semicolon);
+        Ok(StatementWrapper::new(Statement::Delete { expression }, has_semicolon))
+    }
+
     fn switch_statement(&mut self) -> AnyResult<StmtBox<'a>> {
         let comments_after_control_word = self.get_newlines_and_comments();
         let condition = self.expression()?;
@@ -498,6 +509,8 @@ impl<'a> Parser<'a> {
     }
 
     fn return_statement(&mut self) -> AnyResult<StmtBox<'a>> {
+        // if returning struct
+        let is_struct = self.check_next_consume(TokenType::New);
         let expression = if self.check_next(TokenType::Semicolon) {
             None
         } else {
@@ -505,7 +518,10 @@ impl<'a> Parser<'a> {
         };
 
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
-        Ok(StatementWrapper::new(Statement::Return { expression }, has_semicolon))
+        Ok(StatementWrapper::new(
+            Statement::Return { expression, is_struct },
+            has_semicolon,
+        ))
     }
 
     fn break_statement(&mut self) -> AnyResult<StmtBox<'a>> {

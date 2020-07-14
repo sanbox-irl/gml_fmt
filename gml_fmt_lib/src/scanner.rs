@@ -15,6 +15,7 @@ static KEYWORD_MAP: Lazy<FnvHashMap<&'static str, TokenType>> = Lazy::new(|| {
     map.insert("function", TokenType::Function);
     map.insert("constructor", TokenType::Constructor);
     map.insert("new", TokenType::New);
+    map.insert("delete", TokenType::Delete);
     map.insert("return", TokenType::Return);
     map.insert("for", TokenType::For);
     map.insert("repeat", TokenType::Repeat);

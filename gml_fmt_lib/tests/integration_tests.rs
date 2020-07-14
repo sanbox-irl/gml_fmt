@@ -143,8 +143,14 @@ fn function_var_assignment() {
     let input = "fn_name=function(arg1,arg2){
 show_debug_message(0);
 }
+var fn_temp = function(arg1, arg2) {
+    show_debug_message(0);
+}
 ";
     let format = "fn_name = function(arg1, arg2) {
+    show_debug_message(0);
+}
+var fn_temp = function(arg1, arg2) {
     show_debug_message(0);
 }
 ";
@@ -219,6 +225,29 @@ function fn_name(arg1, arg2) constructor {
 }
 ";
 
+    assert_eq!(run_test(input), format);
+}
+
+#[test]
+fn return_new_struct() {
+    let input = "fn_debug = function(arg1,arg2) {
+show_debug_message(0)
+return new _struct
+}
+";
+    let format = "fn_debug = function(arg1, arg2) {
+    show_debug_message(0);
+    return new _struct;
+}
+";
+    assert_eq!(run_test(input), format);
+}
+
+#[test]
+fn struct_delete() {
+    let input = "delete _struct";
+    let format = "delete _struct;
+";
     assert_eq!(run_test(input), format);
 }
 
