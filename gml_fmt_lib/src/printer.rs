@@ -697,7 +697,6 @@ impl<'a> Printer<'a> {
                 arguments,
                 is_constructor,
             } => {
-                // TODO: figure out lambdas
                 // For variable functions
                 if let Expr::UnidentifiedAsLiteral { literal_token } = procedure_name.expr {
                     if literal_token.token_type == TokenType::Function {

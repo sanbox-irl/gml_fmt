@@ -587,8 +587,8 @@ impl<'a> Scanner<'a> {
                             };
                         }
 
-                        // TODO: check if fixed with function fixes
-                        if current > last_column_break {
+                        // TODO: Figure out what the bleeding hecc is going on here. Broke with function formatting.
+                        if current > last_column_break { // TODO: Find good test for this edge case.
                             self.column_number += (current - last_column_break) as u32;
                         } else {
                             self.column_number = current as u32;
