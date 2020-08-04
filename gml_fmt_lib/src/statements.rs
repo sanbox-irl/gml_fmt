@@ -89,18 +89,8 @@ pub enum Statement<'a> {
         comments_after_lbrace: CommentsAndNewlines<'a>,
         statements: Vec<StmtBox<'a>>,
     },
-    Function {
-        comments_after_control_word: CommentsAndNewlines<'a>,
-        function_call: ExprBox<'a>,
-        comments_after_rparen: CommentsAndNewlines<'a>,
-        body: StmtBox<'a>,
-    },
-    Delete {
-        expression: ExprBox<'a>,
-    },
     Return {
         expression: Option<ExprBox<'a>>,
-        is_struct: bool,
     },
     Break,
     Exit,
@@ -145,5 +135,4 @@ pub struct VariableDecl<'a> {
 pub struct DelimitedLine<'a, T> {
     pub expr: T,
     pub trailing_comment: CommentsAndNewlines<'a>,
-    pub is_new_struct: bool,
 }

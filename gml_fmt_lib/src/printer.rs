@@ -105,6 +105,7 @@ impl<'a> Printer<'a> {
                 // let mut forced_semicolon_already = false;
                 let mut indented_vars = already_started_indent;
                 let mut iter = var_decl_list.lines.iter().peekable();
+                let mut interrupt_eol_formatting = false;
                 while let Some(delimited_var) = iter.next() {
                     if let Some(var_token) = &delimited_var.expr.say_var {
                         self.print_token(&var_token, true);
@@ -140,7 +141,11 @@ impl<'a> Printer<'a> {
                         if var_decl_list.has_end_delimiter {
                             self.print(COMMA, true);
                         } else {
-                            self.print(SEMICOLON, true);
+                            interrupt_eol_formatting = self.do_not_need_semicolon.len() > 0;
+
+                            if interrupt_eol_formatting == false {
+                                self.print(SEMICOLON, true);
+                            }
                         }
                     };
 
@@ -175,7 +180,7 @@ impl<'a> Printer<'a> {
                     }
                 }
 
-                if self.on_whitespace_line() == false && self.in_a_for_loop.is_empty() {
+                if !interrupt_eol_formatting && self.on_whitespace_line() == false && self.in_a_for_loop.is_empty() {
                     self.print_newline(IndentationMove::Stay);
                     self.do_not_print_single_newline_statement = true;
                 }
@@ -389,32 +394,6 @@ impl<'a> Printer<'a> {
                 }
                 self.print_semicolon(stmt.has_semicolon);
             }
-            Statement::Function {
-                comments_after_control_word,
-                function_call,
-                comments_after_rparen,
-                body,
-            } => {
-                self.print("function", true);
-                self.print_comments_and_newlines(
-                    comments_after_control_word,
-                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
-                );
-                self.print_expr(function_call);
-                self.backspace_whitespace();
-
-                self.print_comments_and_newlines(
-                    comments_after_rparen,
-                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
-                );
-                self.print_statement(body);
-                self.print_semicolon(stmt.has_semicolon);
-            }
-            Statement::Delete { expression } => {
-                self.print("delete", true);
-                self.print_expr(expression);
-                self.print_semicolon_and_newline(stmt.has_semicolon, IndentationMove::Stay);
-            }
             Statement::WhileWithRepeat {
                 token,
                 condition,
@@ -537,15 +516,11 @@ impl<'a> Printer<'a> {
                 self.print_statement(body);
                 self.print_semicolon(stmt.has_semicolon);
             }
-            Statement::Return { expression, is_struct } => {
+            Statement::Return { expression } => {
                 self.print("return", false);
 
                 if let Some(expression) = expression {
                     self.print(SPACE, false);
-
-                    if *is_struct {
-                        self.print("new", true);
-                    }
                     
                     self.print_expr(expression);
                 }
@@ -705,7 +680,6 @@ impl<'a> Printer<'a> {
                 procedure_name,
                 comments_and_newlines_after_lparen,
                 arguments,
-                is_constructor,
             } => {
                 // For variable functions
                 if let Expr::UnidentifiedAsLiteral { literal_token } = procedure_name.expr {
@@ -723,6 +697,7 @@ impl<'a> Printer<'a> {
                     CommentAndNewlinesInstruction::new_respect_users(IndentationMove::Right, LeadingNewlines::One),
                 );
 
+                // for passing lambdas as arguments
                 let mut is_function = false;
                 let mut iter = arguments.lines.iter().peekable();
 
@@ -746,11 +721,60 @@ impl<'a> Printer<'a> {
                 } else {
                     self.block_instructions.push(BlockInstruction::NO_NEWLINE_AFTER_BLOCK);
                 }
+            }
+
+            Expr::Function {
+                comments_after_control_word,
+                call,
+                comments_after_rparen,
+                is_constructor,
+            } => {
+                self.print("function", true);
+                self.print_comments_and_newlines(
+                    comments_after_control_word,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
+                );
+                self.print_expr(call);
+                if !*is_constructor {
+                    self.backspace_whitespace();
+                }
+                
+                self.print_comments_and_newlines(
+                    comments_after_rparen,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
+                );
 
                 if *is_constructor {
                     self.print("constructor", true);
-                    self.do_not_need_semicolon.push(());
                 }
+
+                self.do_not_need_semicolon.push(());
+            }
+
+            Expr::New {
+                comments_before_call,
+                call,
+            } => {
+                self.print("new", true);
+                self.print_comments_and_newlines(
+                    comments_before_call,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
+                );
+                self.print_expr(call);
+                self.backspace_whitespace();
+            }
+            
+            Expr::Delete {
+                comments_before_expression,
+                expression,
+            } => {
+                self.print("delete", true);
+                self.print_comments_and_newlines(
+                    comments_before_expression,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
+                );
+                self.print_expr(expression);
+                self.backspace_whitespace();
             }
 
             Expr::Binary {
@@ -894,15 +918,9 @@ impl<'a> Printer<'a> {
                 operator,
                 comments_and_newlines_between_op_and_r,
                 right,
-                calls_constructor,
             } => {
                 self.print_expr(left);
                 self.print_token(&operator, true);
-
-                // for when a new instance of a struct is being assigned to a variable
-                if *calls_constructor {
-                    self.print("new", true);
-                }
 
                 self.print_comments_and_newlines(
                     comments_and_newlines_between_op_and_r,
@@ -1030,6 +1048,14 @@ impl<'a> Printer<'a> {
 
             Expr::UnidentifiedAsLiteral { literal_token } => {
                 self.print_token(&literal_token, true);
+
+                match literal_token.token_type {
+                    TokenType::Constructor => {
+                        self.do_not_need_semicolon.push(());
+                    }
+                    _ => {}
+                }
+
             }
         }
 
@@ -1458,9 +1484,6 @@ impl<'a> Printer<'a> {
     ) {
         let mut iter = delimited_lines.lines.iter().peekable();
         while let Some(delimited_line) = iter.next() {
-            if delimited_line.is_new_struct {
-                self.print("new", true);
-            }
             self.print_expr(&delimited_line.expr);
             self.backspace();
 

@@ -83,14 +83,6 @@ impl<'a> Parser<'a> {
                     self.consume_next();
                     return self.if_statement();
                 }
-                TokenType::Function => {
-                    self.consume_next();
-                    return self.function_declaration();
-                }
-                TokenType::Delete => {
-                    self.consume_next();
-                    return self.delete_statement();
-                }
                 TokenType::Return => {
                     self.consume_next();
                     return self.return_statement();
@@ -212,7 +204,6 @@ impl<'a> Parser<'a> {
                 }
             }
 
-            let is_new_struct = self.check_next_consume(TokenType::New);
             let var_expr = self.expression()?;
 
             match var_expr.expr {
@@ -242,7 +233,6 @@ impl<'a> Parser<'a> {
             arguments.push(DelimitedLine {
                 expr: var_decl,
                 trailing_comment,
-                is_new_struct,
             });
 
             if do_break {
@@ -339,33 +329,6 @@ impl<'a> Parser<'a> {
             },
             has_semicolon,
         ))
-    }
-
-    fn function_declaration(&mut self) -> AnyResult<StmtBox<'a>> {
-        let comments_after_control_word = self.get_newlines_and_comments();
-        let expression = self.expression()?;
-        self.check_next_consume(TokenType::RightParen);
-        let comments_after_rparen = self.get_newlines_and_comments();
-        let body = self.statement()?;
-
-        let has_semicolon = self.check_next_consume(TokenType::Semicolon);
-
-        Ok(StatementWrapper::new(
-            Statement::Function {
-                comments_after_control_word,
-                function_call: expression,
-                comments_after_rparen,
-                body,
-            },
-            has_semicolon,
-        ))
-    }
-
-    fn delete_statement(&mut self) -> AnyResult<StmtBox<'a>> {
-        let expression = self.expression()?;
-
-        let has_semicolon = self.check_next_consume(TokenType::Semicolon);
-        Ok(StatementWrapper::new(Statement::Delete { expression }, has_semicolon))
     }
 
     fn switch_statement(&mut self) -> AnyResult<StmtBox<'a>> {
@@ -511,8 +474,6 @@ impl<'a> Parser<'a> {
     }
 
     fn return_statement(&mut self) -> AnyResult<StmtBox<'a>> {
-        // if returning struct
-        let is_struct = self.check_next_consume(TokenType::New);
         let expression = if self.check_next(TokenType::Semicolon) {
             None
         } else {
@@ -521,7 +482,7 @@ impl<'a> Parser<'a> {
 
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
         Ok(StatementWrapper::new(
-            Statement::Return { expression, is_struct },
+            Statement::Return { expression },
             has_semicolon,
         ))
     }
@@ -576,8 +537,52 @@ impl<'a> Parser<'a> {
         Ok(ret)
     }
 
+    fn function_declaration(&mut self) -> AnyResult<ExprBox<'a>> {
+        let comments_after_control_word = self.get_newlines_and_comments();
+        let call = self.expression()?;
+        let comments_after_rparen = self.get_newlines_and_comments();
+        let is_constructor = self.check_next_consume(TokenType::Constructor);
+
+        let expr = self.create_comment_expr_box(Expr::Function {
+            comments_after_control_word,
+            call,
+            comments_after_rparen,
+            is_constructor,
+        });
+
+        Ok(expr)
+    }
+
     fn assignment(&mut self) -> AnyResult<ExprBox<'a>> {
         let mut expr = self.ternary()?;
+
+        if let Expr::UnidentifiedAsLiteral { literal_token } = expr.expr {
+            match literal_token.token_type {
+                TokenType::Function => {
+                    expr = self.function_declaration()?;
+                }
+                TokenType::New => {
+                    let comments_before_call = self.get_newlines_and_comments();
+                    let call = self.expression()?;
+
+                    expr = self.create_comment_expr_box(Expr::New {
+                        comments_before_call,
+                        call,
+                    });
+                }
+                TokenType::Delete => {
+                    let comments_before_expression = self.get_newlines_and_comments();
+                    let expression = self.expression()?;
+
+                    expr = self.create_comment_expr_box(Expr::Delete {
+                        comments_before_expression,
+                        expression,
+                    });
+                }
+
+                _ => {}
+            }
+        }
 
         if self.can_pair {
             if let Some(token) = self.scanner.peek() {
@@ -594,8 +599,6 @@ impl<'a> Parser<'a> {
                         let operator = self.scanner.next().unwrap();
                         let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
 
-                        let calls_constructor = self.check_next_consume(TokenType::New);
-
                         let assignment_expr = self.assignment()?;
 
                         expr = self.create_expr_box_no_comment(Expr::Assign {
@@ -603,10 +606,8 @@ impl<'a> Parser<'a> {
                             operator: operator,
                             comments_and_newlines_between_op_and_r,
                             right: assignment_expr,
-                            calls_constructor,
                         });
                     }
-
                     _ => {}
                 }
             }
@@ -909,23 +910,11 @@ impl<'a> Parser<'a> {
         if self.check_next_consume(TokenType::LeftParen) {
             let comments_and_newlines_after_lparen = self.get_newlines_and_comments();
             let arguments = self.finish_call(TokenType::RightParen, TokenType::Comma)?;
-            let mut is_constructor = self.check_next_consume(TokenType::Constructor);
-
-            while let Some(token) = self.scanner.peek() {
-                match token.token_type {
-                    TokenType::Constructor => {
-                        is_constructor = true;
-                    }
-                    _ => break,
-                }
-                self.consume_next();
-            }
 
             expression = self.create_comment_expr_box(Expr::Call {
                 procedure_name: expression,
                 arguments,
                 comments_and_newlines_after_lparen,
-                is_constructor,
             });
         }
 
@@ -1085,7 +1074,6 @@ impl<'a> Parser<'a> {
                     break;
                 }
 
-                let is_new_struct = self.check_next_consume(TokenType::New);
                 let expr = self.expression()?;
                 let do_break = self.check_next_consume(delimiter_type) == false;
 
@@ -1094,7 +1082,6 @@ impl<'a> Parser<'a> {
                 arguments.push(DelimitedLine {
                     expr,
                     trailing_comment,
-                    is_new_struct,
                 });
 
                 if do_break {

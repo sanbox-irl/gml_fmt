@@ -1,5 +1,5 @@
 use super::lex_token::*;
-use super::statements::DelimitedLines;
+use super::statements::*;
 pub type ExprBox<'a> = Box<ExprBoxInterior<'a>>;
 pub type CommentsAndNewlines<'a> = Option<Vec<Token<'a>>>;
 pub type DSAccess<'a> = Vec<(CommentsAndNewlines<'a>, ExprBox<'a>)>;
@@ -16,7 +16,20 @@ pub enum Expr<'a> {
         procedure_name: ExprBox<'a>,
         comments_and_newlines_after_lparen: CommentsAndNewlines<'a>,
         arguments: DelimitedLines<'a, ExprBox<'a>>,
+    },
+    Function {
+        comments_after_control_word: CommentsAndNewlines<'a>,
+        call: ExprBox<'a>,
+        comments_after_rparen: CommentsAndNewlines<'a>,
         is_constructor: bool,
+    },
+    New {
+        comments_before_call: CommentsAndNewlines<'a>,
+        call: ExprBox<'a>,
+    },
+    Delete {
+        comments_before_expression: CommentsAndNewlines<'a>,
+        expression: ExprBox<'a>,
     },
     Binary {
         left: ExprBox<'a>,
@@ -60,7 +73,6 @@ pub enum Expr<'a> {
         operator: Token<'a>,
         comments_and_newlines_between_op_and_r: CommentsAndNewlines<'a>,
         right: ExprBox<'a>,
-        calls_constructor: bool,
     },
     Identifier {
         name: Token<'a>,

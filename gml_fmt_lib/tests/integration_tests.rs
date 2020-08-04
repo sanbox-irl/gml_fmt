@@ -143,14 +143,14 @@ fn function_var_assignment() {
     let input = "fn_name=function(arg1,arg2){
 show_debug_message(0);
 }
-fn_temp = function(arg1, arg2) {
-    show_debug_message(0);
+var fn_var=function(arg1,arg2){
+show_debug_message(0);
 }
 ";
     let format = "fn_name = function(arg1, arg2) {
     show_debug_message(0);
 }
-fn_temp = function(arg1, arg2) {
+var fn_var = function(arg1, arg2) {
     show_debug_message(0);
 }
 ";
