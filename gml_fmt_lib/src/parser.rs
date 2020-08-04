@@ -543,14 +543,23 @@ impl<'a> Parser<'a> {
         let comments_after_rparen = self.get_newlines_and_comments();
         let is_constructor = self.check_next_consume(TokenType::Constructor);
 
-        let expr = self.create_comment_expr_box(Expr::Function {
+        Ok(self.create_comment_expr_box(Expr::Function {
             comments_after_control_word,
             call,
             comments_after_rparen,
             is_constructor,
-        });
+        }))
+    }
 
-        Ok(expr)
+    fn struct_operation(&mut self, token: Token<'a>) -> AnyResult<ExprBox<'a>> {
+        let comments_before_expression = self.get_newlines_and_comments();
+        let expression = self.expression()?;
+
+        Ok(self.create_comment_expr_box(Expr::StructOperator {
+            token,
+            comments_before_expression,
+            expression,
+        }))
     }
 
     fn assignment(&mut self) -> AnyResult<ExprBox<'a>> {
@@ -561,25 +570,9 @@ impl<'a> Parser<'a> {
                 TokenType::Function => {
                     expr = self.function_declaration()?;
                 }
-                TokenType::New => {
-                    let comments_before_call = self.get_newlines_and_comments();
-                    let call = self.expression()?;
-
-                    expr = self.create_comment_expr_box(Expr::New {
-                        comments_before_call,
-                        call,
-                    });
+                TokenType::New | TokenType::Delete => {
+                    expr = self.struct_operation(literal_token)?;
                 }
-                TokenType::Delete => {
-                    let comments_before_expression = self.get_newlines_and_comments();
-                    let expression = self.expression()?;
-
-                    expr = self.create_comment_expr_box(Expr::Delete {
-                        comments_before_expression,
-                        expression,
-                    });
-                }
-
                 _ => {}
             }
         }

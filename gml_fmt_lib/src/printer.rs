@@ -750,25 +750,13 @@ impl<'a> Printer<'a> {
 
                 self.do_not_need_semicolon.push(());
             }
-
-            Expr::New {
-                comments_before_call,
-                call,
-            } => {
-                self.print("new", true);
-                self.print_comments_and_newlines(
-                    comments_before_call,
-                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
-                );
-                self.print_expr(call);
-                self.backspace_whitespace();
-            }
             
-            Expr::Delete {
+            Expr::StructOperator {
+                token,
                 comments_before_expression,
                 expression,
             } => {
-                self.print("delete", true);
+                self.print_token(token, true);
                 self.print_comments_and_newlines(
                     comments_before_expression,
                     CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
