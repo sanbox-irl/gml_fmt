@@ -1,3 +1,5 @@
+#![allow(clippy::bool_comparison)]
+
 mod config;
 mod expressions;
 mod lang_config;
@@ -80,4 +82,13 @@ pub fn run(source: &str, lang_config: &LangConfig, print_ast: Option<&mut String
             anyhow::bail!("{}", e);
         }
     }
+}
+
+pub fn run_snippet(source: &str, lang_config: Option<LangConfig>) -> AnyResult<String> {
+    let source_size = source.len();
+    let ast = Parser::new(source).build_ast()?;
+    let config = lang_config.unwrap_or_default();
+    let printer = Printer::new(source_size / 2, &config).autoformat(&ast);
+
+    Ok(printer.get_output(source_size))
 }
