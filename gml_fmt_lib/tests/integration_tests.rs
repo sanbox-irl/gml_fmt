@@ -53,9 +53,9 @@ else if (xx < (2 / 2.75)) {
 
 #[test]
 fn series_of_declarations() {
-    let input = "var function, xx, xx2, xxm1;
+    let input = "var fn, xx, xx2, xxm1;
 var x = 2, y, var q";
-    let format = "var function, xx, xx2, xxm1;
+    let format = "var fn, xx, xx2, xxm1;
 var x = 2, y, var q;
 ";
 
@@ -121,6 +121,141 @@ for (var i;;) {
 }
 ";
 
+    assert_eq!(run_test(input), format);
+}
+
+#[test]
+fn function_definition() {
+    let input = "function fn_name(arg1,arg2){
+show_debug_message(0);
+}
+";
+    let format = "function fn_name(arg1, arg2) {
+    show_debug_message(0);
+}
+";
+
+    assert_eq!(run_test(input), format);
+}
+
+#[test]
+fn function_var_assignment() {
+    let input = "fn_name=function(arg1,arg2){
+show_debug_message(0);
+}
+var fn_var=function(arg1,arg2){
+show_debug_message(0);
+}
+";
+    let format = "fn_name = function(arg1, arg2) {
+    show_debug_message(0);
+}
+var fn_var = function(arg1, arg2) {
+    show_debug_message(0);
+}
+";
+
+    assert_eq!(run_test(input), format);
+}
+
+#[test]
+fn function_constructor() {
+    let input = "function fn_name(arg1,arg2)constructor{
+fn_debug=function(arg1,arg2){
+show_debug_message(0);
+}
+}
+
+fn_var=function(arg1,arg2)constructor{
+show_debug_message(0);
+}
+";
+    let format = "function fn_name(arg1, arg2) constructor {
+    fn_debug = function(arg1, arg2) {
+        show_debug_message(0);
+    }
+}
+
+fn_var = function(arg1, arg2) constructor {
+    show_debug_message(0);
+}
+";
+
+    assert_eq!(run_test(input), format);
+}
+
+#[test]
+fn function_constructor_call() {
+    let input = "_structObj=new fn_name(0,0);
+_varObj=new fn_var(0,0);
+";
+
+    let format = "_structObj = new fn_name(0, 0);
+_varObj = new fn_var(0, 0);
+";
+    assert_eq!(run_test(input), format);
+}
+
+#[test]
+fn function_lambda() {
+    let input = "fn(arg1,function(i) { show_debug_message(0) })
+
+fn(arg1,function(i) { show_debug_message(0); show_debug_message(1); })
+
+function fn_name(arg1, arg2) constructor {
+fn(arg1,function(i) { show_debug_message(0) })
+
+fn(arg1,function(i) { show_debug_message(0); show_debug_message(1); })
+}
+";
+    let format = "fn(arg1, function(i) { show_debug_message(0) });
+
+fn(arg1, function(i) {
+    show_debug_message(0);
+    show_debug_message(1);
+});
+
+function fn_name(arg1, arg2) constructor {
+    fn(arg1, function(i) { show_debug_message(0) });
+    
+    fn(arg1, function(i) {
+        show_debug_message(0);
+        show_debug_message(1);
+    });
+}
+";
+
+    assert_eq!(run_test(input), format);
+}
+
+#[test]
+fn struct_new_argument() {
+    let input = "fn(argument,new _struct(property1,property2))";
+    let format = "fn(argument, new _struct(property1, property2));
+";
+    assert_eq!(run_test(input), format);
+}
+
+#[test]
+fn struct_new_return() {
+    let input = "fn_debug = function(arg1,arg2) {
+show_debug_message(0)
+return new _struct
+}
+";
+    let format = "fn_debug = function(arg1, arg2) {
+    show_debug_message(0);
+    return new _struct;
+}
+";
+    assert_eq!(run_test(input), format);
+}
+
+#[test]
+fn struct_delete() {
+    let input = "delete _struct";
+    let format = "delete _struct;
+";
     assert_eq!(run_test(input), format);
 }
 

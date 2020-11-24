@@ -481,7 +481,10 @@ impl<'a> Parser<'a> {
         };
 
         let has_semicolon = self.check_next_consume(TokenType::Semicolon);
-        Ok(StatementWrapper::new(Statement::Return { expression }, has_semicolon))
+        Ok(StatementWrapper::new(
+            Statement::Return { expression },
+            has_semicolon,
+        ))
     }
 
     fn break_statement(&mut self) -> AnyResult<StmtBox<'a>> {
@@ -534,8 +537,45 @@ impl<'a> Parser<'a> {
         Ok(ret)
     }
 
+    fn function_declaration(&mut self) -> AnyResult<ExprBox<'a>> {
+        let comments_after_control_word = self.get_newlines_and_comments();
+        let call = self.expression()?;
+        let comments_after_rparen = self.get_newlines_and_comments();
+        let is_constructor = self.check_next_consume(TokenType::Constructor);
+
+        Ok(self.create_comment_expr_box(Expr::Function {
+            comments_after_control_word,
+            call,
+            comments_after_rparen,
+            is_constructor,
+        }))
+    }
+
+    fn struct_operation(&mut self, token: Token<'a>) -> AnyResult<ExprBox<'a>> {
+        let comments_before_expression = self.get_newlines_and_comments();
+        let expression = self.expression()?;
+
+        Ok(self.create_comment_expr_box(Expr::StructOperator {
+            token,
+            comments_before_expression,
+            expression,
+        }))
+    }
+
     fn assignment(&mut self) -> AnyResult<ExprBox<'a>> {
         let mut expr = self.ternary()?;
+
+        if let Expr::UnidentifiedAsLiteral { literal_token } = expr.expr {
+            match literal_token.token_type {
+                TokenType::Function => {
+                    expr = self.function_declaration()?;
+                }
+                TokenType::New | TokenType::Delete => {
+                    expr = self.struct_operation(literal_token)?;
+                }
+                _ => {}
+            }
+        }
 
         if self.can_pair {
             if let Some(token) = self.scanner.peek() {
@@ -551,6 +591,7 @@ impl<'a> Parser<'a> {
                     | TokenType::ModEquals => {
                         let operator = self.scanner.next().unwrap();
                         let comments_and_newlines_between_op_and_r = self.get_newlines_and_comments();
+
                         let assignment_expr = self.assignment()?;
 
                         expr = self.create_expr_box_no_comment(Expr::Assign {
@@ -560,7 +601,6 @@ impl<'a> Parser<'a> {
                             right: assignment_expr,
                         });
                     }
-
                     _ => {}
                 }
             }
@@ -1032,7 +1072,10 @@ impl<'a> Parser<'a> {
 
                 let trailing_comment = self.get_newlines_and_comments();
 
-                arguments.push(DelimitedLine { expr, trailing_comment });
+                arguments.push(DelimitedLine {
+                    expr,
+                    trailing_comment,
+                });
 
                 if do_break {
                     end_delimiter = false;

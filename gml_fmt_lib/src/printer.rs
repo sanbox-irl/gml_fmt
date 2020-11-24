@@ -105,6 +105,7 @@ impl<'a> Printer<'a> {
                 // let mut forced_semicolon_already = false;
                 let mut indented_vars = already_started_indent;
                 let mut iter = var_decl_list.lines.iter().peekable();
+                let mut interrupt_eol_formatting = false;
                 while let Some(delimited_var) = iter.next() {
                     if let Some(var_token) = &delimited_var.expr.say_var {
                         self.print_token(&var_token, true);
@@ -140,7 +141,11 @@ impl<'a> Printer<'a> {
                         if var_decl_list.has_end_delimiter {
                             self.print(COMMA, true);
                         } else {
-                            self.print(SEMICOLON, true);
+                            interrupt_eol_formatting = self.do_not_need_semicolon.len() > 0;
+
+                            if interrupt_eol_formatting == false {
+                                self.print(SEMICOLON, true);
+                            }
                         }
                     };
 
@@ -175,7 +180,7 @@ impl<'a> Printer<'a> {
                     }
                 }
 
-                if self.on_whitespace_line() == false && self.in_a_for_loop.is_empty() {
+                if !interrupt_eol_formatting && self.on_whitespace_line() == false && self.in_a_for_loop.is_empty() {
                     self.print_newline(IndentationMove::Stay);
                     self.do_not_print_single_newline_statement = true;
                 }
@@ -284,15 +289,20 @@ impl<'a> Printer<'a> {
                 if must_indent && did_move == false {
                     self.print_newline(IndentationMove::Right);
                 }
-
                 let did_newline = did_move || must_indent;
                 if did_newline == false {
                     self.ensure_space();
                 }
 
+                // don't worry about semicolon or newline if only one statement
+                if statements.len() == 1 {
+                    self.do_not_need_semicolon.push(());
+                }
+
                 for stmt in statements {
                     self.print_statement(stmt);
-                    if did_newline {
+
+                    if did_newline & stmt.has_semicolon {
                         if self.on_whitespace_line() == false {
                             self.print_newline(IndentationMove::Stay);
                             self.do_not_print_single_newline_statement = true;
@@ -511,6 +521,7 @@ impl<'a> Printer<'a> {
 
                 if let Some(expression) = expression {
                     self.print(SPACE, false);
+                    
                     self.print_expr(expression);
                 }
                 self.print_semicolon_and_newline(stmt.has_semicolon, IndentationMove::Stay);
@@ -670,6 +681,13 @@ impl<'a> Printer<'a> {
                 comments_and_newlines_after_lparen,
                 arguments,
             } => {
+                // For variable functions
+                if let Expr::UnidentifiedAsLiteral { literal_token } = procedure_name.expr {
+                    if literal_token.token_type == TokenType::Function {
+                        self.do_not_need_semicolon.push(());
+                    }
+                }
+
                 self.print_expr(procedure_name);
                 self.backspace();
 
@@ -679,12 +697,72 @@ impl<'a> Printer<'a> {
                     CommentAndNewlinesInstruction::new_respect_users(IndentationMove::Right, LeadingNewlines::One),
                 );
 
+                // for passing lambdas as arguments
+                let mut is_function = false;
+                let mut iter = arguments.lines.iter().peekable();
+
+                while let Some(delimited_line) = iter.next() {
+                    if let Expr::Call { procedure_name, .. } = &delimited_line.expr.expr {
+                        if let Expr::UnidentifiedAsLiteral { literal_token } = procedure_name.expr {
+                            is_function = literal_token.token_type == TokenType::Function;
+                        }
+                    }
+                }
+
                 self.print_delimited_lines(arguments, COMMA, false, false);
                 self.backspace_whitespace();
+
                 if did_move {
                     self.print_newline(IndentationMove::Left);
                 }
-                self.print(RPAREN, true);
+
+                if !is_function {
+                    self.print(RPAREN, true);
+                } else {
+                    self.block_instructions.push(BlockInstruction::NO_NEWLINE_AFTER_BLOCK);
+                }
+            }
+
+            Expr::Function {
+                comments_after_control_word,
+                call,
+                comments_after_rparen,
+                is_constructor,
+            } => {
+                self.print("function", true);
+                self.print_comments_and_newlines(
+                    comments_after_control_word,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
+                );
+                self.print_expr(call);
+                if !*is_constructor {
+                    self.backspace_whitespace();
+                }
+                
+                self.print_comments_and_newlines(
+                    comments_after_rparen,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
+                );
+
+                if *is_constructor {
+                    self.print("constructor", true);
+                }
+
+                self.do_not_need_semicolon.push(());
+            }
+            
+            Expr::StructOperator {
+                token,
+                comments_before_expression,
+                expression,
+            } => {
+                self.print_token(token, true);
+                self.print_comments_and_newlines(
+                    comments_before_expression,
+                    CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::One),
+                );
+                self.print_expr(expression);
+                self.backspace_whitespace();
             }
 
             Expr::Binary {
@@ -831,6 +909,7 @@ impl<'a> Printer<'a> {
             } => {
                 self.print_expr(left);
                 self.print_token(&operator, true);
+
                 self.print_comments_and_newlines(
                     comments_and_newlines_between_op_and_r,
                     CommentAndNewlinesInstruction::new(IndentationMove::Stay, LeadingNewlines::All),
@@ -957,6 +1036,14 @@ impl<'a> Printer<'a> {
 
             Expr::UnidentifiedAsLiteral { literal_token } => {
                 self.print_token(&literal_token, true);
+
+                match literal_token.token_type {
+                    TokenType::Constructor => {
+                        self.do_not_need_semicolon.push(());
+                    }
+                    _ => {}
+                }
+
             }
         }
 
@@ -1338,6 +1425,10 @@ impl<'a> Printer<'a> {
             TokenType::Else => "else",
             TokenType::Return => "return",
             TokenType::For => "for",
+            TokenType::Function => "function",
+            TokenType::Constructor => "constructor",
+            TokenType::New => "new",
+            TokenType::Delete => "delete",
             TokenType::Repeat => "repeat",
             TokenType::While => "while",
             TokenType::With => "with",

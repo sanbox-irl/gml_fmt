@@ -17,6 +17,17 @@ pub enum Expr<'a> {
         comments_and_newlines_after_lparen: CommentsAndNewlines<'a>,
         arguments: DelimitedLines<'a, ExprBox<'a>>,
     },
+    Function {
+        comments_after_control_word: CommentsAndNewlines<'a>,
+        call: ExprBox<'a>,
+        comments_after_rparen: CommentsAndNewlines<'a>,
+        is_constructor: bool,
+    },
+    StructOperator {
+        token: Token<'a>,
+        comments_before_expression: CommentsAndNewlines<'a>,
+        expression: ExprBox<'a>,
+    },
     Binary {
         left: ExprBox<'a>,
         operator: Token<'a>,

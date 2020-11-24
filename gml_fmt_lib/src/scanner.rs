@@ -12,6 +12,10 @@ static KEYWORD_MAP: Lazy<FnvHashMap<&'static str, TokenType>> = Lazy::new(|| {
     map.insert("not", TokenType::NotAlias);
     map.insert("if", TokenType::If);
     map.insert("else", TokenType::Else);
+    map.insert("function", TokenType::Function);
+    map.insert("constructor", TokenType::Constructor);
+    map.insert("new", TokenType::New);
+    map.insert("delete", TokenType::Delete);
     map.insert("return", TokenType::Return);
     map.insert("for", TokenType::For);
     map.insert("repeat", TokenType::Repeat);
@@ -585,7 +589,12 @@ impl<'a> Scanner<'a> {
                             };
                         }
 
-                        self.column_number += (current - last_column_break) as u32;
+                        // TODO: Figure out what the bleeding hecc is going on here. Broke with function formatting.
+                        if current > last_column_break { // TODO: Find good test for this edge case.
+                            self.column_number += (current - last_column_break) as u32;
+                        } else {
+                            self.column_number = current as u32;
+                        }
                         Token::new(
                             TokenType::MultilineComment(&self.input[start..current]),
                             start_line,
@@ -940,7 +949,7 @@ testCase";
 
     #[test]
     fn lex_reserved_keywords<'a>() {
-        let input_string = "var and or if else return for repeat while do until switch case default div break enum";
+        let input_string = "var and or if else return for repeat while do until switch case default div break enum function constructor new";
 
         let scanner = Scanner::new(input_string);
         let vec: Vec<Token<'a>> = scanner.collect();
@@ -964,6 +973,9 @@ testCase";
                 Token::new(TokenType::Div, 0, 72),
                 Token::new(TokenType::Break, 0, 76),
                 Token::new(TokenType::Enum, 0, 82),
+                Token::new(TokenType::Function, 0, 87),
+                Token::new(TokenType::Constructor, 0, 96),
+                Token::new(TokenType::New, 0, 108),
             ]
         )
     }

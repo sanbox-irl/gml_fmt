@@ -1,6 +1,6 @@
 [package]
 name = "gml_fmt_lib"
-version = "1.0.1"
+version = "1.0.2"
 authors = ["Jack Spira <jjspira@gmail.com>"]
 edition = "2018"
 description = "A formatter for Gms2.2 files. This does not work with Gms2.3 files (yet)."
